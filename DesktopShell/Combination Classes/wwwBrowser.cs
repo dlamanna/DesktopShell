@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -6,14 +7,13 @@ using System.Text.RegularExpressions;
 
 namespace DesktopShell
 {
-    class Combination
+    class wwwBrowser
     {
         public string keyword;
         public string filePath;
-        public string arguments;
+        public bool defaultBrowser;
 
         //Constructors
-        public Combination() { keyword = filePath = arguments = ""; }
-        public Combination(string _keyword, string _arguments) { keyword = _keyword; arguments = _arguments; } 
+        public wwwBrowser(string _keyword, string _filePath, bool _defaultBrowser) { keyword = _keyword; filePath = _filePath; defaultBrowser = _defaultBrowser; }
     }
 }

@@ -9,9 +9,6 @@ namespace DesktopShell
         /// Required designer variable.
         /// </summary>
         private System.ComponentModel.IContainer components = null;
-        private static System.Windows.Forms.Screen[] screens = System.Windows.Forms.Screen.AllScreens;
-        private int widthAdder = 0;
-        private int heightDiff = Screen.PrimaryScreen.Bounds.Height-screens[Screen.AllScreens.Length-1].Bounds.Height;
 
         /// <summary>
         /// Clean up any resources being used.
@@ -91,6 +88,7 @@ namespace DesktopShell
             this.Controls.Add(this.textBox1);
             this.Font = new System.Drawing.Font("Microsoft Sans Serif", 11.25F);
             this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.None;
+            this.FormClosed += Shell_FormClosed;
             this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
             this.MaximumSize = new System.Drawing.Size(373, 18);
             this.MinimumSize = new System.Drawing.Size(373, 18);
@@ -101,6 +99,7 @@ namespace DesktopShell
             this.Text = "DesktopShell";
             this.TopMost = true;
             this.Load += new System.EventHandler(this.Shell_Load);
+            //this.FormClosed += new System.Windows.Forms.FormClosedEventHandler(this.Shell_Close);
             this.ResumeLayout(false);
             this.PerformLayout();
 
