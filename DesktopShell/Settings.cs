@@ -19,7 +19,7 @@ namespace DesktopShell.Properties {
         public static bool hourlyChimeChecked = false;
         public static bool checkVersion = false;
         public static System.Drawing.Point positionSave;
-
+        
         public Settings() {
             // // To add event handlers for saving and changing settings, uncomment the lines below:
             //
