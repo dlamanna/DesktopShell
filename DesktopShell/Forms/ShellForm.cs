@@ -43,7 +43,8 @@ namespace DesktopShell
         #region Hardcoded regex section
         private Regex passwd = new Regex("(^pass(wd)?){1}|(^password){1}|(^pw){1}");
         private Regex rescan = new Regex("(^rescan$){1}");
-        private Regex roll = new Regex("(^random$){1}|(^roll$){1}");
+        private Regex roll = new Regex("(^roll$){1}");
+        private Regex randomGame = new Regex("(^randomgame$){1}");
         private Regex shutdown = new Regex("^(timed )?(shutdown){1}$");
         private Regex disable = new Regex("(^disable$){1}|(^cancel$){1}|(^stop$){1}");
         private Regex options = new Regex("(^config$){1}|(^options$){1}");
@@ -170,6 +171,15 @@ namespace DesktopShell
                 textBox1.Text = lastCMD[(lastCMD.Count)-upCounter].ToString();
                 textBox1.SelectionStart = textBox1.Text.Length;
             }
+            //Next command - Down-Key
+            /*else if (e.KeyCode == Keys.Down)
+            {
+                upCounter--;
+                //if (((lastCMD.Count) - upCounter) < 0) upCounter = 1;
+
+                textBox1.Text = lastCMD[(lastCMD.Count) - upCounter].ToString();
+                textBox1.SelectionStart = textBox1.Text.Length;
+            }*/
             //If {Enter} is pressed
             else if (e.KeyCode == Keys.Enter)
             {
@@ -214,6 +224,18 @@ namespace DesktopShell
                     {
                         if (populateCombos()) notify("Rescan Regex Rescan Successfull");
                         populateWebSites();
+                    }
+                    //RandomGame function
+                    else if(randomGame.IsMatch(splitWords[0]))
+                    {
+                        string gameShortcutPath = @"C:\Users\phuzE\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\Games\";
+                        string[] fileEntries = Directory.GetFiles(gameShortcutPath);
+
+                        Random random = new Random();
+                        int randomNumber = random.Next(0,fileEntries.Length);
+
+                        GlobalVar.toolTip("RandomGame", Path.GetFileNameWithoutExtension(fileEntries[randomNumber]));
+                        GlobalVar.Run(fileEntries[randomNumber]);
                     }
                     //Timed shutdown function
                     else if (shutdown.IsMatch(splitWords[0]))

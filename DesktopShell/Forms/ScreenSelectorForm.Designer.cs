@@ -53,6 +53,7 @@
             this.Controls.Add(this.borderLabel);
             this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.None;
             this.Load += ScreenSelectorForm_Load;
+            this.Opacity = 0.7D;
             //this.MouseLeave += new System.EventHandler(this.ScreenSelectorForm_MouseLeave);
             this.Name = "ScreenSelectorForm";
             this.Text = "ScreenSelectorForm";
