@@ -56,6 +56,7 @@
             this.Opacity = 0.7D;
             //this.MouseLeave += new System.EventHandler(this.ScreenSelectorForm_MouseLeave);
             this.Name = "ScreenSelectorForm";
+            this.ShowInTaskbar = false;
             this.Text = "ScreenSelectorForm";
             this.TopMost = true;
             this.TransparencyKey = System.Drawing.Color.White;

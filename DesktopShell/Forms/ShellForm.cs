@@ -1,14 +1,8 @@
 ﻿using System;
 using System.Collections;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Data;
 using System.Diagnostics;
 using System.Drawing;
 using System.IO;
-using System.Linq;
-using System.Runtime.InteropServices;
-using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Windows.Forms;
@@ -40,6 +34,23 @@ namespace DesktopShell
         private int shortcutCounter = 0;
         #endregion
 
+        #region Screen Monitor WNDProc
+        protected override void WndProc(ref Message m) {
+            const int WM_DISPLAYCHANGE = 0x007e;
+
+            // Listen for operating system messages. 
+            switch (m.Msg) {
+                case WM_DISPLAYCHANGE:
+                    // reset position
+                    GlobalVar.log("WM_DISPLAYCHANGE Detected: Should be resetting position now");
+                    //InitializeComponent();
+                    //GlobalVar.initDropDownRects(this);
+                    break;
+            }
+            base.WndProc(ref m);
+        }
+        #endregion
+
         #region Hardcoded regex section
         private Regex passwd = new Regex("(^pass(wd)?){1}|(^password){1}|(^pw){1}");
         private Regex rescan = new Regex("(^rescan$){1}");
@@ -51,17 +62,20 @@ namespace DesktopShell
         private Regex games = new Regex("(^game(s)? ){1}");
         private Regex showsRaw = new Regex("(^show){1}(s)?( ){1}(raw )?");
         private Regex musicSearch = new Regex("(^music ){1}");
-        private Regex pr0List = new Regex("(^pr0n ){1}");
         private Regex movieSearch = new Regex("(^movie(s)? ){1}");
         #endregion
 
         #region Startup Constructor Function
         public Shell()
         {
+            GlobalVar.resetLog();
             Properties.Settings.scanSettings();
             InitializeComponent();
 
-            //Timer Instantiations
+            // Initialize DropDown Rects
+            GlobalVar.initDropDownRects(this);
+
+            // Timer Instantiations
             GlobalVar.hourlyChime = new System.Windows.Forms.Timer();
             GlobalVar.hourlyChime.Interval = 1000;
             GlobalVar.hourlyChime.Tick += delegate { TimerTick(EventArgs.Empty); };
@@ -222,7 +236,7 @@ namespace DesktopShell
                     //RescanRegex function
                     else if (rescan.IsMatch(splitWords[0]))
                     {
-                        if (populateCombos()) notify("Rescan Regex Rescan Successfull");
+                        if (populateCombos()) notify("Rescan Regex Rescan Successful");
                         populateWebSites();
                     }
                     //RandomGame function
@@ -336,12 +350,6 @@ namespace DesktopShell
                         }
                         else notify("Error Couldn't find music: " + rawSearch);
                     }
-                    //pr0ListCreator
-                    else if (pr0List.IsMatch(originalCMD))
-                    {
-                        string rawSearch = pr0List.Replace(originalCMD, "");
-                        GlobalVar.Run("D:\\Program Files (x86)\\pr0ListCreator\\pr0ListCreator.exe", rawSearch);
-                    }
                     //Movie Searcher
                     else if (movieSearch.IsMatch(originalCMD))
                     {
@@ -439,12 +447,15 @@ namespace DesktopShell
         public void fadeTimerTick(object sender, EventArgs e, int direction)
         {
             int yAmt;
-            if (direction == 1) yAmt = GlobalVar.topBound-21;
-            else yAmt = GlobalVar.topBound-1;
+            if (direction == 1)
+                yAmt = GlobalVar.topBound-21;
+            else
+                yAmt = GlobalVar.topBound-1;
 
             if (fadeTickAmount <= 20 && !hasFaded)
             {
                 this.SetDesktopLocation(GlobalVar.leftBound, yAmt += (direction * fadeTickAmount));
+
                 fadeTickAmount++;
                 isFading = true;
             }
@@ -471,23 +482,42 @@ namespace DesktopShell
             //coordinate checking and collapsing
             Point cursorPos = Cursor.Position;
             if (isHidden)
-            {
-                if ((cursorPos.X > GlobalVar.leftBound && cursorPos.X < GlobalVar.rightBound) && (cursorPos.Y < GlobalVar.bottomBound) && (!isFading))
-                {
-                    Console.WriteLine("Should be activating window now.");
-                    //toggle hidden status
-                    isHidden = false;
-                    //make window foreground
-                    this.TopMost = true;
-                    //move window down 20 pixels
-                    fadeAway(1);
-                }
+            {   
+               foreach (Rectangle r in GlobalVar.dropDownRects)
+               {
+                    if ((cursorPos.X > r.Left && cursorPos.X < r.Right) && (cursorPos.Y < r.Bottom) && (!isFading))
+                    {
+                        GlobalVar.log("^^^ Should be activating window now.");
+                        //toggle hidden status
+                        isHidden = false;
+                        //make window foreground
+                        this.TopMost = true;
+                        GlobalVar.topBound = r.Top - this.ClientSize.Height;
+                        GlobalVar.leftBound = r.Left;
+                        GlobalVar.rightBound = r.Right;
+                        GlobalVar.bottomBound = r.Top;/**/
+                        //move window down 20 pixels
+                        fadeAway(1);
+                    }
+               }
             }
             else
             {
-                //if window is inactive and mouse is not in coords x(2705-3055), y(121-140)
-                if (((cursorPos.X < GlobalVar.leftBound || cursorPos.X > GlobalVar.rightBound) || (cursorPos.Y > GlobalVar.bottomBound)) && (!isFading) && (!fadeBool))
+                Boolean shouldHide = true;
+                foreach (Rectangle r in GlobalVar.dropDownRects)
                 {
+                    if (((cursorPos.X < r.Left || cursorPos.X > r.Right) || (cursorPos.Y > r.Bottom)) && (!isFading) && (!fadeBool))
+                        continue;
+                    else
+                    {
+                        shouldHide = false;
+                        break;
+                    }
+                }
+
+                if (shouldHide)
+                {
+                    GlobalVar.log("!!! Should be hiding window now.");
                     //toggle hidden status
                     isHidden = true;
                     //move window position up 20 pixels
@@ -529,7 +559,7 @@ namespace DesktopShell
             /*widthAdder = GlobalVar.calculateWidth();
 
             this.Location = new System.Drawing.Point(widthAdder - (this.MaximumSize.Width / 2), 1 + heightDiff);
-            Console.WriteLine("Top bound: " + heightDiff);
+            GlobalVar.log("!!! Top bound: " + heightDiff);
             GlobalVar.topBound = heightDiff;
             GlobalVar.leftBound = widthAdder - (this.MaximumSize.Width / 2);
             GlobalVar.rightBound = widthAdder + (this.MaximumSize.Width / 2);

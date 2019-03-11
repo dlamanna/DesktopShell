@@ -2,12 +2,16 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Diagnostics;
+using System.Drawing;
 using System.IO;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Security.Permissions;
 using System.Text;
 using System.Text.RegularExpressions;
+using System.Threading;
 using System.Windows.Forms;
 
 namespace DesktopShell
@@ -20,7 +24,9 @@ namespace DesktopShell
         public static ConfigForm configInstance = null;
         public static ChoiceForm choiceInstance = null;
         public static ScreenSelectorForm screenSelectorInstance = null;
+        public static ColorWheel colorWheelInstance = null;
         public static ArrayList fileChoices = new ArrayList();
+        public static ArrayList dropDownRects = new ArrayList();
         public static string searchType = "";
 
         // FilePath Section
@@ -37,6 +43,13 @@ namespace DesktopShell
         public static int rightBound;
         public static int bottomBound;
         public static int topBound;
+
+        private static IntPtr HWND_TOPMOST = new IntPtr(-1);
+        private static uint SWP_NOSIZE = 0x0001;
+        private static uint SWP_NOZORDER = 0x0004;
+
+        [DllImport("user32.dll", SetLastError = true)]
+        public static extern bool SetWindowPos(IntPtr hWnd, IntPtr hWndInsertAfter, int X, int Y, int W, int H, uint uFlags);
 
         // Global Functions
         public static string GetSetting(int line)
@@ -58,15 +71,80 @@ namespace DesktopShell
                 File.WriteAllLines("settings.ini", tempLines);
             }
         }
-        public static void Run(string path, string arguments)
-        {
-            try { Process.Start(path, arguments); }
-            catch { Process.Start("Bin\\ToolTipper.exe","Error " + path); }          
+        public static void Run(string path, string arguments) {     
+            Process p = new Process();
+            try {      
+                p.StartInfo.Arguments = arguments;
+                p.StartInfo.FileName = path;
+                p.Start();
+            }
+            catch { Process.Start("Bin\\ToolTipper.exe","Error " + path); }
+
+
+            Point curPos = Cursor.Position;
+            Screen curScreen = Screen.FromPoint(curPos);
+
+            // temp hack for now, fix later
+            if (curScreen.Bounds.Width <= 1025)
+            {
+                int numIncrements = 0;
+                int numSecondsUntilTimeout = 10;
+                int increment = 50;
+                int numMaxIncrements = ((numSecondsUntilTimeout * 1000) / increment);
+                bool timeout = false;
+                do
+                {
+                    p.Refresh();
+                    Thread.Sleep(increment);
+                    numIncrements++;
+
+                    if (numIncrements == numMaxIncrements)
+                    {
+                        GlobalVar.log("### Timeout getting process handle to move screens");
+                        timeout = true;
+                    }
+                    else if (p.MainWindowHandle != (IntPtr)0)
+                        GlobalVar.log("&&& Moved process in: " + (increment * numIncrements) + "ms");
+                } while (numIncrements < numMaxIncrements && p.MainWindowHandle == (IntPtr)0);
+
+                if (!timeout)
+                {
+                    try {
+                        IntPtr hWnd = p.MainWindowHandle;
+                        if (!SetWindowPos(hWnd, (IntPtr)null, curScreen.WorkingArea.Left, curScreen.WorkingArea.Top, 0, 0, SWP_NOSIZE | SWP_NOZORDER))
+                        {
+                            throw new Win32Exception();
+                        }
+                    }
+                    catch { /*Process.Start("Bin\\ToolTipper.exe", "Error " + path);*/ }
+                }
+            }
         }
         public static void Run(string path)
         {
-            try { Process.Start(path); }
-            catch { Process.Start("Bin\\ToolTipper.exe", "Error " + path); }
+            Run(path, "");
+            /*try { Process.Start(path); }
+            catch { Process.Start("Bin\\ToolTipper.exe", "Error " + path); }*/
+        }
+        public static void initDropDownRects(object sender)
+        {
+            dropDownRects.Clear();
+            for (int i = 0; i < Screen.AllScreens.Length; i++)
+            {
+                if (Properties.Settings.multiscreenEnabled[i])
+                {
+                    Screen s = Screen.AllScreens[i];
+                    Size shellSize = ((Shell)sender).ClientSize;
+                    int pointX = s.WorkingArea.Left + ((s.WorkingArea.Width / 2) - shellSize.Width / 2);
+                    int pointY = s.WorkingArea.Top + shellSize.Height;
+                    Point rectPoint = new Point(pointX, pointY);
+
+                    Rectangle tempRect = new Rectangle(rectPoint, shellSize);
+                    dropDownRects.Add(tempRect);
+                }
+                else
+                    continue;
+            }
         }
         public static Label[] populateLabels()
         {
@@ -107,7 +185,7 @@ namespace DesktopShell
             }
 
             obj.Location = new System.Drawing.Point(widthAdder - (obj.Size.Width / 2), 1 + heightDiff);
-            Console.WriteLine("Top bound: " + heightDiff);
+            //log("!!! Top bound: " + heightDiff);
         }
         public static void setCentered(Screen screen, Form obj)
         {
@@ -131,7 +209,7 @@ namespace DesktopShell
             }
 
             obj.Location = new System.Drawing.Point(widthAdder, 1 + heightDiff - 20);
-            Console.WriteLine("Top bound: " + heightDiff);
+            //log("!!! Top bound: " + heightDiff);
             //GlobalVar.toolTip("setCentered", "Setting Location: " + obj.Location + ", Right-Left = " + Math.Abs(screen.Bounds.Right) + " - " + Math.Abs(screen.Bounds.Left) );
         }
         public static void toolTip(String title, String body)
@@ -160,9 +238,22 @@ namespace DesktopShell
                 else widthAdder += s.Bounds.Width;
             }
 
-            Console.WriteLine("WidthAdder: " + widthAdder);
+            log("!!! WidthAdder: " + widthAdder);
 
             return widthAdder;
+        }
+        public static void log(String logOutput)
+        {
+            String logPath = "DesktopShell.log";
+            using (FileStream fs = new FileStream(logPath, FileMode.Append, FileAccess.Write, FileShare.Read))
+            using (StreamWriter w = new StreamWriter(fs))
+            {
+                w.WriteLine("{0}:\t{1}", DateTime.Now.ToString("HH:mm:ss.fff"), logOutput);
+            }
+        }
+        public static void resetLog()
+        {
+            using (File.Create("DesktopShell.log")) { };
         }
     }
 }

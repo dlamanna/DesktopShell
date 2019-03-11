@@ -83,6 +83,7 @@
             this.MinimizeBox = false;
             this.Name = "ChoiceForm";
             this.ShowIcon = false;
+            this.ShowInTaskbar = false;
             this.Text = "ChoiceForm";
             this.TopMost = true;
             this.Load += new System.EventHandler(this.ChoiceForm_Load);

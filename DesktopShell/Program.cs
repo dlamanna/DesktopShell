@@ -19,7 +19,21 @@ namespace DesktopShell
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
 
-            Application.Run(GlobalVar.shellInstance = new Shell());
+            //Scan through running processes to see if there's already an instance
+            Boolean isRunning = false;
+            Process[] processList = Process.GetProcessesByName("DesktopShell");
+            if(processList.Length > 1)
+            {
+                foreach(Process p in processList)
+                {
+                    Console.WriteLine("Process Found: " + p.ProcessName + "\t{" + p.Id + "}");
+                }
+                Process.Start("Bin\\ToolTipper.exe", "DesktopShell already running!");
+                isRunning = true;
+            }
+
+            if(!isRunning)
+                Application.Run(GlobalVar.shellInstance = new Shell());
         }
     }
 }

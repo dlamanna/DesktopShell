@@ -28,22 +28,30 @@
         /// </summary>
         private void InitializeComponent()
         {
+            System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(ConfigForm));
             this.interfaceBox = new System.Windows.Forms.GroupBox();
+            this.BackColorExample = new System.Windows.Forms.Label();
+            this.BackColorWheel = new System.Windows.Forms.Label();
+            this.ForeColorExample = new System.Windows.Forms.Label();
+            this.ForeColorWheel = new System.Windows.Forms.Label();
             this.screenSelectorLabel = new System.Windows.Forms.Label();
             this.backgroundColorLabel = new System.Windows.Forms.Label();
             this.textColorLabel = new System.Windows.Forms.Label();
             this.backgroundColorInputBox = new System.Windows.Forms.TextBox();
             this.textColorInputBox = new System.Windows.Forms.TextBox();
             this.functionalityBox = new System.Windows.Forms.GroupBox();
+            //this.multiScreenCheckbox = new System.Windows.Forms.CheckBox();
             this.hourlyChimeCheckbox = new System.Windows.Forms.CheckBox();
-            this.screenSelectorButton = new System.Windows.Forms.Button();
             this.interfaceBox.SuspendLayout();
             this.functionalityBox.SuspendLayout();
             this.SuspendLayout();
             // 
             // interfaceBox
             // 
-            this.interfaceBox.Controls.Add(this.screenSelectorButton);
+            this.interfaceBox.Controls.Add(this.BackColorExample);
+            this.interfaceBox.Controls.Add(this.BackColorWheel);
+            this.interfaceBox.Controls.Add(this.ForeColorExample);
+            this.interfaceBox.Controls.Add(this.ForeColorWheel);
             this.interfaceBox.Controls.Add(this.screenSelectorLabel);
             this.interfaceBox.Controls.Add(this.backgroundColorLabel);
             this.interfaceBox.Controls.Add(this.textColorLabel);
@@ -56,14 +64,46 @@
             this.interfaceBox.TabStop = false;
             this.interfaceBox.Text = "Interface";
             // 
+            // BackColorExample
+            // 
+            this.BackColorExample.BackColor = System.Drawing.Color.Black;
+            this.BackColorExample.Location = new System.Drawing.Point(281, 50);
+            this.BackColorExample.Name = "BackColorExample";
+            this.BackColorExample.Size = new System.Drawing.Size(18, 18);
+            this.BackColorExample.TabIndex = 10;
+            // 
+            // BackColorWheel
+            // 
+            this.BackColorWheel.Image = ((System.Drawing.Image)(resources.GetObject("BackColorWheel.Image")));
+            this.BackColorWheel.Location = new System.Drawing.Point(256, 50);
+            this.BackColorWheel.Name = "BackColorWheel";
+            this.BackColorWheel.Size = new System.Drawing.Size(20, 20);
+            this.BackColorWheel.TabIndex = 9;
+            // 
+            // ForeColorExample
+            // 
+            this.ForeColorExample.BackColor = System.Drawing.Color.Lime;
+            this.ForeColorExample.Location = new System.Drawing.Point(281, 24);
+            this.ForeColorExample.Name = "ForeColorExample";
+            this.ForeColorExample.Size = new System.Drawing.Size(18, 18);
+            this.ForeColorExample.TabIndex = 8;
+            // 
+            // ForeColorWheel
+            // 
+            this.ForeColorWheel.Image = ((System.Drawing.Image)(resources.GetObject("ForeColorWheel.Image")));
+            this.ForeColorWheel.Location = new System.Drawing.Point(256, 24);
+            this.ForeColorWheel.Name = "ForeColorWheel";
+            this.ForeColorWheel.Size = new System.Drawing.Size(20, 20);
+            this.ForeColorWheel.TabIndex = 7;
+            // 
             // screenSelectorLabel
             // 
             this.screenSelectorLabel.AutoSize = true;
             this.screenSelectorLabel.Location = new System.Drawing.Point(5, 79);
             this.screenSelectorLabel.Name = "screenSelectorLabel";
-            this.screenSelectorLabel.Size = new System.Drawing.Size(77, 13);
+            this.screenSelectorLabel.Size = new System.Drawing.Size(49, 13);
             this.screenSelectorLabel.TabIndex = 4;
-            this.screenSelectorLabel.Text = "Select Screen:";
+            this.screenSelectorLabel.Text = "Screens:";
             // 
             // backgroundColorLabel
             // 
@@ -85,22 +125,23 @@
             // 
             // backgroundColorInputBox
             // 
-            this.backgroundColorInputBox.Location = new System.Drawing.Point(136, 50);
+            this.backgroundColorInputBox.Location = new System.Drawing.Point(130, 50);
             this.backgroundColorInputBox.Name = "backgroundColorInputBox";
-            this.backgroundColorInputBox.Size = new System.Drawing.Size(152, 20);
+            this.backgroundColorInputBox.Size = new System.Drawing.Size(121, 20);
             this.backgroundColorInputBox.TabIndex = 0;
             this.backgroundColorInputBox.KeyDown += new System.Windows.Forms.KeyEventHandler(this.checkKeys_backgroundColor);
             // 
             // textColorInputBox
             // 
-            this.textColorInputBox.Location = new System.Drawing.Point(136, 24);
+            this.textColorInputBox.Location = new System.Drawing.Point(130, 24);
             this.textColorInputBox.Name = "textColorInputBox";
-            this.textColorInputBox.Size = new System.Drawing.Size(152, 20);
+            this.textColorInputBox.Size = new System.Drawing.Size(121, 20);
             this.textColorInputBox.TabIndex = 1;
             this.textColorInputBox.KeyDown += new System.Windows.Forms.KeyEventHandler(this.checkKeys_textColor);
             // 
             // functionalityBox
             // 
+            //this.functionalityBox.Controls.Add(this.multiScreenCheckbox);
             this.functionalityBox.Controls.Add(this.hourlyChimeCheckbox);
             this.functionalityBox.Location = new System.Drawing.Point(12, 116);
             this.functionalityBox.Name = "functionalityBox";
@@ -108,6 +149,16 @@
             this.functionalityBox.TabIndex = 1;
             this.functionalityBox.TabStop = false;
             this.functionalityBox.Text = "Functionality";
+            // 
+            // multiScreenCheckbox
+            // 
+            /*this.multiScreenCheckbox.AutoSize = true;
+            this.multiScreenCheckbox.Location = new System.Drawing.Point(158, 33);
+            this.multiScreenCheckbox.Name = "multiScreenCheckbox";
+            this.multiScreenCheckbox.Size = new System.Drawing.Size(85, 17);
+            this.multiScreenCheckbox.TabIndex = 1;
+            this.multiScreenCheckbox.Text = "Multi-Screen";
+            this.multiScreenCheckbox.UseVisualStyleBackColor = true;*/
             // 
             // hourlyChimeCheckbox
             // 
@@ -120,16 +171,6 @@
             this.hourlyChimeCheckbox.UseVisualStyleBackColor = true;
             this.hourlyChimeCheckbox.CheckedChanged += new System.EventHandler(this.hourlyChimeCheckbox_CheckedChanged);
             // 
-            // screenSelectorButton
-            //
-            this.screenSelectorButton.Click += screenSelectorButton_Click;
-            this.screenSelectorButton.Location = new System.Drawing.Point(136, 76);
-            this.screenSelectorButton.Name = "screenSelectorButton";
-            this.screenSelectorButton.Size = new System.Drawing.Size(152, 20);
-            this.screenSelectorButton.TabIndex = 3;
-            this.screenSelectorButton.Text = "Click To Select";
-            this.screenSelectorButton.UseVisualStyleBackColor = true;
-            // 
             // ConfigForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
@@ -137,8 +178,8 @@
             this.ClientSize = new System.Drawing.Size(330, 213);
             this.Controls.Add(this.functionalityBox);
             this.Controls.Add(this.interfaceBox);
-            this.FormClosed += ConfigForm_FormClosed;
             this.Name = "ConfigForm";
+            this.ShowInTaskbar = false;
             this.Text = "Options";
             this.Load += new System.EventHandler(this.ConfigForm_Load);
             this.interfaceBox.ResumeLayout(false);
@@ -159,6 +200,11 @@
         private System.Windows.Forms.TextBox textColorInputBox;
         private System.Windows.Forms.CheckBox hourlyChimeCheckbox;
         private System.Windows.Forms.Label screenSelectorLabel;
-        private System.Windows.Forms.Button screenSelectorButton;
+        //private System.Windows.Forms.Button screenSelectorButton;
+        private System.Windows.Forms.Label ForeColorWheel;
+        private System.Windows.Forms.Label ForeColorExample;
+        private System.Windows.Forms.Label BackColorWheel;
+        private System.Windows.Forms.Label BackColorExample;
+        //private System.Windows.Forms.CheckBox multiScreenCheckbox;
     }
 }
