@@ -12,7 +12,7 @@ namespace DesktopShell
     public partial class Shell : Form
     {
         #region Declarations
-        private System.Collections.ArrayList lastCMD = new System.Collections.ArrayList();
+        private ArrayList lastCMD = new ArrayList();
         private System.Windows.Forms.Timer hideTimer;
         private System.Windows.Forms.Timer fadeTimer;
         private Process proc = new Process();
@@ -179,11 +179,14 @@ namespace DesktopShell
             //Last command - Up-Key
             if (e.KeyCode == Keys.Up)
             {
-                upCounter++;
-                if (((lastCMD.Count) - upCounter) < 0) upCounter = 1;
+                if (lastCMD.Count != 0) {
+                    upCounter++;
+                    if (((lastCMD.Count) - upCounter) < 0) upCounter = 1;
 
-                textBox1.Text = lastCMD[(lastCMD.Count)-upCounter].ToString();
-                textBox1.SelectionStart = textBox1.Text.Length;
+                    textBox1.Text = lastCMD[(lastCMD.Count) - upCounter].ToString();
+                    textBox1.SelectionStart = textBox1.Text.Length;
+                    textBox1.SelectionLength = 0;
+                }
             }
             //Next command - Down-Key
             /*else if (e.KeyCode == Keys.Down)
