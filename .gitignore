@@ -149,3 +149,8 @@ $RECYCLE.BIN/
 
 # Mac crap
 .DS_Store
+/DesktopShell/_copyPath.txt
+/DesktopShell/_PathCopier.exe
+/sloppy.exe.lnk
+/.vs/DesktopShell/DesignTimeBuild/.dtbcache
+/.vs/DesktopShell/v15/Server/sqlite3/db.lock
