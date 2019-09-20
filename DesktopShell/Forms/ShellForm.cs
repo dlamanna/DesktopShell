@@ -230,206 +230,236 @@ namespace DesktopShell
                 //Hardcoded Functions
                 if (!regexHit)
                 {
-                    //PasswordTabula
-                    if (passwd.IsMatch(splitWords[0]))
-                    {
-                        if (splitWords.Length == 1) GlobalVar.Run("Bin\\PasswordTabula.exe");
-                        else GlobalVar.Run("Bin\\PasswordTabula.exe", splitWords[1]);
-                    }
-                    //RescanRegex function
-                    else if (rescan.IsMatch(splitWords[0]))
-                    {
-                        if (populateCombos()) notify("Rescan Regex Rescan Successful");
-                        populateWebSites();
-                    }
-                    //RandomGame function
-                    else if(randomGame.IsMatch(splitWords[0]))
-                    {
-                        string gameShortcutPath = @"C:\Users\phuzE\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\Games\";
-                        string[] fileEntries = Directory.GetFiles(gameShortcutPath);
+                    hardCodedCombos(originalCMD,splitWords);
+                }
+            }
+        }
 
-                        Random random = new Random();
-                        int randomNumber = random.Next(0,fileEntries.Length);
+        private void hardCodedCombos(string originalCMD, string[] splitWords)
+        {
+            //PasswordTabula
+            if (passwd.IsMatch(splitWords[0]))
+            {
+                if (splitWords.Length == 1) GlobalVar.Run("Bin\\PasswordTabula.exe");
+                else GlobalVar.Run("Bin\\PasswordTabula.exe", splitWords[1]);
+            }
+            //RescanRegex function
+            else if (rescan.IsMatch(splitWords[0]))
+            {
+                if (populateCombos()) notify("Rescan Regex Rescan Successful");
+                populateWebSites();
+            }
+            //RandomGame function
+            else if (randomGame.IsMatch(splitWords[0]))
+            {
+                string gameShortcutPath = @"C:\ProgramData\Microsoft\Windows\Start Menu\Programs\Games\";
+                string[] fileEntries = Directory.GetFiles(gameShortcutPath);
 
-                        GlobalVar.toolTip("RandomGame", Path.GetFileNameWithoutExtension(fileEntries[randomNumber]));
-                        GlobalVar.Run(fileEntries[randomNumber]);
-                    }
-                    //Timed shutdown function
-                    else if (shutdown.IsMatch(splitWords[0]))
-                    {
-                        if (splitWords.Length == 1)
-                        {
-                            GlobalVar.Run("Bin\\Timed Shutdown.exe");
-                        }
-                        else if (splitWords.Length > 1)
-                        {
-                            Regex fourdigit = new Regex("^([0-9]){4}$");//|^([0-9]){1-2}(:)?([0-9]){1-2}");
-                            Regex threedigit = new Regex("^([0-9]){3}$");
-                            string timedShutdownArgs = "-trigger clock ";
+                Random random = new Random();
+                int randomNumber = random.Next(0, fileEntries.Length);
 
-                            if (fourdigit.IsMatch(splitWords[1]))
-                            {
-                                timedShutdownArgs += splitWords[1];
-                                timedShutdownArgs += "00";
-                            }
-                            else if (threedigit.IsMatch(splitWords[1]))
-                            {
-                                timedShutdownArgs += "0";
-                                timedShutdownArgs += splitWords[1];
-                                timedShutdownArgs += "00";
-                            }
-                            else
-                            {
-                                timedShutdownArgs += splitWords[1];
-                            }
-                            GlobalVar.Run("Bin\\Timed Shutdown.exe", timedShutdownArgs);
-                            notify("Shutdown Shutdown Scheduled: " + splitWords[1]);
-                        }
-                    }
-                    //Roll function
-                    else if (roll.IsMatch(splitWords[0]))
-                    {
-                        Random randNum = new Random();
-                        int num = 0;
-                        if (splitWords.Length == 2) num = randNum.Next(1, (int)Convert.ToDecimal(splitWords[1]));
-                        else if (splitWords.Length == 3) num = randNum.Next((int)Convert.ToDecimal(splitWords[1]), (int)Convert.ToDecimal(splitWords[2]));
-                        else num = randNum.Next(1, 100);
+                GlobalVar.toolTip("RandomGame", Path.GetFileNameWithoutExtension(fileEntries[randomNumber]));
+                GlobalVar.Run(fileEntries[randomNumber]);
+            }
+            //Timed shutdown function
+            else if (shutdown.IsMatch(splitWords[0]))
+            {
+                timedShutdown(splitWords);
+            }
+            //Roll function
+            else if (roll.IsMatch(splitWords[0]))
+            {
+                Random randNum = new Random();
+                int num = 0;
+                if (splitWords.Length == 2) num = randNum.Next(1, (int)Convert.ToDecimal(splitWords[1]));
+                else if (splitWords.Length == 3) num = randNum.Next((int)Convert.ToDecimal(splitWords[1]), (int)Convert.ToDecimal(splitWords[2]));
+                else num = randNum.Next(1, 100);
 
-                        notify("Roll Randomed: " + Convert.ToString(num));
-                    }
-                    //Options
-                    else if (options.IsMatch(splitWords[0]))
-                    {
-                        System.Threading.Thread t = new System.Threading.Thread(new System.Threading.ThreadStart(ConfigProc));
-                        t.Start();
-                    }
-                    //Shows Raw Input Function
-                    else if (showsRaw.IsMatch(originalCMD))
-                    {
-                        string rawSearch = showsRaw.Replace(originalCMD, "");
-                        GlobalVar.Run("Bin\\showListCreator.exe", rawSearch);
-                    }
-                    //Game Shortcut Searcher
-                    else if (games.IsMatch(originalCMD))
-                    {
-                        string rawSearch = games.Replace(originalCMD, "");
-                        GlobalVar.fileChoices.Clear();
-                        DirectoryInfo dir = new DirectoryInfo(Properties.Settings.gamesDirectory);
-                        foreach (FileInfo f in dir.GetFiles())
-                        {
-                            if ((f.Name.ToLower()).IndexOf(rawSearch) != -1)
-                            {
-                                GlobalVar.fileChoices.Add(f);
-                            }
-                        }
+                notify("Roll Randomed: " + Convert.ToString(num));
+            }
+            //Options
+            else if (options.IsMatch(splitWords[0]))
+            {
+                System.Threading.Thread t = new System.Threading.Thread(new System.Threading.ThreadStart(ConfigProc));
+                t.Start();
+            }
+            //Shows Raw Input Function
+            else if (showsRaw.IsMatch(originalCMD))
+            {
+                string rawSearch = showsRaw.Replace(originalCMD, "");
+                GlobalVar.Run("Bin\\showListCreator.exe", rawSearch);
+            }
+            //Game Shortcut Searcher
+            else if (games.IsMatch(originalCMD))
+            {
+                openRandomGame(originalCMD);
+            }
+            //Music Searcher
+            else if (musicSearch.IsMatch(originalCMD))
+            {
+                musicSearcher(originalCMD);
+            }
+            //Movie Searcher
+            else if (movieSearch.IsMatch(originalCMD))
+            {
+                movieSearcher(originalCMD);
+            }
+            //Website section
+            foreach (webCombo combo in webSiteList)
+            {
+                webSiteOpener(combo,originalCMD);
+            }
+            //WWW Browser Section
+            if (!webSiteHit)
+            {
+                foreach (wwwBrowser browser in browserList)
+                {
+                    Match match = Regex.Match(originalCMD, browser.keyword, RegexOptions.IgnoreCase);
+                    if (match.Success) GlobalVar.Run(browser.filePath);
+                }
+            }
+        }
 
-                        if (GlobalVar.fileChoices.Count > 0)
-                        {
-                            System.Threading.Thread t = new System.Threading.Thread(new System.Threading.ThreadStart(ChoiceProc));
-                            t.Start();
-                            GlobalVar.searchType = "Game";
-                        }
-                        else notify("Error Couldn't find game: " + rawSearch);
-                    }
-                    //Music Searcher
-                    else if (musicSearch.IsMatch(originalCMD))
-                    {
-                        string rawSearch = musicSearch.Replace(originalCMD, "");
-                        GlobalVar.fileChoices.Clear();
-                        DirectoryInfo dir = new DirectoryInfo(Properties.Settings.musicDirectory);
-                        foreach (FileInfo f in dir.GetFiles())
-                        {
-                            if ((f.Name.IndexOf(".mp3") != -1) || (f.Name.IndexOf(".wav") != -1) || (f.Name.IndexOf(".mp4") != -1) || (f.Name.IndexOf(".flac") != -1))
-                            {
-                                if ((f.Name.ToLower()).IndexOf(rawSearch) != -1) GlobalVar.fileChoices.Add(f);
-                            }
-                        }
+        private void timedShutdown(string[] splitWords)
+        {
+            if (splitWords.Length == 1)
+            {
+                GlobalVar.Run("Bin\\Timed Shutdown.exe");
+            }
+            else if (splitWords.Length > 1)
+            {
+                Regex fourdigit = new Regex("^([0-9]){4}$");//|^([0-9]){1-2}(:)?([0-9]){1-2}");
+                Regex threedigit = new Regex("^([0-9]){3}$");
+                string timedShutdownArgs = "-trigger clock ";
 
-                        if (GlobalVar.fileChoices.Count > 0)
-                        {
-                            System.Threading.Thread t = new System.Threading.Thread(new System.Threading.ThreadStart(ChoiceProc));
-                            t.Start();
-                            GlobalVar.searchType = "Music";
-                        }
-                        else notify("Error Couldn't find music: " + rawSearch);
-                    }
-                    //Movie Searcher
-                    else if (movieSearch.IsMatch(originalCMD))
-                    {
-                        string rawSearch = movieSearch.Replace(originalCMD, "");
-                        GlobalVar.fileChoices.Clear();
-                        ArrayList tempList2 = new ArrayList();
-                        string[] tempList = Directory.GetFiles(Properties.Settings.moviesDirectory, "*.*", SearchOption.AllDirectories);
-                        foreach (string s in tempList) tempList2.Add(new FileInfo(s));
-                        foreach (FileInfo f in tempList2)
-                        {
-                            if (((f.Name.IndexOf(".avi") != -1) || (f.Name.IndexOf(".mkv") != -1) || (f.Name.IndexOf(".rar") != -1)) && (f.Name.IndexOf("sample") == -1))
-                            {
-                                if ((f.Name.ToLower()).IndexOf(rawSearch) != -1) GlobalVar.fileChoices.Add(f);
-                            }
-                        }
+                if (fourdigit.IsMatch(splitWords[1]))
+                {
+                    timedShutdownArgs += splitWords[1];
+                    timedShutdownArgs += "00";
+                }
+                else if (threedigit.IsMatch(splitWords[1]))
+                {
+                    timedShutdownArgs += "0";
+                    timedShutdownArgs += splitWords[1];
+                    timedShutdownArgs += "00";
+                }
+                else
+                {
+                    timedShutdownArgs += splitWords[1];
+                }
+                GlobalVar.Run("Bin\\Timed Shutdown.exe", timedShutdownArgs);
+                notify("Shutdown Shutdown Scheduled: " + splitWords[1]);
+            }
+        }
 
-                        if (GlobalVar.fileChoices.Count > 0)
-                        {
-                            System.Threading.Thread t = new System.Threading.Thread(new System.Threading.ThreadStart(ChoiceProc));
-                            t.Start();
-                            GlobalVar.searchType = "Movie";
-                        }
-                        else notify("Error Couldn't find movie: " + rawSearch);
-                    }
-                    //Website section
-                    foreach (webCombo combo in webSiteList)
-                    {
-                        //Initial Variable Settings
-                        string browserPath = "";
-                        string searchTerms = originalCMD;
-                        webSiteHit = true;
+        private void openRandomGame(string originalCMD)
+        {
+            string rawSearch = games.Replace(originalCMD, "");
+            GlobalVar.fileChoices.Clear();
+            DirectoryInfo dir = new DirectoryInfo(Properties.Settings.gamesDirectory);
+            foreach (FileInfo f in dir.GetFiles())
+            {
+                if ((f.Name.ToLower()).IndexOf(rawSearch) != -1)
+                {
+                    GlobalVar.fileChoices.Add(f);
+                }
+            }
 
-                        Match webSiteMatch = Regex.Match(originalCMD, combo.keyword, RegexOptions.IgnoreCase);
-                        if (webSiteMatch.Success)
-                        {
-                            //Choose browser
-                            foreach (wwwBrowser b in browserList)
-                            {
-                                Match browserMatch = Regex.Match(originalCMD, b.keyword, RegexOptions.IgnoreCase);
-                                if (browserMatch.Success)
-                                {
-                                    browserPath = b.filePath;
-                                    //Remove browser terms from search
-                                    searchTerms = b.keyword.Replace(originalCMD, "");
-                                }
-                                else if (b.defaultBrowser) browserPath = b.filePath;
-                            }
-                            //Searching here
-                            if (combo.searchable)
-                            {
-                                //Remove keyword terms, turn spaces into +
-                                searchTerms = Regex.Replace(searchTerms, combo.keyword, "");
-                                searchTerms = Regex.Replace(searchTerms, @"\s+", "+");
-                                foreach (string s in combo.websiteBase) 
-                                { 
-                                    GlobalVar.Run(browserPath, s + searchTerms);
-                                    Thread.Sleep(500);
-                                }
-                            }
-                            else
-                            {
-                                foreach (string s in combo.websiteBase)
-                                {
-                                    GlobalVar.Run(browserPath, s);
-                                    Thread.Sleep(500);
-                                }
-                            }
-                        }
-                    }
-                    //WWW Browser Section
-                    if (!webSiteHit)
+            if (GlobalVar.fileChoices.Count > 0)
+            {
+                System.Threading.Thread t = new System.Threading.Thread(new System.Threading.ThreadStart(ChoiceProc));
+                t.Start();
+                GlobalVar.searchType = "Game";
+            }
+            else notify("Error Couldn't find game: " + rawSearch);
+        }
+
+        private void musicSearcher(string originalCMD)
+        {
+            string rawSearch = musicSearch.Replace(originalCMD, "");
+            GlobalVar.fileChoices.Clear();
+            DirectoryInfo dir = new DirectoryInfo(Properties.Settings.musicDirectory);
+            foreach (FileInfo f in dir.GetFiles())
+            {
+                if ((f.Name.IndexOf(".mp3") != -1) || (f.Name.IndexOf(".wav") != -1) || (f.Name.IndexOf(".mp4") != -1) || (f.Name.IndexOf(".flac") != -1))
+                {
+                    if ((f.Name.ToLower()).IndexOf(rawSearch) != -1) GlobalVar.fileChoices.Add(f);
+                }
+            }
+
+            if (GlobalVar.fileChoices.Count > 0)
+            {
+                System.Threading.Thread t = new System.Threading.Thread(new System.Threading.ThreadStart(ChoiceProc));
+                t.Start();
+                GlobalVar.searchType = "Music";
+            }
+            else notify("Error Couldn't find music: " + rawSearch);
+        }
+
+        private void movieSearcher(string originalCMD)
+        {
+            string rawSearch = movieSearch.Replace(originalCMD, "");
+            GlobalVar.fileChoices.Clear();
+            ArrayList tempList2 = new ArrayList();
+            string[] tempList = Directory.GetFiles(Properties.Settings.moviesDirectory, "*.*", SearchOption.AllDirectories);
+            foreach (string s in tempList) tempList2.Add(new FileInfo(s));
+            foreach (FileInfo f in tempList2)
+            {
+                if (((f.Name.IndexOf(".avi") != -1) || (f.Name.IndexOf(".mkv") != -1) || (f.Name.IndexOf(".rar") != -1)) && (f.Name.IndexOf("sample") == -1))
+                {
+                    if ((f.Name.ToLower()).IndexOf(rawSearch) != -1) GlobalVar.fileChoices.Add(f);
+                }
+            }
+
+            if (GlobalVar.fileChoices.Count > 0)
+            {
+                System.Threading.Thread t = new System.Threading.Thread(new System.Threading.ThreadStart(ChoiceProc));
+                t.Start();
+                GlobalVar.searchType = "Movie";
+            }
+            else notify("Error Couldn't find movie: " + rawSearch);
+        }
+
+        private void webSiteOpener(webCombo combo, string originalCMD)
+        {
+            //Initial Variable Settings
+            string browserPath = "";
+            string searchTerms = originalCMD;
+            webSiteHit = true;
+
+            Match webSiteMatch = Regex.Match(originalCMD, combo.keyword, RegexOptions.IgnoreCase);
+            if (webSiteMatch.Success)
+            {
+                //Choose browser
+                foreach (wwwBrowser b in browserList)
+                {
+                    Match browserMatch = Regex.Match(originalCMD, b.keyword, RegexOptions.IgnoreCase);
+                    if (browserMatch.Success)
                     {
-                        foreach (wwwBrowser browser in browserList)
-                        {
-                            Match match = Regex.Match(originalCMD, browser.keyword, RegexOptions.IgnoreCase);
-                            if (match.Success) GlobalVar.Run(browser.filePath);
-                        }
+                        browserPath = b.filePath;
+                        //Remove browser terms from search
+                        searchTerms = b.keyword.Replace(originalCMD, "");
+                    }
+                    else if (b.defaultBrowser) browserPath = b.filePath;
+                }
+                //Searching here
+                if (combo.searchable)
+                {
+                    //Remove keyword terms, turn spaces into +
+                    searchTerms = Regex.Replace(searchTerms, combo.keyword, "");
+                    searchTerms = Regex.Replace(searchTerms, @"\s+", "+");
+                    foreach (string s in combo.websiteBase)
+                    {
+                        GlobalVar.Run(browserPath, s + searchTerms);
+                        Thread.Sleep(500);
+                    }
+                }
+                else
+                {
+                    foreach (string s in combo.websiteBase)
+                    {
+                        GlobalVar.Run(browserPath, s);
+                        Thread.Sleep(500);
                     }
                 }
             }
