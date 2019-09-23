@@ -511,54 +511,11 @@ namespace DesktopShell
             fadeTimer.Enabled = true;
         }
         public void hideTimerTick(object sender, EventArgs e)
-        {
-            //coordinate checking and collapsing
-            Point cursorPos = Cursor.Position;
+        {            
             if (isHidden)
-            {   
-               foreach (Rectangle r in GlobalVar.dropDownRects)
-               {
-                    if ((cursorPos.X > r.Left && cursorPos.X < r.Right) && (cursorPos.Y < r.Bottom) && (!isFading))
-                    {
-                        GlobalVar.log("^^^ Should be activating window now.");
-                        //toggle hidden status
-                        isHidden = false;
-                        //make window foreground
-                        this.TopMost = true;
-                        GlobalVar.topBound = r.Top - this.ClientSize.Height;
-                        GlobalVar.leftBound = r.Left;
-                        GlobalVar.rightBound = r.Right;
-                        GlobalVar.bottomBound = r.Top;/**/
-                        //move window down 20 pixels
-                        fadeAway(1);
-                    }
-               }
-            }
-            else
-            {
-                Boolean shouldHide = true;
-                foreach (Rectangle r in GlobalVar.dropDownRects)
-                {
-                    if (((cursorPos.X < r.Left || cursorPos.X > r.Right) || (cursorPos.Y > r.Bottom)) && (!isFading) && (!fadeBool))
-                        continue;
-                    else
-                    {
-                        shouldHide = false;
-                        break;
-                    }
-                }
-
-                if (shouldHide)
-                {
-                    GlobalVar.log("!!! Should be hiding window now.");
-                    //toggle hidden status
-                    isHidden = true;
-                    //move window position up 20 pixels
-                    fadeAway(-1);
-                    //make window not foreground
-                    this.TopMost = false;
-                }
-            }
+                decideToShow();
+            else if(!fadeBool)
+                decideToHide();
         }        
         public void TimerTick(EventArgs e)
         {
@@ -579,6 +536,52 @@ namespace DesktopShell
                     hourSounded[onHour - 1] = false;
                 }
             }
+        }
+        public void decideToShow()
+        {
+            foreach (Rectangle r in GlobalVar.dropDownRects)
+            {
+                if (isInField(r) && !isFading)
+                {
+                    GlobalVar.log("^^^ Should be activating window now.");
+                    isHidden = false;                                                                                   //toggle hidden status                       
+                    this.TopMost = true;                                                                                //make window foreground
+                    GlobalVar.topBound = r.Top - this.ClientSize.Height;                                                //move window down 20 pixels
+                    GlobalVar.leftBound = r.Left;
+                    GlobalVar.rightBound = r.Right;
+                    GlobalVar.bottomBound = r.Top;
+                    fadeAway(1);
+                }
+            }
+        }
+        public void decideToHide()
+        {          
+            Boolean shouldHide = true;
+
+            foreach (Rectangle r in GlobalVar.dropDownRects)
+            {
+                if (!isInField(r) && !isFading)
+                    continue;                                                                                           //hide if not in field, and not currently fading
+                else
+                {
+                    shouldHide = false;
+                    break;
+                }
+            }
+
+            if (shouldHide)
+            {
+                GlobalVar.log("!!! Should be hiding window now.");
+                isHidden = true;                                                                                        //toggle hidden status                  
+                fadeAway(-1);                                                                                           //move window position up 20 pixels                 
+                this.TopMost = false;                                                                                   //make window not foreground
+            }
+        }
+        public Boolean isInField(Rectangle r)
+        {
+            Point cursorPos = Cursor.Position;
+            Boolean ret = (cursorPos.X > r.Left && cursorPos.X < r.Right) && (cursorPos.Y < r.Bottom);
+            return ret;
         }
         #endregion
 
