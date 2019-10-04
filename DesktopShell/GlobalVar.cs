@@ -1,7 +1,6 @@
 ﻿using DesktopShell.Forms;
 using System;
 using System.Collections;
-using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Drawing;
@@ -9,7 +8,6 @@ using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Security.Permissions;
-using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Windows.Forms;

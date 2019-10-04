@@ -1,10 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.ComponentModel;
-using System.Data;
 using System.Drawing;
-using System.Linq;
-using System.Text;
 using System.Text.RegularExpressions;
 using System.Windows.Forms;
 
@@ -131,10 +127,20 @@ namespace DesktopShell
             System.Threading.Thread t = new System.Threading.Thread(new System.Threading.ThreadStart(ColorWheelProc));
             t.Start();
         }
+        private void BackColorWheel_Click(object sender, EventArgs e)
+        {
+            System.Threading.Thread t = new System.Threading.Thread(new System.Threading.ThreadStart(ColorWheelProc));
+            t.Start();
+        }
+
+        private void ForeColorWheel_Click(object sender, EventArgs e)
+        {
+            System.Threading.Thread t = new System.Threading.Thread(new System.Threading.ThreadStart(ColorWheelProc));
+            t.Start();
+        }
         #endregion
 
         public static void ScreenSelectorProc() { Application.Run(GlobalVar.screenSelectorInstance = new DesktopShell.Forms.ScreenSelectorForm()); }
-        public static void ColorWheelProc() { Application.Run(GlobalVar.colorWheelInstance = new DesktopShell.Forms.ColorWheel()); }
-        
+        public static void ColorWheelProc() { Application.Run(GlobalVar.colorWheelInstance = new DesktopShell.Forms.ColorWheel()); }     
     }
 }

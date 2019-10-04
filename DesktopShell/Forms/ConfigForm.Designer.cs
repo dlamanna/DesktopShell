@@ -40,7 +40,6 @@
             this.backgroundColorInputBox = new System.Windows.Forms.TextBox();
             this.textColorInputBox = new System.Windows.Forms.TextBox();
             this.functionalityBox = new System.Windows.Forms.GroupBox();
-            //this.multiScreenCheckbox = new System.Windows.Forms.CheckBox();
             this.hourlyChimeCheckbox = new System.Windows.Forms.CheckBox();
             this.interfaceBox.SuspendLayout();
             this.functionalityBox.SuspendLayout();
@@ -79,6 +78,7 @@
             this.BackColorWheel.Name = "BackColorWheel";
             this.BackColorWheel.Size = new System.Drawing.Size(20, 20);
             this.BackColorWheel.TabIndex = 9;
+            this.BackColorWheel.Click += new System.EventHandler(this.BackColorWheel_Click);
             // 
             // ForeColorExample
             // 
@@ -95,6 +95,7 @@
             this.ForeColorWheel.Name = "ForeColorWheel";
             this.ForeColorWheel.Size = new System.Drawing.Size(20, 20);
             this.ForeColorWheel.TabIndex = 7;
+            this.ForeColorWheel.Click += new System.EventHandler(this.ForeColorWheel_Click);
             // 
             // screenSelectorLabel
             // 
@@ -141,7 +142,6 @@
             // 
             // functionalityBox
             // 
-            //this.functionalityBox.Controls.Add(this.multiScreenCheckbox);
             this.functionalityBox.Controls.Add(this.hourlyChimeCheckbox);
             this.functionalityBox.Location = new System.Drawing.Point(12, 116);
             this.functionalityBox.Name = "functionalityBox";
@@ -149,16 +149,6 @@
             this.functionalityBox.TabIndex = 1;
             this.functionalityBox.TabStop = false;
             this.functionalityBox.Text = "Functionality";
-            // 
-            // multiScreenCheckbox
-            // 
-            /*this.multiScreenCheckbox.AutoSize = true;
-            this.multiScreenCheckbox.Location = new System.Drawing.Point(158, 33);
-            this.multiScreenCheckbox.Name = "multiScreenCheckbox";
-            this.multiScreenCheckbox.Size = new System.Drawing.Size(85, 17);
-            this.multiScreenCheckbox.TabIndex = 1;
-            this.multiScreenCheckbox.Text = "Multi-Screen";
-            this.multiScreenCheckbox.UseVisualStyleBackColor = true;*/
             // 
             // hourlyChimeCheckbox
             // 

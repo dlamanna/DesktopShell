@@ -510,15 +510,13 @@ namespace DesktopShell
             fadeTimer.Tick += delegate { fadeTimerTick(fadeTimer, EventArgs.Empty, direction); };
             fadeTimer.Enabled = true;
         }
-        public void hideTimerTick(object sender, EventArgs e)
-        {            
+        public void hideTimerTick(object sender, EventArgs e) {            
             if (isHidden)
                 decideToShow();
             else if(!fadeBool)
                 decideToHide();
         }        
-        public void TimerTick(EventArgs e)
-        {
+        public void TimerTick(EventArgs e) {
             if (GlobalVar.hourlyChime.Enabled)
             {
                 System.Media.SoundPlayer myPlayer = new System.Media.SoundPlayer();
