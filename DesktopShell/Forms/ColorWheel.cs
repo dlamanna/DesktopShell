@@ -910,6 +910,7 @@ namespace DesktopShell.Forms
             GlobalVar.settingFontColor = false;
             GlobalVar.settingBackColor = false;
             GlobalVar.updateColors();
+            this.Close();
         }
 
         private void btnCancel_Click(object sender, EventArgs e)
