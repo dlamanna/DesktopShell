@@ -10,7 +10,6 @@ public class ColorHandler
     {
         // All values are between 0 and 255.
         public int Red;
-
         public int Green;
         public int Blue;
 

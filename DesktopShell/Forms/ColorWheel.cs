@@ -52,9 +52,10 @@ namespace DesktopShell.Forms
         private Color fullColor;
 
         public delegate void ColorChangedEventHandler(object sender, ColorChangedEventArgs e);
+
         public ColorChangedEventHandler ColorChanged;
 
-        // Keep track of the current mouse state. 
+        // Keep track of the current mouse state.
         public enum MouseState
         {
             MouseUp,
@@ -65,6 +66,7 @@ namespace DesktopShell.Forms
             ClickOutsideRegion,
             DragOutsideRegion,
         }
+
         private MouseState currentState = MouseState.MouseUp;
 
         private System.ComponentModel.Container components = null;
@@ -72,13 +74,13 @@ namespace DesktopShell.Forms
         public ColorWheel()
         {
             InitializeComponent();
+            GlobalVar.colorWheelInstance = this;
         }
 
         public ColorWheel(Rectangle colorRectangle, Rectangle brightnessRectangle, Rectangle selectedColorRectangle)
         {
-            using(GraphicsPath path = new GraphicsPath())
-            {
-                // Store away locations for later use. 
+            using(GraphicsPath path = new GraphicsPath()) {
+                // Store away locations for later use.
                 this.colorRectangle = colorRectangle;
                 this.brightnessRectangle = brightnessRectangle;
                 this.selectedColorRectangle = selectedColorRectangle;
@@ -100,13 +102,13 @@ namespace DesktopShell.Forms
                 this.brightnessMin = this.brightnessRectangle.Top;
                 this.brightnessMax = this.brightnessRectangle.Bottom;
 
-                // Create a region corresponding to the brightness rectangle, with a little extra padding. 
+                // Create a region corresponding to the brightness rectangle, with a little extra padding.
                 path.AddRectangle(new Rectangle(brightnessRectangle.Left, brightnessRectangle.Top - 10, brightnessRectangle.Width + 10, brightnessRectangle.Height + 20));
 
                 // Create region corresponding to brightness rectangle. Later code uses this to determine if a specified point is within the region, using the IsVisible method.
                 brightnessRegion = new Region(path);
 
-                // Set the location for the brightness indicator "marker". Also calculate the scaling factor, scaling the height to be between 0 and 255. 
+                // Set the location for the brightness indicator "marker". Also calculate the scaling factor, scaling the height to be between 0 and 255.
                 brightnessX = brightnessRectangle.Left + brightnessRectangle.Width;
                 brightnessScaling = (double)255 / (brightnessMax - brightnessMin);
 
@@ -120,34 +122,31 @@ namespace DesktopShell.Forms
 
         protected override void Dispose(bool disposing)
         {
-            if(disposing)
-            {
+            Console.WriteLine("!!! Disposing ColorWheel");
+            if(disposing) {
                 // Dispose of graphic resources
-                if(colorImage != null)
-                {
+                if(colorImage != null) {
                     colorImage.Dispose();
                 }
 
-                if(colorRegion != null)
-                {
+                if(colorRegion != null) {
                     colorRegion.Dispose();
                 }
 
-                if(brightnessRegion != null)
-                {
+                if(brightnessRegion != null) {
                     brightnessRegion.Dispose();
                 }
 
-                if(g != null)
-                {
+                if(g != null) {
                     g.Dispose();
                 }
 
-                if(components != null)
-                {
+                if(components != null) {
                     components.Dispose();
                 }
             }
+
+            GlobalVar.colorWheelInstance = null;
             base.Dispose(disposing);
         }
 
@@ -194,6 +193,7 @@ namespace DesktopShell.Forms
             this.btnCancel.Size = new System.Drawing.Size(64, 24);
             this.btnCancel.TabIndex = 55;
             this.btnCancel.Text = "Cancel";
+            this.btnCancel.Click += new System.EventHandler(this.btnCancel_Click);
             //
             // btnOK
             //
@@ -204,6 +204,7 @@ namespace DesktopShell.Forms
             this.btnOK.Size = new System.Drawing.Size(64, 24);
             this.btnOK.TabIndex = 54;
             this.btnOK.Text = "OK";
+            this.btnOK.Click += new System.EventHandler(this.btnOK_Click);
             //
             // Label3
             //
@@ -474,13 +475,14 @@ namespace DesktopShell.Forms
             // Set the RGB and HSV values of the NumericUpDown controls.
             SetRGB(RGB);
             SetHSV(HSV);
+
+            this.Location = Cursor.Position;
         }
 
         private void HandleMouse(object sender, MouseEventArgs e)
         {
             // If you have the left mouse button down, then update the selectedPoint value and force a repaint of the color wheel.
-            if(e.Button == MouseButtons.Left)
-            {
+            if(e.Button == MouseButtons.Left) {
                 changeType = ChangeStyle.MouseMove;
                 selectedPoint = new Point(e.X, e.Y);
                 this.Invalidate();
@@ -503,8 +505,7 @@ namespace DesktopShell.Forms
         {
             // If the R, G, or B values change, use this code to update the HSV values and invalidate the color wheel (so it updates the pointers). Check the isInUpdate flag to avoid recursive events
             // when you update the NumericUpdownControls.
-            if(!isInUpdate)
-            {
+            if(!isInUpdate) {
                 changeType = ChangeStyle.RGB;
                 RGB = new ColorHandler.RGB((int)nudRed.Value, (int)nudGreen.Value, (int)nudBlue.Value);
                 SetHSV(ColorHandler.RGBtoHSV(RGB));
@@ -516,8 +517,7 @@ namespace DesktopShell.Forms
         {
             // If the H, S, or V values change, use this code to update the RGB values and invalidate the color wheel (so it updates the pointers). Check the isInUpdate flag to avoid recursive events
             // when you update the NumericUpdownControls.
-            if(!isInUpdate)
-            {
+            if(!isInUpdate) {
                 changeType = ChangeStyle.HSV;
                 HSV = new ColorHandler.HSV((int)(nudHue.Value), (int)(nudSaturation.Value), (int)(nudBrightness.Value));
                 SetRGB(ColorHandler.HSVtoRGB(HSV));
@@ -555,8 +555,7 @@ namespace DesktopShell.Forms
         private void RefreshValue(NumericUpDown nud, int value)
         {
             // Update the value of the NumericUpDown control, if the value is different than the current value. Refresh the control, causing an immediate repaint.
-            if(nud.Value != value)
-            {
+            if(nud.Value != value) {
                 nud.Value = value;
                 nud.Refresh();
             }
@@ -584,8 +583,7 @@ namespace DesktopShell.Forms
         private void ColorWheel_Paint(object sender, System.Windows.Forms.PaintEventArgs e)
         {
             // Depending on the circumstances, force a repaint of the color wheel passing different information.
-            switch(changeType)
-            {
+            switch(changeType) {
                 case ChangeStyle.HSV:
                     myColorWheel.Draw(e.Graphics, HSV);
                     break;
@@ -604,9 +602,8 @@ namespace DesktopShell.Forms
         private void CreateGradient()
         {
             // Create a new PathGradientBrush, supplying an array of points created by calling the GetPoints method.
-            using(PathGradientBrush pgb = new PathGradientBrush(GetPoints(radius, new Point(radius, radius))))
-            {
-                // Set the various properties. Note the SurroundColors property, which contains an array of points, in a one-to-one relationship with the points that created the gradient. 
+            using(PathGradientBrush pgb = new PathGradientBrush(GetPoints(radius, new Point(radius, radius)))) {
+                // Set the various properties. Note the SurroundColors property, which contains an array of points, in a one-to-one relationship with the points that created the gradient.
                 pgb.CenterColor = Color.White;
                 pgb.CenterPoint = new PointF(radius, radius);
                 pgb.SurroundColors = GetColors();
@@ -617,8 +614,7 @@ namespace DesktopShell.Forms
                     PixelFormat.Format32bppArgb);
 
                 using(Graphics newGraphics =
-                                 Graphics.FromImage(colorImage))
-                {
+                                 Graphics.FromImage(colorImage)) {
                     newGraphics.FillEllipse(pgb, 0, 0,
                         colorRectangle.Width, colorRectangle.Height);
                 }
@@ -627,12 +623,11 @@ namespace DesktopShell.Forms
 
         private Color[] GetColors()
         {
-            // Create an array of COLOR_COUNT colors, looping through all the hues between 0 and 255, broken into COLOR_COUNT intervals. HSV is particularly well-suited for this, 
+            // Create an array of COLOR_COUNT colors, looping through all the hues between 0 and 255, broken into COLOR_COUNT intervals. HSV is particularly well-suited for this,
             // because the only value that changes as you create colors is the Hue.
             Color[] Colors = new Color[COLOR_COUNT];
 
-            for(int i = 0; i <= COLOR_COUNT - 1; i++)
-            {
+            for(int i = 0; i <= COLOR_COUNT - 1; i++) {
                 Colors[i] = ColorHandler.HSVtoColor((int)((double)(i * 255) / COLOR_COUNT), 255, 255);
             }
 
@@ -644,8 +639,7 @@ namespace DesktopShell.Forms
             // Generate the array of points that describe the locations of the COLOR_COUNT colors to be displayed on the color wheel.
             Point[] Points = new Point[COLOR_COUNT];
 
-            for(int i = 0; i <= COLOR_COUNT - 1; i++)
-            {
+            for(int i = 0; i <= COLOR_COUNT - 1; i++) {
                 Points[i] = GetPoint((double)(i * 360) / COLOR_COUNT, radius, centerPoint);
             }
 
@@ -702,40 +696,32 @@ namespace DesktopShell.Forms
             // Store this away for later use.
             this.g = g;
 
-            if(currentState == MouseState.MouseUp)
-            {
-                if(!mousePoint.IsEmpty)
-                {
-                    if(colorRegion.IsVisible(mousePoint))
-                    {
+            if(currentState == MouseState.MouseUp) {
+                if(!mousePoint.IsEmpty) {
+                    if(colorRegion.IsVisible(mousePoint)) {
                         // Is the mouse point within the color circle? If so, you just clicked on the color wheel.
                         currentState = MouseState.ClickOnColor;
                     }
-                    else if(brightnessRegion.IsVisible(mousePoint))
-                    {
+                    else if(brightnessRegion.IsVisible(mousePoint)) {
                         // Is the mouse point within the brightness area? You clicked on the brightness area.
                         currentState = MouseState.ClickOnBrightness;
                     }
-                    else
-                    {
+                    else {
                         // Clicked outside the color and the brightness regions. In that case, just put the pointers back where they were.
                         currentState = MouseState.ClickOutsideRegion;
                     }
                 }
             }
 
-            switch(currentState)
-            {
+            switch(currentState) {
                 case MouseState.ClickOnBrightness:
                 case MouseState.DragInBrightness:
                     // Calculate new color information based on the brightness, which may have changed.
                     newPoint = mousePoint;
-                    if(newPoint.Y < brightnessMin)
-                    {
+                    if(newPoint.Y < brightnessMin) {
                         newPoint.Y = brightnessMin;
                     }
-                    else if(newPoint.Y > brightnessMax)
-                    {
+                    else if(newPoint.Y > brightnessMax) {
                         newPoint.Y = brightnessMax;
                     }
                     newBrightnessPoint = new Point(brightnessX, newPoint.Y);
@@ -756,11 +742,9 @@ namespace DesktopShell.Forms
                     // Calculate distance from the center to the new point as a fraction of the radius. Use your old friend, the Pythagorean theorem, to calculate this value.
                     distance = Math.Sqrt(delta.X * delta.X + delta.Y * delta.Y) / radius;
 
-                    if(currentState == MouseState.DragInColor)
-                    {
-                        if(distance > 1)
-                        {
-                            // Mouse is down, and outside the circle, but you were previously dragging in the color circle. In that case, move the point to the edge of the 
+                    if(currentState == MouseState.DragInColor) {
+                        if(distance > 1) {
+                            // Mouse is down, and outside the circle, but you were previously dragging in the color circle. In that case, move the point to the edge of the
                             // circle at the correct angle.
                             distance = 1;
                             newColorPoint = GetPoint(degrees, radius, centerPoint);
@@ -781,14 +765,15 @@ namespace DesktopShell.Forms
             OnColorChanged(RGB, HSV);
 
             // On the way out, set the new state.
-            switch(currentState)
-            {
+            switch(currentState) {
                 case MouseState.ClickOnBrightness:
                     currentState = MouseState.DragInBrightness;
                     break;
+
                 case MouseState.ClickOnColor:
                     currentState = MouseState.DragInColor;
                     break;
+
                 case MouseState.ClickOutsideRegion:
                     currentState = MouseState.DragOutsideRegion;
                     break;
@@ -798,13 +783,13 @@ namespace DesktopShell.Forms
             colorPoint = newColorPoint;
             brightnessPoint = newBrightnessPoint;
 
-            // Draw the gradients and points. 
+            // Draw the gradients and points.
             UpdateDisplay();
         }
 
         private Point CalcBrightnessPoint(int brightness)
         {
-            // Take the value for brightness (0 to 255), scale to the scaling used in the brightness bar, then add the value to the bottom of the bar. return the correct point at which 
+            // Take the value for brightness (0 to 255), scale to the scaling used in the brightness bar, then add the value to the bottom of the bar. return the correct point at which
             // to display the brightness pointer.
             return new Point(brightnessX,
                 (int)(brightnessMax - brightness / brightnessScaling));
@@ -812,7 +797,7 @@ namespace DesktopShell.Forms
 
         private void CalcCoordsAndUpdate(ColorHandler.HSV HSV)
         {
-            // Convert color to real-world coordinates and then calculate the various points. HSV.Hue represents the degrees (0 to 360), HSV.Saturation represents the radius. 
+            // Convert color to real-world coordinates and then calculate the various points. HSV.Hue represents the degrees (0 to 360), HSV.Saturation represents the radius.
             // This procedure doesn't draw anything--it simply updates class-level variables. The UpdateDisplay procedure uses these values to update the screen.
 
             // Given the angle (HSV.Hue), and distance from the center (HSV.Saturation), and the center, calculate the point corresponding to the selected color, on the color wheel.
@@ -837,8 +822,7 @@ namespace DesktopShell.Forms
             // Given the top color, draw a linear gradient ranging from black to the top color. Use the brightness rectangle as the area to fill.
             using(LinearGradientBrush lgb =
                              new LinearGradientBrush(brightnessRectangle, TopColor,
-                             Color.Black, LinearGradientMode.Vertical))
-            {
+                             Color.Black, LinearGradientMode.Vertical)) {
                 g.FillRectangle(lgb, brightnessRectangle);
             }
         }
@@ -847,29 +831,24 @@ namespace DesktopShell.Forms
         {
             int degrees;
 
-            if(pt.X == 0)
-            {
+            if(pt.X == 0) {
                 // The point is on the y-axis. Determine whether it's above or below the x-axis, and return the corresponding angle. Note that the orientation of the
                 // y-coordinate is backwards. That is, A positive Y value indicates a point BELOW the x-axis.
-                if(pt.Y > 0)
-                {
+                if(pt.Y > 0) {
                     degrees = 270;
                 }
-                else
-                {
+                else {
                     degrees = 90;
                 }
             }
-            else
-            {
-                // This value needs to be multiplied by -1 because the y-coordinate is opposite from the normal direction here. That is, a y-coordinate that's "higher" on 
+            else {
+                // This value needs to be multiplied by -1 because the y-coordinate is opposite from the normal direction here. That is, a y-coordinate that's "higher" on
                 // the form has a lower y-value, in this coordinate system. So everything's off by a factor of -1 when performing the ratio calculations.
                 degrees = (int)(-Math.Atan((double)pt.Y / pt.X) * DEGREES_PER_RADIAN);
 
                 // If the x-coordinate of the selected point is to the left of the center of the circle, you need to add 180 degrees to the angle. ArcTan only
                 // gives you a value on the right-hand side of the circle.
-                if(pt.X < 0)
-                {
+                if(pt.X < 0) {
                     degrees += 180;
                 }
 
@@ -883,8 +862,7 @@ namespace DesktopShell.Forms
         {
             // Update the gradients, and place the pointers correctly based on colors and brightness.
 
-            using(Brush selectedBrush = new SolidBrush(selectedColor))
-            {
+            using(Brush selectedBrush = new SolidBrush(selectedColor)) {
                 // Draw the saved color wheel image.
                 g.DrawImage(colorImage, colorRectangle);
 
@@ -919,6 +897,26 @@ namespace DesktopShell.Forms
             Points[1] = new Point(pt.X + WIDTH, pt.Y + HEIGHT / 2);
             Points[2] = new Point(pt.X + WIDTH, pt.Y - HEIGHT / 2);
             g.FillPolygon(Brushes.Black, Points);
+        }
+
+        private void btnOK_Click(object sender, EventArgs e)
+        {
+            if(GlobalVar.settingBackColor) {
+                GlobalVar.backColor = Color.FromArgb((int)nudRed.Value, (int)nudGreen.Value, (int)nudBlue.Value);
+            }
+            else {
+                GlobalVar.fontColor = Color.FromArgb((int)nudRed.Value, (int)nudGreen.Value, (int)nudBlue.Value);
+            }
+            GlobalVar.settingFontColor = false;
+            GlobalVar.settingBackColor = false;
+            GlobalVar.updateColors();
+        }
+
+        private void btnCancel_Click(object sender, EventArgs e)
+        {
+            this.Close();
+            GlobalVar.settingBackColor = false;
+            GlobalVar.settingFontColor = false;
         }
     }
 }

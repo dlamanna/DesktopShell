@@ -16,6 +16,7 @@ namespace DesktopShell
         private System.Windows.Forms.Timer hideTimer;
         private System.Windows.Forms.Timer fadeTimer;
         private Process proc = new Process();
+        private Thread t = null;
         private ArrayList shortcutList = new ArrayList();
         private ArrayList browserList = new ArrayList();
         private ArrayList webSiteList = new ArrayList();
@@ -35,11 +36,12 @@ namespace DesktopShell
         #endregion
 
         #region Screen Monitor WNDProc
-        protected override void WndProc(ref Message m) {
+        protected override void WndProc(ref Message m)
+        {
             const int WM_DISPLAYCHANGE = 0x007e;
 
             // Listen for operating system messages. 
-            switch (m.Msg) {
+            switch(m.Msg) {
                 case WM_DISPLAYCHANGE:
                     // reset position
                     GlobalVar.log("WM_DISPLAYCHANGE Detected: Should be resetting position now");
@@ -80,14 +82,18 @@ namespace DesktopShell
             GlobalVar.hourlyChime.Interval = 1000;
             GlobalVar.hourlyChime.Tick += delegate { TimerTick(EventArgs.Empty); };
             GlobalVar.hourlyChime.Enabled = Properties.Settings.hourlyChimeChecked;
-            for (int i = 0; i < 24; i++) hourSounded[i] = false;
+            for(int i = 0; i < 24; i++) {
+                hourSounded[i] = false;
+            }
 
             hideTimer = new System.Windows.Forms.Timer();
             hideTimer.Interval = 50;
             hideTimer.Tick += delegate { hideTimerTick(hideTimer, EventArgs.Empty); };
             hideTimer.Enabled = true;
 
-            if(Properties.Settings.checkVersion) checkVersions();
+            if(Properties.Settings.checkVersion) {
+                checkVersions();
+            }
 
             populateCombos();
             populateWebSites();
@@ -97,13 +103,12 @@ namespace DesktopShell
         #region Versioning Functions
         private void checkVersions()
         {
-            using (var sr = new StreamReader("version.txt")) { shellVersionF = System.Convert.ToSingle(sr.ReadLine()); }
+            using(var sr = new StreamReader("version.txt")) { shellVersionF = System.Convert.ToSingle(sr.ReadLine()); }
 
-            if (!File.Exists("http://phuze.dyndns.info/version.txt")) { notify("Version Website version can't be obtained"); return; }
-            else { using (var sr = new StreamReader("http://phuze.dyndns.info/version.txt")) { shellVersionW = System.Convert.ToSingle(sr.ReadLine()); } }
-            
-            if (shellVersionF != shellVersionW)
-            {
+            if(!File.Exists("http://phuze.dyndns.info/version.txt")) { notify("Version Website version can't be obtained"); return; }
+            else { using(var sr = new StreamReader("http://phuze.dyndns.info/version.txt")) { shellVersionW = System.Convert.ToSingle(sr.ReadLine()); } }
+
+            if(shellVersionF != shellVersionW) {
                 notify("Update Update available: " + shellVersionW);
                 GlobalVar.Run("Updater\\download.cmd");
                 Application.Exit();
@@ -114,35 +119,35 @@ namespace DesktopShell
         #region Populating combos and websites
         private bool populateCombos()
         {
-            shortcutList.Clear(); browserList.Clear();
+            shortcutList.Clear();
+            browserList.Clear();
             shortcutCounter = 0;
             //Populate Combinations
-            using (var sr = new StreamReader("shortcuts.txt"))
-            {
-                while (!sr.EndOfStream)
-                {
+            using(var sr = new StreamReader("shortcuts.txt")) {
+                while(!sr.EndOfStream) {
                     string tempLine = "";
                     ArrayList tempFilePaths = new ArrayList();
                     ArrayList tempArguments = new ArrayList();
                     string tempKeyword = sr.ReadLine();
 
-                    while (((tempLine = sr.ReadLine()) != "") && (!sr.EndOfStream)) 
-                    {
+                    while(((tempLine = sr.ReadLine()) != "") && (!sr.EndOfStream)) {
                         tempFilePaths.Add(tempLine);
-                        if ((tempLine = sr.ReadLine()) == "-") tempArguments.Add("");
-                        else tempArguments.Add(tempLine);
+                        if((tempLine = sr.ReadLine()) == "-") {
+                            tempArguments.Add("");
+                        }
+                        else {
+                            tempArguments.Add(tempLine);
+                        }
                     }
-                    shortcutList.Add(new Combination(tempKeyword,tempFilePaths,tempArguments));
+                    shortcutList.Add(new Combination(tempKeyword, tempFilePaths, tempArguments));
                     shortcutCounter++;
                 }
             }
 
             //Populate WebBrowsers
-            using (var sr = new StreamReader("webbrowsers.txt"))
-            {
+            using(var sr = new StreamReader("webbrowsers.txt")) {
                 bool _default = true;
-                while (!sr.EndOfStream)
-                {
+                while(!sr.EndOfStream) {
                     string tempRegex = sr.ReadLine();
                     string tempFilePath = sr.ReadLine();
                     sr.ReadLine();
@@ -157,49 +162,41 @@ namespace DesktopShell
         {
             webSiteList.Clear();
             //Populate websiteList Combinations
-            using (var sr = new StreamReader("websites.txt"))
-            {
-                while (!sr.EndOfStream)
-                {
+            using(var sr = new StreamReader("websites.txt")) {
+                while(!sr.EndOfStream) {
                     ArrayList tempWebsiteBase = new ArrayList();
                     string tempLine;
 
                     string tempKeyword = sr.ReadLine();
                     bool tempSearchable = Convert.ToBoolean(sr.ReadLine());
-                    while (((tempLine = sr.ReadLine()) != "") && (!sr.EndOfStream)) tempWebsiteBase.Add(tempLine);   
-                    webSiteList.Add(new webCombo(tempKeyword,tempWebsiteBase,tempSearchable));
+                    while(((tempLine = sr.ReadLine()) != "") && (!sr.EndOfStream)) {
+                        tempWebsiteBase.Add(tempLine);
+                    }
+
+                    webSiteList.Add(new webCombo(tempKeyword, tempWebsiteBase, tempSearchable));
                 }
             }
         }
         #endregion
 
-        #region KeyPressed Handler + Hardcoded Combos
+        #region KeyPressed Handler
         private void CheckKeys(object sender, KeyEventArgs e)
         {
             //Last command - Up-Key
-            if (e.KeyCode == Keys.Up)
-            {
-                if (lastCMD.Count != 0) {
+            if(e.KeyCode == Keys.Up) {
+                if(lastCMD.Count != 0) {
                     upCounter++;
-                    if (((lastCMD.Count) - upCounter) < 0) upCounter = 1;
+                    if(((lastCMD.Count) - upCounter) < 0) {
+                        upCounter = 1;
+                    }
 
                     textBox1.Text = lastCMD[(lastCMD.Count) - upCounter].ToString();
                     textBox1.SelectionStart = textBox1.Text.Length;
                     textBox1.SelectionLength = 0;
                 }
             }
-            //Next command - Down-Key
-            /*else if (e.KeyCode == Keys.Down)
-            {
-                upCounter--;
-                //if (((lastCMD.Count) - upCounter) < 0) upCounter = 1;
-
-                textBox1.Text = lastCMD[(lastCMD.Count) - upCounter].ToString();
-                textBox1.SelectionStart = textBox1.Text.Length;
-            }*/
             //If {Enter} is pressed
-            else if (e.KeyCode == Keys.Enter)
-            {
+            else if(e.KeyCode == Keys.Enter) {
                 //Prevents Beep
                 e.SuppressKeyPress = true;
 
@@ -213,14 +210,12 @@ namespace DesktopShell
                 upCounter = 0;
                 regexHit = false;
                 webSiteHit = false;
-                
+
                 //Generic combo running (shortcuts.txt)
-                foreach (Combination combo in shortcutList) {
+                foreach(Combination combo in shortcutList) {
                     Match match = Regex.Match(originalCMD, combo.keyword, RegexOptions.IgnoreCase);
-                    if (match.Success)
-                    {
-                        for (int i = 0; i < combo.filePath.Count; i++)
-                        {
+                    if(match.Success) {
+                        for(int i = 0; i < combo.filePath.Count; i++) {
                             GlobalVar.Run((string)combo.filePath[i], (string)combo.arguments[i]);
                         }
                         regexHit = true;
@@ -228,9 +223,8 @@ namespace DesktopShell
                 }
 
                 //Hardcoded Functions
-                if (!regexHit)
-                {
-                    hardCodedCombos(originalCMD,splitWords);
+                if(!regexHit) {
+                    hardCodedCombos(originalCMD, splitWords);
                 }
             }
         }
@@ -238,20 +232,24 @@ namespace DesktopShell
         private void hardCodedCombos(string originalCMD, string[] splitWords)
         {
             //PasswordTabula
-            if (passwd.IsMatch(splitWords[0]))
-            {
-                if (splitWords.Length == 1) GlobalVar.Run("Bin\\PasswordTabula.exe");
-                else GlobalVar.Run("Bin\\PasswordTabula.exe", splitWords[1]);
+            if(passwd.IsMatch(splitWords[0])) {
+                if(splitWords.Length == 1) {
+                    GlobalVar.Run("Bin\\PasswordTabula.exe");
+                }
+                else {
+                    GlobalVar.Run("Bin\\PasswordTabula.exe", splitWords[1]);
+                }
             }
             //RescanRegex function
-            else if (rescan.IsMatch(splitWords[0]))
-            {
-                if (populateCombos()) notify("Rescan Regex Rescan Successful");
+            else if(rescan.IsMatch(splitWords[0])) {
+                if(populateCombos()) {
+                    notify("Rescan Regex Rescan Successful");
+                }
+
                 populateWebSites();
             }
             //RandomGame function
-            else if (randomGame.IsMatch(splitWords[0]))
-            {
+            else if(randomGame.IsMatch(splitWords[0])) {
                 string gameShortcutPath = @"C:\ProgramData\Microsoft\Windows\Start Menu\Programs\Games\";
                 string[] fileEntries = Directory.GetFiles(gameShortcutPath);
 
@@ -262,89 +260,82 @@ namespace DesktopShell
                 GlobalVar.Run(fileEntries[randomNumber]);
             }
             //Timed shutdown function
-            else if (shutdown.IsMatch(splitWords[0]))
-            {
+            else if(shutdown.IsMatch(splitWords[0])) {
                 timedShutdown(splitWords);
             }
             //Roll function
-            else if (roll.IsMatch(splitWords[0]))
-            {
+            else if(roll.IsMatch(splitWords[0])) {
                 Random randNum = new Random();
                 int num = 0;
-                if (splitWords.Length == 2) num = randNum.Next(1, (int)Convert.ToDecimal(splitWords[1]));
-                else if (splitWords.Length == 3) num = randNum.Next((int)Convert.ToDecimal(splitWords[1]), (int)Convert.ToDecimal(splitWords[2]));
-                else num = randNum.Next(1, 100);
+                if(splitWords.Length == 2) {
+                    num = randNum.Next(1, (int)Convert.ToDecimal(splitWords[1]));
+                }
+                else if(splitWords.Length == 3) {
+                    num = randNum.Next((int)Convert.ToDecimal(splitWords[1]), (int)Convert.ToDecimal(splitWords[2]));
+                }
+                else {
+                    num = randNum.Next(1, 100);
+                }
 
                 notify("Roll Randomed: " + Convert.ToString(num));
             }
             //Options
-            else if (options.IsMatch(splitWords[0]))
-            {
-                System.Threading.Thread t = new System.Threading.Thread(new System.Threading.ThreadStart(ConfigProc));
+            else if(options.IsMatch(splitWords[0])) {
+                t = new System.Threading.Thread(new System.Threading.ThreadStart(ConfigProc));
                 t.Start();
             }
             //Shows Raw Input Function
-            else if (showsRaw.IsMatch(originalCMD))
-            {
+            else if(showsRaw.IsMatch(originalCMD)) {
                 string rawSearch = showsRaw.Replace(originalCMD, "");
                 GlobalVar.Run("Bin\\showListCreator.exe", rawSearch);
             }
             //Game Shortcut Searcher
-            else if (games.IsMatch(originalCMD))
-            {
+            else if(games.IsMatch(originalCMD)) {
                 openRandomGame(originalCMD);
             }
             //Music Searcher
-            else if (musicSearch.IsMatch(originalCMD))
-            {
+            else if(musicSearch.IsMatch(originalCMD)) {
                 musicSearcher(originalCMD);
             }
             //Movie Searcher
-            else if (movieSearch.IsMatch(originalCMD))
-            {
+            else if(movieSearch.IsMatch(originalCMD)) {
                 movieSearcher(originalCMD);
             }
             //Website section
-            foreach (webCombo combo in webSiteList)
-            {
-                webSiteOpener(combo,originalCMD);
+            foreach(webCombo combo in webSiteList) {
+                webSiteOpener(combo, originalCMD);
             }
             //WWW Browser Section
-            if (!webSiteHit)
-            {
-                foreach (wwwBrowser browser in browserList)
-                {
+            if(!webSiteHit) {
+                foreach(wwwBrowser browser in browserList) {
                     Match match = Regex.Match(originalCMD, browser.keyword, RegexOptions.IgnoreCase);
-                    if (match.Success) GlobalVar.Run(browser.filePath);
+                    if(match.Success) {
+                        GlobalVar.Run(browser.filePath);
+                    }
                 }
             }
         }
 
         private void timedShutdown(string[] splitWords)
         {
-            if (splitWords.Length == 1)
-            {
+            if(splitWords.Length == 1) {
                 GlobalVar.Run("Bin\\Timed Shutdown.exe");
             }
-            else if (splitWords.Length > 1)
-            {
+            else if(splitWords.Length > 1) {
                 Regex fourdigit = new Regex("^([0-9]){4}$");//|^([0-9]){1-2}(:)?([0-9]){1-2}");
                 Regex threedigit = new Regex("^([0-9]){3}$");
                 string timedShutdownArgs = "-trigger clock ";
 
-                if (fourdigit.IsMatch(splitWords[1]))
-                {
+                if(fourdigit.IsMatch(splitWords[1])) {
                     timedShutdownArgs += splitWords[1];
                     timedShutdownArgs += "00";
                 }
-                else if (threedigit.IsMatch(splitWords[1]))
-                {
+                else if(threedigit.IsMatch(splitWords[1])) {
                     timedShutdownArgs += "0";
                     timedShutdownArgs += splitWords[1];
                     timedShutdownArgs += "00";
                 }
-                else
-                {
+                else {
                     timedShutdownArgs += splitWords[1];
                 }
                 GlobalVar.Run("Bin\\Timed Shutdown.exe", timedShutdownArgs);
@@ -357,21 +348,20 @@ namespace DesktopShell
             string rawSearch = games.Replace(originalCMD, "");
             GlobalVar.fileChoices.Clear();
             DirectoryInfo dir = new DirectoryInfo(Properties.Settings.gamesDirectory);
-            foreach (FileInfo f in dir.GetFiles())
-            {
-                if ((f.Name.ToLower()).IndexOf(rawSearch) != -1)
-                {
+            foreach(FileInfo f in dir.GetFiles()) {
+                if((f.Name.ToLower()).IndexOf(rawSearch) != -1) {
                     GlobalVar.fileChoices.Add(f);
                 }
             }
 
-            if (GlobalVar.fileChoices.Count > 0)
-            {
+            if(GlobalVar.fileChoices.Count > 0) {
                 System.Threading.Thread t = new System.Threading.Thread(new System.Threading.ThreadStart(ChoiceProc));
                 t.Start();
                 GlobalVar.searchType = "Game";
             }
-            else notify("Error Couldn't find game: " + rawSearch);
+            else {
+                notify("Error Couldn't find game: " + rawSearch);
+            }
         }
 
         private void musicSearcher(string originalCMD)
@@ -379,21 +369,22 @@ namespace DesktopShell
             string rawSearch = musicSearch.Replace(originalCMD, "");
             GlobalVar.fileChoices.Clear();
             DirectoryInfo dir = new DirectoryInfo(Properties.Settings.musicDirectory);
-            foreach (FileInfo f in dir.GetFiles())
-            {
-                if ((f.Name.IndexOf(".mp3") != -1) || (f.Name.IndexOf(".wav") != -1) || (f.Name.IndexOf(".mp4") != -1) || (f.Name.IndexOf(".flac") != -1))
-                {
-                    if ((f.Name.ToLower()).IndexOf(rawSearch) != -1) GlobalVar.fileChoices.Add(f);
+            foreach(FileInfo f in dir.GetFiles()) {
+                if((f.Name.IndexOf(".mp3") != -1) || (f.Name.IndexOf(".wav") != -1) || (f.Name.IndexOf(".mp4") != -1) || (f.Name.IndexOf(".flac") != -1)) {
+                    if((f.Name.ToLower()).IndexOf(rawSearch) != -1) {
+                        GlobalVar.fileChoices.Add(f);
+                    }
                 }
             }
 
-            if (GlobalVar.fileChoices.Count > 0)
-            {
+            if(GlobalVar.fileChoices.Count > 0) {
                 System.Threading.Thread t = new System.Threading.Thread(new System.Threading.ThreadStart(ChoiceProc));
                 t.Start();
                 GlobalVar.searchType = "Music";
             }
-            else notify("Error Couldn't find music: " + rawSearch);
+            else {
+                notify("Error Couldn't find music: " + rawSearch);
+            }
         }
 
         private void movieSearcher(string originalCMD)
@@ -402,22 +393,26 @@ namespace DesktopShell
             GlobalVar.fileChoices.Clear();
             ArrayList tempList2 = new ArrayList();
             string[] tempList = Directory.GetFiles(Properties.Settings.moviesDirectory, "*.*", SearchOption.AllDirectories);
-            foreach (string s in tempList) tempList2.Add(new FileInfo(s));
-            foreach (FileInfo f in tempList2)
-            {
-                if (((f.Name.IndexOf(".avi") != -1) || (f.Name.IndexOf(".mkv") != -1) || (f.Name.IndexOf(".rar") != -1)) && (f.Name.IndexOf("sample") == -1))
-                {
-                    if ((f.Name.ToLower()).IndexOf(rawSearch) != -1) GlobalVar.fileChoices.Add(f);
+            foreach(string s in tempList) {
+                tempList2.Add(new FileInfo(s));
+            }
+
+            foreach(FileInfo f in tempList2) {
+                if(((f.Name.IndexOf(".avi") != -1) || (f.Name.IndexOf(".mkv") != -1) || (f.Name.IndexOf(".rar") != -1)) && (f.Name.IndexOf("sample") == -1)) {
+                    if((f.Name.ToLower()).IndexOf(rawSearch) != -1) {
+                        GlobalVar.fileChoices.Add(f);
+                    }
                 }
             }
 
-            if (GlobalVar.fileChoices.Count > 0)
-            {
+            if(GlobalVar.fileChoices.Count > 0) {
                 System.Threading.Thread t = new System.Threading.Thread(new System.Threading.ThreadStart(ChoiceProc));
                 t.Start();
                 GlobalVar.searchType = "Movie";
             }
-            else notify("Error Couldn't find movie: " + rawSearch);
+            else {
+                notify("Error Couldn't find movie: " + rawSearch);
+            }
         }
 
         private void webSiteOpener(webCombo combo, string originalCMD)
@@ -428,36 +423,31 @@ namespace DesktopShell
             webSiteHit = true;
 
             Match webSiteMatch = Regex.Match(originalCMD, combo.keyword, RegexOptions.IgnoreCase);
-            if (webSiteMatch.Success)
-            {
+            if(webSiteMatch.Success) {
                 //Choose browser
-                foreach (wwwBrowser b in browserList)
-                {
+                foreach(wwwBrowser b in browserList) {
                     Match browserMatch = Regex.Match(originalCMD, b.keyword, RegexOptions.IgnoreCase);
-                    if (browserMatch.Success)
-                    {
+                    if(browserMatch.Success) {
                         browserPath = b.filePath;
                         //Remove browser terms from search
                         searchTerms = b.keyword.Replace(originalCMD, "");
                     }
-                    else if (b.defaultBrowser) browserPath = b.filePath;
+                    else if(b.defaultBrowser) {
+                        browserPath = b.filePath;
+                    }
                 }
                 //Searching here
-                if (combo.searchable)
-                {
+                if(combo.searchable) {
                     //Remove keyword terms, turn spaces into +
                     searchTerms = Regex.Replace(searchTerms, combo.keyword, "");
                     searchTerms = Regex.Replace(searchTerms, @"\s+", "+");
-                    foreach (string s in combo.websiteBase)
-                    {
+                    foreach(string s in combo.websiteBase) {
                         GlobalVar.Run(browserPath, s + searchTerms);
                         Thread.Sleep(500);
                     }
                 }
-                else
-                {
-                    foreach (string s in combo.websiteBase)
-                    {
+                else {
+                    foreach(string s in combo.websiteBase) {
                         GlobalVar.Run(browserPath, s);
                         Thread.Sleep(500);
                     }
@@ -480,26 +470,28 @@ namespace DesktopShell
         public void fadeTimerTick(object sender, EventArgs e, int direction)
         {
             int yAmt;
-            if (direction == 1)
-                yAmt = GlobalVar.topBound-21;
-            else
-                yAmt = GlobalVar.topBound-1;
+            if(direction == 1) {
+                yAmt = GlobalVar.topBound - 21;
+            }
+            else {
+                yAmt = GlobalVar.topBound - 1;
+            }
 
-            if (fadeTickAmount <= 20 && !hasFaded)
-            {
+            if(fadeTickAmount <= 20 && !hasFaded) {
                 this.SetDesktopLocation(GlobalVar.leftBound, yAmt += (direction * fadeTickAmount));
 
                 fadeTickAmount++;
                 isFading = true;
             }
-            else if (fadeTickAmount > 20 && !hasFaded)
-            {
+            else if(fadeTickAmount > 20 && !hasFaded) {
                 fadeTickAmount = 0;
                 hasFaded = true;
                 isFading = false;
                 fadeTimer.Stop();
             }
-            else fadeTimer.Stop();
+            else {
+                fadeTimer.Stop();
+            }
         }
         public void fadeAway(int direction)
         {
@@ -510,22 +502,24 @@ namespace DesktopShell
             fadeTimer.Tick += delegate { fadeTimerTick(fadeTimer, EventArgs.Empty, direction); };
             fadeTimer.Enabled = true;
         }
-        public void hideTimerTick(object sender, EventArgs e) {            
-            if (isHidden)
+        public void hideTimerTick(object sender, EventArgs e)
+        {
+            if(isHidden) {
                 decideToShow();
-            else if(!fadeBool)
+            }
+            else if(!fadeBool) {
                 decideToHide();
-        }        
-        public void TimerTick(EventArgs e) {
-            if (GlobalVar.hourlyChime.Enabled)
-            {
+            }
+        }
+        public void TimerTick(EventArgs e)
+        {
+            if(GlobalVar.hourlyChime.Enabled) {
                 System.Media.SoundPlayer myPlayer = new System.Media.SoundPlayer();
                 string[] splitTime;
 
                 splitTime = SplitWords(DateTime.Now.ToShortTimeString());
                 onHour = (int)Convert.ToDecimal(splitTime[0]);
-                if ((splitTime[1] == "00") && (hourSounded[onHour] == false))
-                {
+                if((splitTime[1] == "00") && (hourSounded[onHour] == false)) {
                     myPlayer.SoundLocation = "Sounds\\" + splitTime[0] + ".wav";
                     myPlayer.PlaySync();
                     myPlayer.SoundLocation = "Sounds\\" + splitTime[2] + ".wav";
@@ -537,10 +531,8 @@ namespace DesktopShell
         }
         public void decideToShow()
         {
-            foreach (Rectangle r in GlobalVar.dropDownRects)
-            {
-                if (isInField(r) && !isFading)
-                {
+            foreach(Rectangle r in GlobalVar.dropDownRects) {
+                if(isInField(r) && !isFading) {
                     GlobalVar.log("^^^ Should be activating window now.");
                     isHidden = false;                                                                                   //toggle hidden status                       
                     this.TopMost = true;                                                                                //make window foreground
@@ -553,22 +545,20 @@ namespace DesktopShell
             }
         }
         public void decideToHide()
-        {          
+        {
             Boolean shouldHide = true;
 
-            foreach (Rectangle r in GlobalVar.dropDownRects)
-            {
-                if (!isInField(r) && !isFading)
+            foreach(Rectangle r in GlobalVar.dropDownRects) {
+                if(!isInField(r) && !isFading) {
                     continue;                                                                                           //hide if not in field, and not currently fading
-                else
-                {
+                }
+                else {
                     shouldHide = false;
                     break;
                 }
             }
 
-            if (shouldHide)
-            {
+            if(shouldHide) {
                 GlobalVar.log("!!! Should be hiding window now.");
                 isHidden = true;                                                                                        //toggle hidden status                  
                 fadeAway(-1);                                                                                           //move window position up 20 pixels                 
@@ -586,25 +576,17 @@ namespace DesktopShell
         #region Shell Event Handlers
         public void Shell_Load(object sender, EventArgs e)
         {
-            //GlobalVar.setBounds(this);
+            GlobalVar.setCentered(Screen.FromPoint(Properties.Settings.positionSave), this);
 
-            GlobalVar.setCentered(Screen.FromPoint(Properties.Settings.positionSave),this);
-
-            /*widthAdder = GlobalVar.calculateWidth();
-
-            this.Location = new System.Drawing.Point(widthAdder - (this.MaximumSize.Width / 2), 1 + heightDiff);
-            GlobalVar.log("!!! Top bound: " + heightDiff);
-            GlobalVar.topBound = heightDiff;
-            GlobalVar.leftBound = widthAdder - (this.MaximumSize.Width / 2);
-            GlobalVar.rightBound = widthAdder + (this.MaximumSize.Width / 2);
-            GlobalVar.bottomBound = this.MaximumSize.Height + heightDiff;*/
             //Getting colors from settings.ini
-            this.BackColor = this.textBox1.BackColor = this.label1.BackColor = this.button1.BackColor = Properties.Settings.backgroundColor;
-            this.button1.ForeColor = this.textBox1.ForeColor = this.label1.ForeColor = Properties.Settings.foregroundColor;
+            this.BackColor = this.textBox1.BackColor = this.label1.BackColor = this.button1.BackColor = GlobalVar.backColor = Properties.Settings.backgroundColor;
+            this.button1.ForeColor = this.textBox1.ForeColor = this.label1.ForeColor = GlobalVar.fontColor = Properties.Settings.foregroundColor;
         }
         private void Shell_FormClosed(object sender, FormClosedEventArgs e)
         {
-            if(GlobalVar.configInstance != null) GlobalVar.configInstance.Close();
+            if(GlobalVar.configInstance != null) {
+                t.Abort();
+            }
         }
         #endregion
 

@@ -25,6 +25,10 @@ namespace DesktopShell
         public static ColorWheel colorWheelInstance = null;
         public static ArrayList fileChoices = new ArrayList();
         public static ArrayList dropDownRects = new ArrayList();
+        public static Color backColor;
+        public static Color fontColor;
+        public static Boolean settingFontColor = false;
+        public static Boolean settingBackColor = false;
         public static string searchType = "";
 
         // FilePath Section
@@ -33,7 +37,6 @@ namespace DesktopShell
         public static string desktopShellPath = @"C:\Users\phuzE\Dropbox\Programming\DesktopShell\DesktopShell.sln";
         public static string desktopShellReleasePath = @"C:\Users\phuzE\Dropbox\Programming\DesktopShell\DesktopShell\bin\Release";
         public static string[] pronPaths = { @"K:\Blackangel" };
-        public static string vcplusplusPath = @"D:\Program Files (x86)\Microsoft Visual Studio 11.0\Common7\IDE\WDExpress.exe";
         public static string vcsPath = @"D:\Program Files (x86)\Microsoft Visual Studio 11.0\Common7\IDE\WDExpress.exe";
 
         // Form Bounds
@@ -52,9 +55,11 @@ namespace DesktopShell
         // Global Functions
         public static string GetSetting(int line)
         {
-            using (var sr = new StreamReader("settings.ini"))
-            {
-                for (int i = 1; i < line; i++) sr.ReadLine();
+            using(var sr = new StreamReader("settings.ini")) {
+                for(int i = 1; i < line; i++) {
+                    sr.ReadLine();
+                }
+
                 return sr.ReadLine();
             }
         }
@@ -64,53 +69,49 @@ namespace DesktopShell
             string[] tempLines = File.ReadAllLines("settings.ini");
             tempLines[line] = settingChange;
 
-            foreach (string s in tempLines)
-            {
+            foreach(string s in tempLines) {
                 File.WriteAllLines("settings.ini", tempLines);
             }
         }
-        public static void Run(string path, string arguments) {     
+        public static void Run(string path, string arguments)
+        {
             Process p = new Process();
-            try {      
+            try {
                 p.StartInfo.Arguments = arguments;
                 p.StartInfo.FileName = path;
                 p.Start();
             }
-            catch { Process.Start("Bin\\ToolTipper.exe","Error " + path); }
+            catch { Process.Start("Bin\\ToolTipper.exe", "Error " + path); }
 
 
             Point curPos = Cursor.Position;
             Screen curScreen = Screen.FromPoint(curPos);
 
             // temp hack for now, fix later
-            if (curScreen.Bounds.Width <= 1025)
-            {
+            if(curScreen.Bounds.Width <= 1025) {
                 int numIncrements = 0;
                 int numSecondsUntilTimeout = 10;
                 int increment = 50;
                 int numMaxIncrements = ((numSecondsUntilTimeout * 1000) / increment);
                 bool timeout = false;
-                do
-                {
+                do {
                     p.Refresh();
                     Thread.Sleep(increment);
                     numIncrements++;
 
-                    if (numIncrements == numMaxIncrements)
-                    {
+                    if(numIncrements == numMaxIncrements) {
                         GlobalVar.log("### Timeout getting process handle to move screens");
                         timeout = true;
                     }
-                    else if (p.MainWindowHandle != (IntPtr)0)
+                    else if(p.MainWindowHandle != (IntPtr)0) {
                         GlobalVar.log("&&& Moved process in: " + (increment * numIncrements) + "ms");
-                } while (numIncrements < numMaxIncrements && p.MainWindowHandle == (IntPtr)0);
+                    }
+                } while(numIncrements < numMaxIncrements && p.MainWindowHandle == (IntPtr)0);
 
-                if (!timeout)
-                {
+                if(!timeout) {
                     try {
                         IntPtr hWnd = p.MainWindowHandle;
-                        if (!SetWindowPos(hWnd, (IntPtr)null, curScreen.WorkingArea.Left, curScreen.WorkingArea.Top, 0, 0, SWP_NOSIZE | SWP_NOZORDER))
-                        {
+                        if(!SetWindowPos(hWnd, (IntPtr)null, curScreen.WorkingArea.Left, curScreen.WorkingArea.Top, 0, 0, SWP_NOSIZE | SWP_NOZORDER)) {
                             throw new Win32Exception();
                         }
                     }
@@ -127,10 +128,8 @@ namespace DesktopShell
         public static void initDropDownRects(object sender)
         {
             dropDownRects.Clear();
-            for (int i = 0; i < Screen.AllScreens.Length; i++)
-            {
-                if (Properties.Settings.multiscreenEnabled[i])
-                {
+            for(int i = 0; i < Screen.AllScreens.Length; i++) {
+                if(Properties.Settings.multiscreenEnabled[i]) {
                     Screen s = Screen.AllScreens[i];
                     Size shellSize = ((Shell)sender).ClientSize;
                     int pointX = s.WorkingArea.Left + ((s.WorkingArea.Width / 2) - shellSize.Width / 2);
@@ -140,8 +139,9 @@ namespace DesktopShell
                     Rectangle tempRect = new Rectangle(rectPoint, shellSize);
                     dropDownRects.Add(tempRect);
                 }
-                else
+                else {
                     continue;
+                }
             }
         }
         public static Label[] populateLabels()
@@ -149,8 +149,7 @@ namespace DesktopShell
             Regex extension = new Regex(".([a-z]|[A-Z]){3,4}$");
             ArrayList tempArray = new ArrayList();
             int fileCount = GlobalVar.fileChoices.Count;
-            for (int i = 0; i < fileCount; i++)
-            {
+            for(int i = 0; i < fileCount; i++) {
                 Label tempLabel = new System.Windows.Forms.Label();
                 tempLabel.BackColor = Properties.Settings.backgroundColor;
                 tempLabel.ForeColor = Properties.Settings.foregroundColor;
@@ -158,8 +157,13 @@ namespace DesktopShell
                 tempLabel.Font = new System.Drawing.Font("Microsoft Sans Serif", 9.5F);
                 tempLabel.Location = new System.Drawing.Point(10, (i * 18) + 20);
                 tempLabel.Size = new System.Drawing.Size(350, 18);
-                if (searchType == "Movie") tempLabel.Text = "• " + ((System.IO.FileInfo)fileChoices[i]).Name;
-                else tempLabel.Text = "• " + extension.Replace(((System.IO.FileInfo)GlobalVar.fileChoices[i]).Name, "");
+                if(searchType == "Movie") {
+                    tempLabel.Text = "• " + ((System.IO.FileInfo)fileChoices[i]).Name;
+                }
+                else {
+                    tempLabel.Text = "• " + extension.Replace(((System.IO.FileInfo)GlobalVar.fileChoices[i]).Name, "");
+                }
+
                 tempArray.Add(tempLabel);
             }
             return (Label[])tempArray.ToArray(typeof(Label));
@@ -170,15 +174,13 @@ namespace DesktopShell
             int widthAdder = GlobalVar.calculateWidth();
             int heightDiff = screens[Screen.AllScreens.Length - 1].WorkingArea.Top;
 
-            if (obj.Name == "Shell")
-            {
+            if(obj.Name == "Shell") {
                 GlobalVar.topBound = heightDiff;
                 GlobalVar.leftBound = widthAdder - (obj.Size.Width / 2);
                 GlobalVar.rightBound = widthAdder + (obj.Size.Width / 2);
                 GlobalVar.bottomBound = obj.Size.Height + heightDiff;
             }
-            else
-            {
+            else {
                 heightDiff += shellInstance.Size.Height;
             }
 
@@ -189,18 +191,19 @@ namespace DesktopShell
         {
             int heightDiff = screen.Bounds.Top;
             int widthAdder;
-            if(screen.Bounds.Left > 0)
+            if(screen.Bounds.Left > 0) {
                 widthAdder = screen.Bounds.Left + ((Math.Abs(screen.Bounds.Right) - Math.Abs(screen.Bounds.Left)) / 2) - (obj.Size.Width / 2);
-            else
+            }
+            else {
                 widthAdder = ((Math.Abs(screen.Bounds.Right) - Math.Abs(screen.Bounds.Left)) / 2) - (obj.Size.Width / 2);
+            }
 
             //GlobalVar.toolTip("setCentered", "obj.Name: " + obj.Name);
-            if (obj.Name == "Shell")
-            {
+            if(obj.Name == "Shell") {
                 GlobalVar.topBound = heightDiff;
                 GlobalVar.leftBound = widthAdder;
-                GlobalVar.rightBound = widthAdder+obj.Size.Width;
-                GlobalVar.bottomBound = heightDiff+obj.Size.Height;
+                GlobalVar.rightBound = widthAdder + obj.Size.Width;
+                GlobalVar.bottomBound = heightDiff + obj.Size.Height;
             }
             else {
                 heightDiff += shellInstance.Size.Height;
@@ -212,46 +215,50 @@ namespace DesktopShell
         }
         public static void toolTip(String title, String body)
         {
-            Process.Start("Bin\\ToolTipper.exe", title+" " + body);
+            Process.Start("Bin\\ToolTipper.exe", title + " " + body);
         }
         public static int calculateWidth()
-        {           
+        {
             System.Windows.Forms.Screen[] screens = System.Windows.Forms.Screen.AllScreens;
             int widthAdder = 0;
 
             //Getting/Setting Position on screen
-            foreach (Screen s in Screen.AllScreens)
-            {
-                if (Screen.AllScreens.Count() == 3)
-                {
-                    if (s.Bounds.Width == 1024)
-                    {
+            foreach(Screen s in Screen.AllScreens) {
+                if(Screen.AllScreens.Count() == 3) {
+                    if(s.Bounds.Width == 1024) {
                         continue;
                     }
                 }
-                if (s == screens[Screen.AllScreens.Count() - 1])
-                {
+                if(s == screens[Screen.AllScreens.Count() - 1]) {
                     widthAdder += (s.Bounds.Width / 2);
                 }
-                else widthAdder += s.Bounds.Width;
+                else {
+                    widthAdder += s.Bounds.Width;
+                }
             }
 
             log("!!! WidthAdder: " + widthAdder);
 
             return widthAdder;
         }
+        public static void updateColors()
+        {
+            Properties.Settings.backgroundColor = backColor;
+            Properties.Settings.foregroundColor = fontColor;
+            shellInstance.changeBackgroundColor();
+            shellInstance.changeFontColor();
+        }
         public static void log(String logOutput)
         {
             String logPath = "DesktopShell.log";
-            using (FileStream fs = new FileStream(logPath, FileMode.Append, FileAccess.Write, FileShare.Read))
-            using (StreamWriter w = new StreamWriter(fs))
-            {
+            using(FileStream fs = new FileStream(logPath, FileMode.Append, FileAccess.Write, FileShare.Read))
+            using(StreamWriter w = new StreamWriter(fs)) {
                 w.WriteLine("{0}:\t{1}", DateTime.Now.ToString("HH:mm:ss.fff"), logOutput);
             }
         }
         public static void resetLog()
         {
-            using (File.Create("DesktopShell.log")) { };
+            using(File.Create("DesktopShell.log")) { };
         }
     }
 }
