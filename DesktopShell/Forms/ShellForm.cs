@@ -282,6 +282,7 @@ namespace DesktopShell
             //Options
             else if(options.IsMatch(splitWords[0])) {
                 t = new System.Threading.Thread(new System.Threading.ThreadStart(ConfigProc));
+                t.IsBackground = true;
                 t.Start();
             }
             //Shows Raw Input Function

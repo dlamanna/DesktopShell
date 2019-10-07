@@ -134,6 +134,7 @@ namespace DesktopShell
         private void screenSelectorButton_Click(object sender, EventArgs e)
         {
             t = new Thread(new ThreadStart(ScreenSelectorProc));
+            t.IsBackground = true;
             t.Start();
         }
         private void ColorWheel_Click(object sender, EventArgs e, string label)
@@ -146,7 +147,7 @@ namespace DesktopShell
                     t.Join();
                 };
                 t = new Thread(starter);
-
+                t.IsBackground = true;
                 t.Start();
             }
             else { Console.WriteLine("### Colorwheel already opened"); }
@@ -163,8 +164,7 @@ namespace DesktopShell
             }
         }
         private void UpdateColorTextBoxes()
-        {
-            Console.WriteLine("!!! Changing text in textboxes");
+        { 
             SetControlPropertyThreadSafe(this.backgroundColorInputBox,"Text",ColorTranslator.ToHtml(GlobalVar.backColor));
             SetControlPropertyThreadSafe(this.textColorInputBox, "Text", ColorTranslator.ToHtml(GlobalVar.fontColor));
             SetControlPropertyThreadSafe(this.BackColorExample, "BackColor", GlobalVar.backColor);
