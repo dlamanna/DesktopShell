@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Drawing;
+using System.Reflection;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Windows.Forms;
@@ -43,6 +44,7 @@ namespace DesktopShell
                 tempBox.Text = ("" + (i + 1) + ":");
                 tempBox.UseVisualStyleBackColor = true;
                 tempBox.Click += tempBox_Click;
+                UpdateColorTextBoxes();
 
                 screenCheckBoxList.Add(tempBox);
             }
@@ -138,12 +140,35 @@ namespace DesktopShell
         {
             if(GlobalVar.colorWheelInstance == null) {
                 ThreadStart starter = ColorWheelProc;
-                starter += () => { t.Join(); };
+                starter += () =>
+                {
+                    UpdateColorTextBoxes();
+                    t.Join();
+                };
                 t = new Thread(starter);
 
                 t.Start();
             }
             else { Console.WriteLine("### Colorwheel already opened"); }
+        }
+        private delegate void SetControlPropertyThreadSafeDelegate(Control control, string propertyName,object propertyValue);
+        public static void SetControlPropertyThreadSafe(Control control, string propertyName, object propertyValue)
+        {
+            if(control.InvokeRequired) {
+                control.Invoke(new SetControlPropertyThreadSafeDelegate(SetControlPropertyThreadSafe),
+                            new object[] { control, propertyName, propertyValue });
+            }
+            else {
+                control.GetType().InvokeMember(propertyName,BindingFlags.SetProperty,null,control, new object[] { propertyValue });
+            }
+        }
+        private void UpdateColorTextBoxes()
+        {
+            Console.WriteLine("!!! Changing text in textboxes");
+            SetControlPropertyThreadSafe(this.backgroundColorInputBox,"Text",ColorTranslator.ToHtml(GlobalVar.backColor));
+            SetControlPropertyThreadSafe(this.textColorInputBox, "Text", ColorTranslator.ToHtml(GlobalVar.fontColor));
+            SetControlPropertyThreadSafe(this.BackColorExample, "BackColor", GlobalVar.backColor);
+            SetControlPropertyThreadSafe(this.ForeColorExample, "BackColor", GlobalVar.fontColor);
         }
         private void BackColorWheel_Click(object sender, EventArgs e)
         {

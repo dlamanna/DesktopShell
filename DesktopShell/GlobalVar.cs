@@ -36,8 +36,6 @@ namespace DesktopShell
         public static string desktopShellFolderPath = @"D:\Program Files (x86)\DesktopShell";
         public static string desktopShellPath = @"C:\Users\phuzE\Dropbox\Programming\DesktopShell\DesktopShell.sln";
         public static string desktopShellReleasePath = @"C:\Users\phuzE\Dropbox\Programming\DesktopShell\DesktopShell\bin\Release";
-        public static string[] pronPaths = { @"K:\Blackangel" };
-        public static string vcsPath = @"D:\Program Files (x86)\Microsoft Visual Studio 11.0\Common7\IDE\WDExpress.exe";
 
         // Form Bounds
         public static int leftBound;
@@ -247,6 +245,7 @@ namespace DesktopShell
             Properties.Settings.foregroundColor = fontColor;
             shellInstance.changeBackgroundColor();
             shellInstance.changeFontColor();
+            log("Changing Colors: (" + backColor.Name + ")\t(" + fontColor.Name + ")");
         }
         public static void log(String logOutput)
         {
