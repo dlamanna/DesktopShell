@@ -80,7 +80,7 @@ namespace DesktopShell
             //t.Join();
             //GlobalVar.colorWheelInstance.Close();
             if(t != null) {
-                t.Join();
+                t.Abort();
             }
 
             GlobalVar.screenSelectorInstance = null;

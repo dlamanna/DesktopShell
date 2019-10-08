@@ -44,7 +44,7 @@ namespace DesktopShell
             switch(m.Msg) {
                 case WM_DISPLAYCHANGE:
                     // reset position
-                    GlobalVar.log("WM_DISPLAYCHANGE Detected: Should be resetting position now");
+                    GlobalVar.log("WM_DISPLAYCHANGE Detected: Position resetting currently disabled");
                     //InitializeComponent();
                     //GlobalVar.initDropDownRects(this);
                     break;
@@ -54,17 +54,17 @@ namespace DesktopShell
         #endregion
 
         #region Hardcoded regex section
-        private Regex passwd = new Regex("(^pass(wd)?){1}|(^password){1}|(^pw){1}");
-        private Regex rescan = new Regex("(^rescan$){1}");
-        private Regex roll = new Regex("(^roll$){1}");
-        private Regex randomGame = new Regex("(^randomgame$){1}");
-        private Regex shutdown = new Regex("^(timed )?(shutdown){1}$");
-        private Regex disable = new Regex("(^disable$){1}|(^cancel$){1}|(^stop$){1}");
-        private Regex options = new Regex("(^config$){1}|(^options$){1}");
-        private Regex games = new Regex("(^game(s)? ){1}");
-        private Regex showsRaw = new Regex("(^show){1}(s)?( ){1}(raw )?");
-        private Regex musicSearch = new Regex("(^music ){1}");
-        private Regex movieSearch = new Regex("(^movie(s)? ){1}");
+        private readonly Regex passwd = new Regex("(^pass(wd)?){1}|(^password){1}|(^pw){1}");
+        private readonly Regex rescan = new Regex("(^rescan$){1}");
+        private readonly Regex roll = new Regex("(^roll$){1}");
+        private readonly Regex randomGame = new Regex("(^randomgame$){1}");
+        private readonly Regex shutdown = new Regex("^(timed )?(shutdown){1}$");
+        private readonly Regex disable = new Regex("(^disable$){1}|(^cancel$){1}|(^stop$){1}");
+        private readonly Regex options = new Regex("(^config$){1}|(^options$){1}");
+        private readonly Regex games = new Regex("(^game(s)? ){1}");
+        private readonly Regex showsRaw = new Regex("(^show){1}(s)?( ){1}(raw )?");
+        private readonly Regex musicSearch = new Regex("(^music ){1}");
+        private readonly Regex movieSearch = new Regex("(^movie(s)? ){1}");
         #endregion
 
         #region Startup Constructor Function
@@ -78,16 +78,18 @@ namespace DesktopShell
             GlobalVar.initDropDownRects(this);
 
             // Timer Instantiations
-            GlobalVar.hourlyChime = new System.Windows.Forms.Timer();
-            GlobalVar.hourlyChime.Interval = 1000;
+            GlobalVar.hourlyChime = new System.Windows.Forms.Timer {
+                Interval = 1000
+            };
             GlobalVar.hourlyChime.Tick += delegate { TimerTick(EventArgs.Empty); };
             GlobalVar.hourlyChime.Enabled = Properties.Settings.hourlyChimeChecked;
             for(int i = 0; i < 24; i++) {
                 hourSounded[i] = false;
             }
 
-            hideTimer = new System.Windows.Forms.Timer();
-            hideTimer.Interval = 50;
+            hideTimer = new System.Windows.Forms.Timer {
+                Interval = 50
+            };
             hideTimer.Tick += delegate { hideTimerTick(hideTimer, EventArgs.Empty); };
             hideTimer.Enabled = true;
 
