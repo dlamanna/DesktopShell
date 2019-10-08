@@ -80,7 +80,7 @@ namespace DesktopShell
             //t.Join();
             //GlobalVar.colorWheelInstance.Close();
             if(t != null) {
-                t.Abort();
+                t.Join();
             }
 
             GlobalVar.screenSelectorInstance = null;
@@ -169,6 +169,7 @@ namespace DesktopShell
             SetControlPropertyThreadSafe(this.textColorInputBox, "Text", ColorTranslator.ToHtml(GlobalVar.fontColor));
             SetControlPropertyThreadSafe(this.BackColorExample, "BackColor", GlobalVar.backColor);
             SetControlPropertyThreadSafe(this.ForeColorExample, "BackColor", GlobalVar.fontColor);
+            Properties.Settings.writeSettings();
         }
         private void BackColorWheel_Click(object sender, EventArgs e)
         {
