@@ -10,28 +10,28 @@ namespace DesktopShell.Tests.TestHelpers
             File.WriteAllText(tempFile, content, Encoding.UTF8);
             return tempFile;
         }
-        
+
         public static string CreateTempShortcutsFile(string content)
         {
             var tempFile = Path.GetTempFileName();
             File.WriteAllText(tempFile, content, Encoding.UTF8);
             return tempFile;
         }
-        
+
         public static string CreateTempWebsitesFile(string content)
         {
             var tempFile = Path.GetTempFileName();
             File.WriteAllText(tempFile, content, Encoding.UTF8);
             return tempFile;
         }
-        
+
         public static string CreateTempWebBrowsersFile(string content)
         {
             var tempFile = Path.GetTempFileName();
             File.WriteAllText(tempFile, content, Encoding.UTF8);
             return tempFile;
         }
-        
+
         public static void CleanupTempFile(string filePath)
         {
             if (File.Exists(filePath))
@@ -47,7 +47,7 @@ namespace DesktopShell.Tests.TestHelpers
                 }
             }
         }
-        
+
         public static void CleanupTempFiles(params string[] filePaths)
         {
             foreach (var filePath in filePaths)
@@ -55,7 +55,7 @@ namespace DesktopShell.Tests.TestHelpers
                 CleanupTempFile(filePath);
             }
         }
-        
+
         public static string GetSampleShortcutsContent()
         {
             return @"notepad
@@ -68,7 +68,7 @@ chrome
 C:\Program Files\Google\Chrome\Application\chrome.exe
 --new-window";
         }
-        
+
         public static string GetSampleWebsitesContent()
         {
             return @"google
@@ -81,7 +81,7 @@ github
 False
 https://github.com/";
         }
-        
+
         public static string GetSampleWebBrowsersContent()
         {
             return @"chrome
@@ -91,7 +91,7 @@ C:\Program Files\Mozilla Firefox\firefox.exe
 edge
 C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe";
         }
-        
+
         public static string GetSampleSettingsContent()
         {
             return @"fontColor=#FF0000

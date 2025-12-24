@@ -1,5 +1,4 @@
-using System;
-using System.Drawing;
+namespace DesktopShell;
 
 public class ColorHandler
 {
@@ -22,7 +21,7 @@ public class ColorHandler
 
         public override string ToString()
         {
-            return String.Format("({0}, {1}, {2})", Red, Green, Blue);
+            return $"({Red}, {Green}, {Blue})";
         }
     }
 
@@ -43,7 +42,7 @@ public class ColorHandler
 
         public override string ToString()
         {
-            return String.Format("({0}, {1}, {2})", Hue, Saturation, value);
+            return $"({Hue}, {Saturation}, {value})";
         }
     }
 
@@ -82,7 +81,7 @@ public class ColorHandler
         s = (double)HSV.Saturation / 255;
         v = (double)HSV.value / 255;
 
-        if(s == 0)
+        if (s == 0)
         {
             // If s is 0, all colors are the same. This is some flavor of gray.
             r = v;
@@ -112,7 +111,7 @@ public class ColorHandler
             t = v * (1 - (s * (1 - fractionalSector)));
 
             // Assign the fractional colors to r, g, and b based on the sector the angle is in.
-            switch(sectorNumber)
+            switch (sectorNumber)
             {
                 case 0:
                     r = v;
@@ -176,7 +175,7 @@ public class ColorHandler
         max = Math.Max(Math.Max(r, g), b);
         v = max;
         delta = max - min;
-        if(max == 0 || delta == 0)
+        if (max == 0 || delta == 0)
         {
             // R, G, and B must be 0, or all the same. In this case, S is 0, and H is undefined. Using H = 0 is as good as any...
             s = 0;
@@ -185,12 +184,12 @@ public class ColorHandler
         else
         {
             s = delta / max;
-            if(r == max)
+            if (r == max)
             {
                 // Between Yellow and Magenta
                 h = (g - b) / delta;
             }
-            else if(g == max)
+            else if (g == max)
             {
                 // Between Cyan and Yellow
                 h = 2 + (b - r) / delta;
@@ -203,7 +202,7 @@ public class ColorHandler
         }
         // Scale h to be between 0 and 360. This may require adding 360, if the value is negative.
         h *= 60;
-        if(h < 0)
+        if (h < 0)
         {
             h += 360;
         }

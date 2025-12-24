@@ -1,5 +1,18 @@
 {
+    "editor.formatOnSave": true,
+    "editor.formatOnPaste": true,
+    "[csharp]": {
+        "editor.defaultFormatter": "ms-dotnettools.csharp"
+    },
     "[python]": {
         "editor.detectIndentation": false
-    }
+    },
+    "python.linting.enabled": true,
+    "python.linting.pylintEnabled": true,
+    "python.linting.pylintArgs": [
+        "--rcfile=${workspaceFolder}/.pylintrc"
+    ],
+    "dotnet.defaultSolution": "DesktopShell.sln",
+    "omnisharp.enableEditorConfigSupport": true,
+    "omnisharp.enableRoslynAnalyzers": true
 }

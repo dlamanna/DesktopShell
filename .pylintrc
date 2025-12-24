@@ -1,0 +1,39 @@
+[BASIC]
+# Variable naming style: snake_case
+variable-naming-style=snake_case
+variable-rgx=[a-z_][a-z0-9_]{2,30}$
+
+# Function naming style: camelCase
+function-naming-style=camelCase
+function-rgx=[a-z][a-zA-Z0-9]{2,30}$
+
+# Argument naming style: snake_case
+argument-naming-style=snake_case
+argument-rgx=[a-z_][a-z0-9_]{2,30}$
+
+# Attribute naming style: snake_case
+attr-naming-style=snake_case
+attr-rgx=[a-z_][a-z0-9_]{2,30}$
+
+# Class naming style: PascalCase (standard)
+class-naming-style=PascalCase
+class-rgx=[A-Z][a-zA-Z0-9]+$
+
+# Constant naming style: UPPER_CASE (standard)
+const-naming-style=UPPER_CASE
+const-rgx=[A-Z_][A-Z0-9_]{2,30}$
+
+# Method naming style: camelCase
+method-naming-style=camelCase
+method-rgx=[a-z][a-zA-Z0-9]{2,30}$
+
+# Module naming style: snake_case (standard)
+module-naming-style=snake_case
+module-rgx=[a-z_][a-z0-9_]+$
+
+# Good variable names (short names that are acceptable)
+good-names=i,j,k,x,y,z,id,_
+
+[MESSAGES CONTROL]
+# Enable naming convention checking
+enable=invalid-name

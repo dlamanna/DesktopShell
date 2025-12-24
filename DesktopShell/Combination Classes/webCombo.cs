@@ -1,49 +1,44 @@
-﻿using System.Collections.Generic;
+﻿namespace DesktopShell;
 
-namespace DesktopShell
+internal class WebCombo
 {
-    internal class WebCombo
+    public string keyword { get; init; }
+    public List<string> websiteBase { get; init; }
+    public bool? searchable { get; init; }
+
+    public WebCombo(string? _keyword, string _websiteBase)
     {
-        public string? keyword;
-        public List<string> websiteBase;
-        public bool? searchable;
-
-        public WebCombo(string? _keyword, string _websiteBase) 
+        if (string.IsNullOrEmpty(_keyword))
         {
-            if (string.IsNullOrEmpty(_keyword))
-            {
-                throw new System.ArgumentException($"'{nameof(_keyword)}' cannot be null or empty.", nameof(_keyword));
-            }
-
-            keyword = _keyword;
-            if (websiteBase == null) websiteBase = new List<string>();
-            if (_websiteBase != null) websiteBase.Add(_websiteBase);
-            searchable = false; 
+            throw new ArgumentException($"'{nameof(_keyword)}' cannot be null or empty.", nameof(_keyword));
         }
 
-        public WebCombo(string? _keyword, string _websiteBase, bool? _searchable) 
-        {
-            if (string.IsNullOrEmpty(_keyword))
-            {
-                throw new System.ArgumentException($"'{nameof(_keyword)}' cannot be null or empty.", nameof(_keyword));
-            }
+        keyword = _keyword;
+        websiteBase = [_websiteBase];
+        searchable = false;
+    }
 
-            keyword = _keyword;
-            if (websiteBase == null) websiteBase = new List<string>();
-            if (_websiteBase != null) websiteBase.Add(_websiteBase);
-            searchable = _searchable; 
+    public WebCombo(string? _keyword, string _websiteBase, bool? _searchable)
+    {
+        if (string.IsNullOrEmpty(_keyword))
+        {
+            throw new ArgumentException($"'{nameof(_keyword)}' cannot be null or empty.", nameof(_keyword));
         }
 
-        public WebCombo(string? _keyword, List<string> _websiteBase, bool? _searchable) 
-        {
-            if (string.IsNullOrEmpty(_keyword))
-            {
-                throw new System.ArgumentException($"'{nameof(_keyword)}' cannot be null or empty.", nameof(_keyword));
-            }
+        keyword = _keyword;
+        websiteBase = [_websiteBase];
+        searchable = _searchable;
+    }
 
-            keyword = _keyword;
-            websiteBase = _websiteBase ?? throw new System.ArgumentNullException(nameof(_websiteBase));
-            searchable = _searchable;
+    public WebCombo(string? _keyword, List<string> _websiteBase, bool? _searchable)
+    {
+        if (string.IsNullOrEmpty(_keyword))
+        {
+            throw new ArgumentException($"'{nameof(_keyword)}' cannot be null or empty.", nameof(_keyword));
         }
+
+        keyword = _keyword;
+        websiteBase = _websiteBase ?? throw new ArgumentNullException(nameof(_websiteBase));
+        searchable = _searchable;
     }
 }
