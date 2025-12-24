@@ -12,4 +12,4 @@ using System.Diagnostics.CodeAnalysis;
 [assembly: SuppressMessage("Interoperability", "CA1416:Validate platform compatibility", Justification = "<Pending>", Scope = "member", Target = "~M:DesktopShell.Forms.ColorWheel.Draw(System.Drawing.Graphics,System.Drawing.Point)")]
 [assembly: SuppressMessage("Interoperability", "CA1416:Validate platform compatibility", Justification = "<Pending>", Scope = "member", Target = "~M:DesktopShell.Forms.ColorWheel.DrawLinearGradient(System.Drawing.Color)")]
 [assembly: SuppressMessage("Interoperability", "CA1416:Validate platform compatibility", Justification = "<Pending>", Scope = "member", Target = "~M:DesktopShell.Forms.ColorWheel.UpdateDisplay")]
-[assembly: SuppressMessage("Usage", "CA2211:Non-constant fields should not be visible", Justification = "<Pending>", Scope = "member", Target = "~F:DesktopShell.GlobalVar.backColor")]
+[assembly: SuppressMessage("Usage", "CA2211:Non-constant fields should not be visible", Justification = "<Pending>", Scope = "member", Target = "~F:DesktopShell.GlobalVar.BackColor")]

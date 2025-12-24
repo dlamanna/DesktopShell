@@ -12,17 +12,17 @@ public partial class ChoiceForm : Form
         GlobalVar.SetCentered(Screen.FromPoint(Properties.Settings.positionSave), this);
         filesGroup.Controls.AddRange(GlobalVar.PopulateLabels());
 
-        int fileCount = GlobalVar.fileChoices.Count;
+        int fileCount = GlobalVar.FileChoices.Count;
         foreach (Control c in filesGroup.Controls)
         {
             c.Click += new EventHandler(ChoiceForm_Click);
         }
 
         titleLabel.Left = (350 / 2 - (titleLabel.Width / 2));
-        titleLabel.Text = $"{GlobalVar.searchType} ({fileCount})";
+        titleLabel.Text = $"{GlobalVar.SearchType} ({fileCount})";
         BackColor = titleLabel.BackColor = Properties.Settings.backgroundColor;
         ForeColor = titleLabel.ForeColor = Properties.Settings.foregroundColor;
-        ClientSize = new System.Drawing.Size(GlobalVar.width, (fileCount * 18) + 4);
+        ClientSize = new System.Drawing.Size(GlobalVar.Width, (fileCount * 18) + 4);
         Location = new System.Drawing.Point(Location.X, Location.Y + 20);
     }
 
@@ -34,11 +34,11 @@ public partial class ChoiceForm : Form
             return;
         }
         Regex extension = new(".([a-z]|[A-Z]){3,4}$");
-        foreach (FileInfo f in GlobalVar.fileChoices)
+        foreach (FileInfo f in GlobalVar.FileChoices)
         {
             if (((Label)sender).Text.Contains(extension.Replace(f.Name, ""), StringComparison.CurrentCulture))
             {
-                if (GlobalVar.searchType == "Movie")
+                if (GlobalVar.SearchType == "Movie")
                 {
                     GlobalVar.Run(@"D:\Program Files (x86)\VLC Media Player\vlc.exe", f.FullName);
                 }
@@ -60,14 +60,14 @@ public partial class ChoiceForm : Form
     private void RandomLabel_Click(object sender, EventArgs e)
     {
         Random random = new();
-        int randNum = random.Next(0, GlobalVar.fileChoices.Count);
+        int randNum = random.Next(0, GlobalVar.FileChoices.Count);
 
-        if (GlobalVar.fileChoices != null && GlobalVar.fileChoices[randNum] != null)
+        if (GlobalVar.FileChoices != null && GlobalVar.FileChoices[randNum] != null)
         {
-            if (GlobalVar.fileChoices[randNum] is FileInfo fileInfo)
+            if (GlobalVar.FileChoices[randNum] is FileInfo fileInfo)
             {
                 string fileName = fileInfo.FullName;
-                if (GlobalVar.searchType == "Movie")
+                if (GlobalVar.SearchType == "Movie")
                 {
                     GlobalVar.Run(@"D:\Program Files (x86)\VLC Media Player\vlc.exe", fileName);
                 }

@@ -42,7 +42,7 @@ static class Program
             }
 
             if (!isRunning)
-                Application.Run(GlobalVar.shellInstance = new Shell());
+                Application.Run(GlobalVar.ShellInstance = new Shell());
         }
         catch (Exception ex)
         {

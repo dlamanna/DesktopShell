@@ -75,23 +75,23 @@ public partial class ConfigForm : Form
         int checkBoxIdx = Convert.ToInt32(whichCheckBox) - 1;
         Properties.Settings.multiscreenEnabled[checkBoxIdx] = !Properties.Settings.multiscreenEnabled[checkBoxIdx];
 
-        if (GlobalVar.shellInstance != null)
+        if (GlobalVar.ShellInstance != null)
         {
-            GlobalVar.InitDropDownRects(GlobalVar.shellInstance);
+            GlobalVar.InitDropDownRects(GlobalVar.ShellInstance);
         }
     }
 
     private void ConfigForm_FormClosed(object sender, EventArgs e)
     {
         //t.Join();
-        //GlobalVar.colorWheelInstance.Close();
+        //GlobalVar.ColorWheelInstance.Close();
         if (t != null)
         {
             //t.Abort();
         }
 
-        GlobalVar.screenSelectorInstance = null;
-        GlobalVar.configInstance = null;
+        GlobalVar.ScreenSelectorInstance = null;
+        GlobalVar.ConfigInstance = null;
     }
 
     private void CheckKeys_textColor(object sender, KeyEventArgs e)
@@ -104,7 +104,7 @@ public partial class ConfigForm : Form
             {
                 MessageBox.Show("Font Color Changed");
                 Properties.Settings.foregroundColor = ColorTranslator.FromHtml(checkString);    //change setting
-                GlobalVar.shellInstance?.ChangeFontColor();                                     //change in program
+                GlobalVar.ShellInstance?.ChangeFontColor();                                     //change in program
                 Properties.Settings.WriteSettings();
             }
             else
@@ -124,7 +124,7 @@ public partial class ConfigForm : Form
             {
                 MessageBox.Show("Background Color Changed");
                 Properties.Settings.backgroundColor = ColorTranslator.FromHtml(checkString);//Changing in settings                   
-                GlobalVar.shellInstance?.ChangeBackgroundColor();                           //Changing in program
+                GlobalVar.ShellInstance?.ChangeBackgroundColor();                           //Changing in program
                 Properties.Settings.WriteSettings();
             }
             else
@@ -136,9 +136,9 @@ public partial class ConfigForm : Form
 
     private void HourlyChimeCheckbox_CheckedChanged(object sender, EventArgs e)
     {
-        if (GlobalVar.hourlyChime != null)
+        if (GlobalVar.HourlyChime != null)
         {
-            GlobalVar.hourlyChime.Enabled = Properties.Settings.hourlyChimeChecked = !GlobalVar.hourlyChime.Enabled;
+            GlobalVar.HourlyChime.Enabled = Properties.Settings.hourlyChimeChecked = !GlobalVar.HourlyChime.Enabled;
             Properties.Settings.WriteSettings();
         }
     }
@@ -152,7 +152,7 @@ public partial class ConfigForm : Form
 
     private void ColorWheel_Click()
     {
-        if (GlobalVar.colorWheelInstance == null)
+        if (GlobalVar.ColorWheelInstance == null)
         {
             ThreadStart starter = ColorWheelProc;
             starter += () =>
@@ -192,33 +192,33 @@ public partial class ConfigForm : Form
     {
         SetControlPropertyThreadSafe(control: backgroundColorInputBox,
                                      propertyName: "Text",
-                                     propertyValue: ColorTranslator.ToHtml(GlobalVar.backColor));
+                                     propertyValue: ColorTranslator.ToHtml(GlobalVar.BackColor));
         SetControlPropertyThreadSafe(control: textColorInputBox,
                                      propertyName: "Text",
-                                     propertyValue: ColorTranslator.ToHtml(GlobalVar.fontColor));
+                                     propertyValue: ColorTranslator.ToHtml(GlobalVar.FontColor));
         SetControlPropertyThreadSafe(control: BackColorExample,
                                      propertyName: "BackColor",
-                                     propertyValue: GlobalVar.backColor);
+                                     propertyValue: GlobalVar.BackColor);
         SetControlPropertyThreadSafe(control: ForeColorExample,
                                      propertyName: "BackColor",
-                                     propertyValue: GlobalVar.fontColor);
+                                     propertyValue: GlobalVar.FontColor);
         Properties.Settings.WriteSettings();
     }
 
     private void BackColorWheel_Click(object sender, EventArgs e)
     {
-        GlobalVar.settingBackColor = true;
+        GlobalVar.SettingBackColor = true;
         ColorWheel_Click();
     }
 
     private void ForeColorWheel_Click(object sender, EventArgs e)
     {
-        GlobalVar.settingFontColor = true;
+        GlobalVar.SettingFontColor = true;
         ColorWheel_Click();
         //ColorWheel_Click(sender, e, "FG");
     }
     #endregion
 
-    public static void ScreenSelectorProc() { Application.Run(GlobalVar.screenSelectorInstance = new Forms.ScreenSelectorForm()); }
-    public static void ColorWheelProc() { Application.Run(GlobalVar.colorWheelInstance = new Forms.ColorWheel()); }
+    public static void ScreenSelectorProc() { Application.Run(GlobalVar.ScreenSelectorInstance = new Forms.ScreenSelectorForm()); }
+    public static void ColorWheelProc() { Application.Run(GlobalVar.ColorWheelInstance = new Forms.ColorWheel()); }
 }

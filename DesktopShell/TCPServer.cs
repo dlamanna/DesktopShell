@@ -22,7 +22,7 @@ public class TCPServer
         string hostName = Dns.GetHostName().Trim().ToLower();
         token = cts.Token;
 
-        foreach (KeyValuePair<string, string> hostPair in GlobalVar.hostList)
+        foreach (KeyValuePair<string, string> hostPair in GlobalVar.HostList)
         {
             string tempHostName = hostPair.Key.Trim().ToLower();
             if (tempHostName.Equals(hostName))
@@ -77,9 +77,9 @@ public class TCPServer
 
     private static string TrimPassPhrase(string inString)
     {
-        if (inString.Contains(GlobalVar.passPhrase))
+        if (inString.Contains(GlobalVar.PassPhrase))
         {
-            int startIndex = inString.IndexOf(GlobalVar.passPhrase) + GlobalVar.passPhrase.Length;
+            int startIndex = inString.IndexOf(GlobalVar.PassPhrase) + GlobalVar.PassPhrase.Length;
             return inString[startIndex..];
         }
         else
@@ -143,7 +143,7 @@ public class TCPServer
                     case "ack":
                         try
                         {
-                            if (GlobalVar.isWindows)
+                            if (GlobalVar.IsWindows)
                             {
                                 using (myPlayer = new SoundPlayer(soundLocation))
                                 {
@@ -177,7 +177,7 @@ public class TCPServer
                         break;
                     default:
                         //GlobalVar.SendRemoteCommand(tcpClient, "ack\r\n");
-                        GlobalVar.shellInstance?.ProcessCommand(receivedString);
+                        GlobalVar.ShellInstance?.ProcessCommand(receivedString);
                         isCommunicationOver = true;
                         break;
                 }

@@ -11,49 +11,51 @@ namespace DesktopShell;
 
 public class GlobalVar
 {
-    public static System.Windows.Forms.Timer? hourlyChime;
-    public static Shell? shellInstance = null;
-    public static TCPServer? serverInstance = null;
-    public static ConfigForm? configInstance = null;
-    public static ChoiceForm? choiceInstance = null;
-    public static ScreenSelectorForm? screenSelectorInstance = null;
-    public static ColorWheel? colorWheelInstance = null;
-    public static List<FileInfo> fileChoices = [];
-    public static List<Rectangle> dropDownRects = [];
-    public static int dropDownRectHorizontalPadding = 50;  // Extra pixels on left/right of trigger area
-    public static int dropDownRectVerticalPadding = 0;     // Extra pixels on top/bottom of trigger area
-    public static List<KeyValuePair<string, string>> hostList = [];
-    public static Color backColor;
-    public static Color fontColor;
-    public static bool settingFontColor = false;
-    public static bool settingBackColor = false;
-    public static bool isWindows = RuntimeInformation.IsOSPlatform(OSPlatform.Windows);
-    public static string searchType = "";
-    public static readonly string passPhrase = "cupcake";
+    public static System.Windows.Forms.Timer? HourlyChime;
+    public static Shell? ShellInstance = null;
+    public static TCPServer? ServerInstance = null;
+    public static ConfigForm? ConfigInstance = null;
+    public static ChoiceForm? ChoiceInstance = null;
+    public static ScreenSelectorForm? ScreenSelectorInstance = null;
+    public static ColorWheel? ColorWheelInstance = null;
+    public static List<FileInfo> FileChoices = [];
+    public static List<Rectangle> DropDownRects = [];
+    public static int DropDownRectHorizontalPadding = 50;  // Extra pixels on left/right of trigger area
+    public static int DropDownRectVerticalPadding = 0;     // Extra pixels on top/bottom of trigger area
+    public static List<KeyValuePair<string, string>> HostList = [];
+    public static Color BackColor;
+    public static Color FontColor;
+    public static bool SettingFontColor = false;
+    public static bool SettingBackColor = false;
+    public static bool IsWindows = RuntimeInformation.IsOSPlatform(OSPlatform.Windows);
+    public static string SearchType = "";
+    public static readonly string PassPhrase = "cupcake";
 
     // FilePath Section
-    public static string[] deletePaths = { @"C:\automount.bat", @"C:\keyk", @"C:\keye", @"C:\keyd", @"C:\keyx" };
-    public static string currentAssemblyDirectory = Directory.GetCurrentDirectory();
-    public static string desktopShellPath = @"C:\Users\phuzE\Dropbox\Programming\DesktopShell\DesktopShell.sln";
-    public static string desktopShellReleasePath = @"C:\Users\phuzE\Dropbox\Programming\DesktopShell\DesktopShell\bin\Release";
+    public static string[] DeletePaths = { @"C:\automount.bat", @"C:\keyk", @"C:\keye", @"C:\keyd", @"C:\keyx" };
+    public static string CurrentAssemblyDirectory = Directory.GetCurrentDirectory();
+    public static string DesktopShellPath = @"C:\Users\phuzE\Dropbox\Programming\DesktopShell\DesktopShell.sln";
+    public static string DesktopShellReleasePath = @"C:\Users\phuzE\Dropbox\Programming\DesktopShell\DesktopShell\bin\Release";
 
     // Form Bounds
-    public static int leftBound;
-    public static int rightBound;
-    public static int bottomBound;
-    public static int topBound;
-    public static int width;
-    public static int height;
+    public static int LeftBound;
+    public static int RightBound;
+    public static int BottomBound;
+    public static int TopBound;
+    public static int Width;
+    public static int Height;
 
     // Animation Constants
-    public static int fadeAnimationStartOffset = 21;  // Initial offset for fade animation
-    public static int fadeTickMaxAmount = 20;         // Maximum fade tick count
+    public static int FadeAnimationStartOffset = 21;  // Initial offset for fade animation
+    public static int FadeTickMaxAmount = 20;         // Maximum fade tick count
 
+#pragma warning disable IDE1006 // Naming rule violation - Windows API constants use UPPER_CASE
     private static readonly uint SWP_NOSIZE = 0x0001;
     private static readonly uint SWP_NOZORDER = 0x0004;
 
     [DllImport("user32.dll", SetLastError = true)]
     private static extern bool SetWindowPos(IntPtr hWnd, IntPtr hWndInsertAfter, int X, int Y, int W, int H, uint uFlags);
+#pragma warning restore IDE1006
 
     // Global Functions
     public static string? GetSetting(int line)
@@ -206,7 +208,7 @@ public class GlobalVar
 
     public static void InitDropDownRects(object sender)
     {
-        dropDownRects.Clear();
+        DropDownRects.Clear();
         int numScreensDetected = Screen.AllScreens.Length;
         int numScreensEnteredInSettings = Properties.Settings.multiscreenEnabled.Count;
 
@@ -227,15 +229,15 @@ public class GlobalVar
                 // Position the form's reference point after dropdown animation completes
                 int pointY = s.WorkingArea.Top + shellSize.Height;
                 // Extend trigger area upward to catch mouse at screen top
-                int extendedX = pointX - dropDownRectHorizontalPadding;
+                int extendedX = pointX - DropDownRectHorizontalPadding;
                 int extendedY = s.WorkingArea.Top;  // Start trigger area at screen top
-                int extendedWidth = shellSize.Width + (dropDownRectHorizontalPadding * 2);
+                int extendedWidth = shellSize.Width + (DropDownRectHorizontalPadding * 2);
                 int extendedHeight = pointY - s.WorkingArea.Top;  // Height from screen top to form bottom
                 Point rectPoint = new(extendedX, extendedY);
                 Size extendedSize = new(extendedWidth, extendedHeight);
 
                 Rectangle tempRect = new(rectPoint, extendedSize);
-                dropDownRects.Add(tempRect);
+                DropDownRects.Add(tempRect);
 
                 Log($"### InitDropDownRects: Screen {i} - WorkingArea: L={s.WorkingArea.Left}, T={s.WorkingArea.Top}, W={s.WorkingArea.Width}, H={s.WorkingArea.Height}");
                 Log($"### InitDropDownRects: ShellSize: W={shellSize.Width}, H={shellSize.Height}");
@@ -262,7 +264,7 @@ public class GlobalVar
                 {
                     string[] splitHostPort = hostPort.Split(':');
                     KeyValuePair<string, string> hostPortPair = new(splitHostPort[0], splitHostPort[1]);
-                    hostList.Add(hostPortPair);
+                    HostList.Add(hostPortPair);
                 }
                 else
                 {
@@ -280,7 +282,7 @@ public class GlobalVar
     {
         Regex extension = new(".([a-z]|[A-Z]){3,4}$");
         List<Label> tempArray = [];
-        int fileCount = fileChoices.Count;
+        int fileCount = FileChoices.Count;
         for (int i = 0; i < fileCount; i++)
         {
             Label tempLabel = new()
@@ -293,10 +295,10 @@ public class GlobalVar
                 Size = new Size(350, 18)
             };
 
-            FileInfo tempFileInfo = fileChoices[i];
+            FileInfo tempFileInfo = FileChoices[i];
             if (tempFileInfo != null)
             {
-                if (searchType == "Movie")
+                if (SearchType == "Movie")
                 {
                     tempLabel.Text = "• " + tempFileInfo.Name;
                 }
@@ -318,15 +320,15 @@ public class GlobalVar
 
         if (obj.Name == "Shell")
         {
-            topBound = heightDiff;
-            leftBound = widthAdder - (obj.Size.Width / 2);
-            rightBound = widthAdder + (obj.Size.Width / 2);
-            bottomBound = obj.Size.Height + heightDiff;
+            TopBound = heightDiff;
+            LeftBound = widthAdder - (obj.Size.Width / 2);
+            RightBound = widthAdder + (obj.Size.Width / 2);
+            BottomBound = obj.Size.Height + heightDiff;
         }
         else
         {
-            if (shellInstance != null)
-                heightDiff += shellInstance.Size.Height;
+            if (ShellInstance != null)
+                heightDiff += ShellInstance.Size.Height;
         }
 
         obj.Location = new Point(widthAdder - (obj.Size.Width / 2), 1 + heightDiff);
@@ -347,15 +349,15 @@ public class GlobalVar
 
         if (obj.Name == "Shell")
         {
-            topBound = heightDiff;
-            leftBound = widthAdder;
-            rightBound = widthAdder + obj.Size.Width;
-            bottomBound = heightDiff + obj.Size.Height;
+            TopBound = heightDiff;
+            LeftBound = widthAdder;
+            RightBound = widthAdder + obj.Size.Width;
+            BottomBound = heightDiff + obj.Size.Height;
         }
         else
         {
-            if (shellInstance != null)
-                heightDiff += shellInstance.Size.Height;
+            if (ShellInstance != null)
+                heightDiff += ShellInstance.Size.Height;
         }
 
         obj.Location = new Point(widthAdder, 1 + heightDiff - 20);
@@ -364,7 +366,7 @@ public class GlobalVar
     public static void ToolTip(string title, string body)
     {
         Log($"\t\t@@@ ToolTipping: {title} // {body}");
-        Run($@"{currentAssemblyDirectory}\Bin\ToolTipper.exe", $"{title} {body}");
+        Run($@"{CurrentAssemblyDirectory}\Bin\ToolTipper.exe", $"{title} {body}");
     }
 
     public static int CalculateWidth()
@@ -399,30 +401,30 @@ public class GlobalVar
 
     public static void UpdateColors()
     {
-        Properties.Settings.backgroundColor = backColor;
-        Properties.Settings.foregroundColor = fontColor;
-        if (shellInstance != null)
+        Properties.Settings.backgroundColor = BackColor;
+        Properties.Settings.foregroundColor = FontColor;
+        if (ShellInstance != null)
         {
-            shellInstance.ChangeBackgroundColor();
-            shellInstance.ChangeFontColor();
+            ShellInstance.ChangeBackgroundColor();
+            ShellInstance.ChangeFontColor();
         }
-        Log($"&&& GlobalVar::UpdateColors() - Changing Colors: ({backColor.Name})\t({fontColor.Name})");
+        Log($"&&& GlobalVar::UpdateColors() - Changing Colors: ({BackColor.Name})\t({FontColor.Name})");
     }
 
     public static void SendRemoteCommand(int port, string command, string serverHost)
     {
-        Socket? m_clientSocket;
+        Socket? clientSocket;
         try
         {
-            m_clientSocket = new(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+            clientSocket = new(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
             IPAddress serverAddress = Dns.GetHostEntry(serverHost).AddressList[0];
             IPEndPoint ipEndPoint = new(serverAddress, port);
-            SocketExtensions.Connect(m_clientSocket, serverHost, port, new TimeSpan(5000));
-            if (m_clientSocket.Connected)
+            SocketExtensions.Connect(clientSocket, serverHost, port, new TimeSpan(5000));
+            if (clientSocket.Connected)
             {
                 ASCIIEncoding encoder = new();
-                byte[] buffer = encoder.GetBytes(passPhrase + command);
-                m_clientSocket.Send(buffer);
+                byte[] buffer = encoder.GetBytes(PassPhrase + command);
+                clientSocket.Send(buffer);
             }
             else
             {
@@ -435,9 +437,9 @@ public class GlobalVar
         }
         /*finally
         {
-            if (m_clientSocket != null)
+            if (clientSocket != null)
             {
-                m_clientSocket.Close();
+                clientSocket.Close();
             }             
         }*/
     }
@@ -450,7 +452,7 @@ public class GlobalVar
             if (stream.CanWrite)
             {
                 ASCIIEncoding encoder = new();
-                byte[] buffer = command.Equals("lol\r\n") ? encoder.GetBytes(command) : encoder.GetBytes(passPhrase + command);
+                byte[] buffer = command.Equals("lol\r\n") ? encoder.GetBytes(command) : encoder.GetBytes(PassPhrase + command);
                 stream.Write(buffer, 0, buffer.Length);
                 if (client.Client.RemoteEndPoint is IPEndPoint endPoint)
                 {
@@ -485,7 +487,7 @@ public class GlobalVar
     public static int WhichPort(string hostName)
     {
         Log($"^^^ HostName: {hostName}");
-        foreach (KeyValuePair<string, string> hostPair in hostList)
+        foreach (KeyValuePair<string, string> hostPair in HostList)
         {
             string tempHostName = hostPair.Key.Trim().ToLower();
             if (tempHostName.Equals(hostName))

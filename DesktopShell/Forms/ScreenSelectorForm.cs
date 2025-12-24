@@ -40,8 +40,8 @@ public partial class ScreenSelectorForm : Form
     {
         Properties.Settings.positionSave = Cursor.Position;
         Properties.Settings.WriteSettings();
-        if (GlobalVar.shellInstance != null)
-            GlobalVar.SetCentered(Screen.FromPoint(Cursor.Position), obj: GlobalVar.shellInstance);
+        if (GlobalVar.ShellInstance != null)
+            GlobalVar.SetCentered(Screen.FromPoint(Cursor.Position), obj: GlobalVar.ShellInstance);
 
         Application.ExitThread();
     }

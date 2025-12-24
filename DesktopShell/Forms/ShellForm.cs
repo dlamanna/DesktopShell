@@ -37,8 +37,10 @@ public partial class Shell : Form
 
     protected override void WndProc(ref Message m)
     {
+#pragma warning disable IDE1006 // Naming Styles
         const int WM_DISPLAYCHANGE = 0x007e;
         const int WM_DPICHANGED = 0x02E0;
+#pragma warning restore IDE1006 // Naming Styles
 
         // Listen for operating system messages.
         switch (m.Msg)
@@ -64,7 +66,7 @@ public partial class Shell : Form
         this.PerformLayout();
 
         // Recalculate positions and sizes if needed
-        if (GlobalVar.dropDownRects != null)
+        if (GlobalVar.DropDownRects != null)
         {
             GlobalVar.InitDropDownRects(this);
         }
@@ -107,12 +109,12 @@ public partial class Shell : Form
         GlobalVar.InitDropDownRects(this);
 
         // Timer Instantiations
-        GlobalVar.hourlyChime = new System.Windows.Forms.Timer
+        GlobalVar.HourlyChime = new System.Windows.Forms.Timer
         {
             Interval = 1000
         };
-        GlobalVar.hourlyChime.Tick += delegate { TimerTick(); };
-        GlobalVar.hourlyChime.Enabled = Settings.hourlyChimeChecked;
+        GlobalVar.HourlyChime.Tick += delegate { TimerTick(); };
+        GlobalVar.HourlyChime.Enabled = Settings.hourlyChimeChecked;
         for (int i = 0; i < 24; i++)
         {
             hourSounded[i] = false;
@@ -133,7 +135,7 @@ public partial class Shell : Form
         if (Settings.enableTCPServer)
         {
             GlobalVar.ScanHosts();
-            GlobalVar.serverInstance = new TCPServer();
+            GlobalVar.ServerInstance = new TCPServer();
         }
 
         PopulateCombos();
@@ -214,15 +216,15 @@ public partial class Shell : Form
         //Populate WebBrowsers
         using (StreamReader? sr = new("webbrowsers.txt"))
         {
-            bool _default = true;
+            bool isDefault = true;
             while (!sr.EndOfStream)
             {
                 string? tempRegex = sr.ReadLine();
                 string? tempFilePath = sr.ReadLine();
                 sr.ReadLine();
 
-                browserList.Add(new WwwBrowser(tempRegex, tempFilePath, _default));
-                _default = false;
+                browserList.Add(new WwwBrowser(tempRegex, tempFilePath, isDefault));
+                isDefault = false;
             }
         }
         return true;
@@ -400,17 +402,17 @@ public partial class Shell : Form
             int? numRandoms = 10;
             Random random = new();
             int randomNumber;
-            GlobalVar.fileChoices.Clear();
+            GlobalVar.FileChoices.Clear();
 
             for (int? i = 0; i < numRandoms; i++)
             {
                 randomNumber = random.Next(0, fileEntries.Length);
-                GlobalVar.fileChoices.Add(fileEntries[randomNumber]);
+                GlobalVar.FileChoices.Add(fileEntries[randomNumber]);
             }
 
             Thread t = new(new ThreadStart(ChoiceProc));
             t.Start();
-            GlobalVar.searchType = "Game";
+            GlobalVar.SearchType = "Game";
         }
         //Timed shutdown function
         else if (shutdown.IsMatch(splitWords[0]))
@@ -476,7 +478,7 @@ public partial class Shell : Form
                 string? remoteName = splitString[0];
                 string? remoteCommand = splitString[^1];       //^1 = Length-1
                 bool foundHost = false;
-                foreach (var hostPair in GlobalVar.hostList)
+                foreach (var hostPair in GlobalVar.HostList)
                 {
                     string? hostName = hostPair.Key.Trim().ToLower();
                     if (hostName.Equals(remoteName))
@@ -585,21 +587,21 @@ public partial class Shell : Form
     private void OpenRandomGame(string originalCMD)
     {
         string? rawSearch = games.Replace(originalCMD, "");
-        GlobalVar.fileChoices.Clear();
+        GlobalVar.FileChoices.Clear();
         DirectoryInfo dir = new(Settings.gamesDirectory);
         foreach (var f in dir.GetFiles())
         {
             if (f.Name.ToLower().Contains(rawSearch, StringComparison.CurrentCulture))
             {
-                GlobalVar.fileChoices.Add(f);
+                GlobalVar.FileChoices.Add(f);
             }
         }
 
-        if (GlobalVar.fileChoices.Count > 0)
+        if (GlobalVar.FileChoices.Count > 0)
         {
             Thread t = new(new ThreadStart(ChoiceProc));
             t.Start();
-            GlobalVar.searchType = "Game";
+            GlobalVar.SearchType = "Game";
         }
         else
         {
@@ -610,7 +612,7 @@ public partial class Shell : Form
     private void MusicSearcher(string originalCMD)
     {
         string? rawSearch = musicSearch.Replace(originalCMD, "");
-        GlobalVar.fileChoices.Clear();
+        GlobalVar.FileChoices.Clear();
         DirectoryInfo dir = new(Properties.Settings.musicDirectory);
         foreach (var f in dir.GetFiles())
         {
@@ -618,16 +620,16 @@ public partial class Shell : Form
             {
                 if (f.Name.ToLower().Contains(rawSearch, StringComparison.CurrentCulture))
                 {
-                    GlobalVar.fileChoices.Add(f);
+                    GlobalVar.FileChoices.Add(f);
                 }
             }
         }
 
-        if (GlobalVar.fileChoices.Count > 0)
+        if (GlobalVar.FileChoices.Count > 0)
         {
             Thread t = new(new ThreadStart(ChoiceProc));
             t.Start();
-            GlobalVar.searchType = "Music";
+            GlobalVar.SearchType = "Music";
         }
         else
         {
@@ -638,7 +640,7 @@ public partial class Shell : Form
     private void MovieSearcher(string originalCMD)
     {
         string? rawSearch = movieSearch.Replace(originalCMD, "");
-        GlobalVar.fileChoices.Clear();
+        GlobalVar.FileChoices.Clear();
         List<FileInfo> tempList2 = [];
         string[] tempList = Directory.GetFiles(Settings.moviesDirectory, "*.*", SearchOption.AllDirectories);
         foreach (string s in tempList)
@@ -652,16 +654,16 @@ public partial class Shell : Form
             {
                 if (f.Name.ToLower().Contains(rawSearch))
                 {
-                    GlobalVar.fileChoices.Add(f);
+                    GlobalVar.FileChoices.Add(f);
                 }
             }
         }
 
-        if (GlobalVar.fileChoices.Count > 0)
+        if (GlobalVar.FileChoices.Count > 0)
         {
             Thread t = new(new ThreadStart(ChoiceProc));
             t.Start();
-            GlobalVar.searchType = "Movie";
+            GlobalVar.SearchType = "Movie";
         }
         else
         {
@@ -675,13 +677,13 @@ public partial class Shell : Form
         var searchTerms = originalCMD;
         webSiteHit = true;
 
-        if (combo is not { keyword: not null })
+        if (combo is not { Keyword: not null })
         {
-            GlobalVar.Log($"### ShellForm::WebSiteOpener() - combo.keyword = null\ncombo:{combo}");
+            GlobalVar.Log($"### ShellForm::WebSiteOpener() - combo.Keyword = null\ncombo:{combo}");
             return;
         }
 
-        Match webSiteMatch = Regex.Match(originalCMD, combo.keyword, RegexOptions.IgnoreCase);
+        Match webSiteMatch = Regex.Match(originalCMD, combo.Keyword, RegexOptions.IgnoreCase);
         if (webSiteMatch.Success)
         {
             //Choose browser
@@ -711,12 +713,12 @@ public partial class Shell : Form
                 return;
             }
 
-            if (combo.searchable != null)
+            if (combo.Searchable != null)
             {
                 //Remove keyword terms, turn spaces into +
-                searchTerms = Regex.Replace(searchTerms, combo.keyword, "");
+                searchTerms = Regex.Replace(searchTerms, combo.Keyword, "");
                 searchTerms = Regex.Replace(searchTerms, @"\s+", "+");
-                foreach (var s in combo.websiteBase)
+                foreach (var s in combo.WebsiteBase)
                 {
                     GlobalVar.Run(path: browserPath, arguments: $"{s}{searchTerms}");
                     Thread.Sleep(500);
@@ -724,7 +726,7 @@ public partial class Shell : Form
             }
             else
             {
-                foreach (var s in combo.websiteBase)
+                foreach (var s in combo.WebsiteBase)
                 {
                     GlobalVar.Run(path: browserPath, arguments: s);
                     Thread.Sleep(500);
@@ -744,7 +746,7 @@ public partial class Shell : Form
 
     private void TextBox1_DoubleClick(object sender, EventArgs e)
     {
-        GlobalVar.serverInstance?.CloseServer();
+        GlobalVar.ServerInstance?.CloseServer();
         Close();
     }
 
@@ -754,12 +756,12 @@ public partial class Shell : Form
 
     public static void ConfigProc()
     {
-        Application.Run(GlobalVar.configInstance = new ConfigForm());
+        Application.Run(GlobalVar.ConfigInstance = new ConfigForm());
     }
 
     public static void ChoiceProc()
     {
-        Application.Run(GlobalVar.choiceInstance = new ChoiceForm());
+        Application.Run(GlobalVar.ChoiceInstance = new ChoiceForm());
     }
 
     #endregion ConfigForm/ChoiceForm startup
@@ -770,16 +772,16 @@ public partial class Shell : Form
     {
         int yAmt = direction switch
         {
-            1 => GlobalVar.topBound - GlobalVar.fadeAnimationStartOffset,
-            _ => GlobalVar.topBound - 1
+            1 => GlobalVar.TopBound - GlobalVar.FadeAnimationStartOffset,
+            _ => GlobalVar.TopBound - 1
         };
 
-        if (fadeTickAmount <= GlobalVar.fadeTickMaxAmount && !hasFaded)
+        if (fadeTickAmount <= GlobalVar.FadeTickMaxAmount && !hasFaded)
         {
-            SetDesktopLocation(GlobalVar.leftBound, yAmt += (direction * fadeTickAmount));
+            SetDesktopLocation(GlobalVar.LeftBound, yAmt += (direction * fadeTickAmount));
             fadeTickAmount++;
         }
-        else if (fadeTickAmount > GlobalVar.fadeTickMaxAmount && !hasFaded)
+        else if (fadeTickAmount > GlobalVar.FadeTickMaxAmount && !hasFaded)
         {
             fadeTickAmount = 0;
             hasFaded = true;
@@ -803,10 +805,22 @@ public partial class Shell : Form
 
     public void FadeAway(int direction)
     {
-        // If an animation is already running, ignore subsequent requests
-        if (fadeDirection != 0 || isFading)
+        // If an animation is already running in the same direction, ignore
+        if (fadeDirection == direction)
         {
             return;
+        }
+
+        // If animating in opposite direction, allow reversal
+        if (fadeDirection != 0 && fadeDirection != direction)
+        {
+            GlobalVar.Log($"$$$ Reversing animation direction from {fadeDirection} to {direction}");
+            fadeTimer?.Stop();
+            fadeTimer?.Dispose();
+            fadeTimer = null;
+            isFading = false;
+            hasFaded = false;
+            fadeDirection = 0;
         }
 
         hasFaded = false;
@@ -842,7 +856,7 @@ public partial class Shell : Form
 
     public void TimerTick()
     {
-        if (GlobalVar.hourlyChime != null && GlobalVar.hourlyChime.Enabled)
+        if (GlobalVar.HourlyChime != null && GlobalVar.HourlyChime.Enabled)
         {
             System.Media.SoundPlayer myPlayer = new();
             string[] splitTime;
@@ -893,20 +907,20 @@ public partial class Shell : Form
             return;
         }
 
-        foreach (var r in GlobalVar.dropDownRects)
+        foreach (var r in GlobalVar.DropDownRects)
         {
             if (IsInField(r))
             {
                 GlobalVar.Log($"^^^ Activating window now - Cursor: X={Cursor.Position.X}, Y={Cursor.Position.Y}, Rect: L={r.Left}, T={r.Top}, R={r.Right}, B={r.Bottom}");
                 TopMost = true;                                                                                     //make window foreground
                                                                                                                     // The trigger rect is extended by horizontal padding on each side, but form bounds should use actual form size
-                int formLeft = r.Left + GlobalVar.dropDownRectHorizontalPadding;  // Offset to get back to center of extended rect
+                int formLeft = r.Left + GlobalVar.DropDownRectHorizontalPadding;  // Offset to get back to center of extended rect
                 // Form animates down from screen top, ending with bottom at r.Bottom
-                GlobalVar.bottomBound = r.Bottom;
-                GlobalVar.topBound = r.Bottom - ClientSize.Height;
-                GlobalVar.leftBound = formLeft;
-                GlobalVar.rightBound = formLeft + ClientSize.Width;
-                GlobalVar.width = ClientSize.Width;
+                GlobalVar.BottomBound = r.Bottom;
+                GlobalVar.TopBound = r.Bottom - ClientSize.Height;
+                GlobalVar.LeftBound = formLeft;
+                GlobalVar.RightBound = formLeft + ClientSize.Width;
+                GlobalVar.Width = ClientSize.Width;
                 FadeAway(1);
                 break; // Important: exit after starting animation
             }
@@ -918,10 +932,10 @@ public partial class Shell : Form
         // Check if mouse is within the form's actual bounds OR the trigger area
         // Form bounds after animation
         Rectangle formBounds = new Rectangle(
-            GlobalVar.leftBound,
-            GlobalVar.topBound,
-            GlobalVar.width,
-            GlobalVar.bottomBound - GlobalVar.topBound
+            GlobalVar.LeftBound,
+            GlobalVar.TopBound,
+            GlobalVar.Width,
+            GlobalVar.BottomBound - GlobalVar.TopBound
         );
 
         Point cursorPos = Cursor.Position;
@@ -932,7 +946,7 @@ public partial class Shell : Form
 
         // Also check trigger rects
         bool mouseInTriggerArea = false;
-        foreach (var r in GlobalVar.dropDownRects)
+        foreach (var r in GlobalVar.DropDownRects)
         {
             if (IsInField(r))
             {
@@ -944,7 +958,6 @@ public partial class Shell : Form
         if (!mouseInForm && !mouseInTriggerArea && !isFading)
         {
             GlobalVar.Log($"!!! Hiding main window now - mouse left active area. Cursor: X={cursorPos.X}, Y={cursorPos.Y}");
-            isHidden = true;                                                                                        //toggle hidden status
             FadeAway(-1);                                                                                           //move window position up 20 pixels
             TopMost = false;                                                                                        //make window not foreground
         }
@@ -972,8 +985,8 @@ public partial class Shell : Form
         GlobalVar.SetCentered(Screen.FromPoint(Settings.positionSave), this);
 
         // Getting colors from settings.ini
-        BackColor = textBox1.BackColor = label1.BackColor = button1.BackColor = GlobalVar.backColor = Settings.backgroundColor;
-        button1.ForeColor = textBox1.ForeColor = label1.ForeColor = GlobalVar.fontColor = Settings.foregroundColor;
+        BackColor = textBox1.BackColor = label1.BackColor = button1.BackColor = GlobalVar.BackColor = Settings.backgroundColor;
+        button1.ForeColor = textBox1.ForeColor = label1.ForeColor = GlobalVar.FontColor = Settings.foregroundColor;
 
         // SetForegroundWindow here to fix hung shutdown error: https://stackoverflow.com/questions/23638290/gdi-window-preventing-shutdown
         SetForegroundWindow(this.Handle);
@@ -992,7 +1005,7 @@ public partial class Shell : Form
 
 
 
-        if (GlobalVar.configInstance != null && t != null)
+        if (GlobalVar.ConfigInstance != null && t != null)
         {
             //t.Abort();
             ///TODO: Change this from thread to task and abort through cancellation tokens
@@ -1001,7 +1014,7 @@ public partial class Shell : Form
         {
             GlobalVar.Log($"### ShellForm::Shell_FormClosed() - configInstance or main thread is null");
         }
-        GlobalVar.serverInstance?.CloseServer();
+        GlobalVar.ServerInstance?.CloseServer();
     }
 
     #endregion Shell Event Handlers

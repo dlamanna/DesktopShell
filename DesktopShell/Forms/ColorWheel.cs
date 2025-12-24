@@ -71,7 +71,7 @@ public class ColorWheel : Form
     {
         ///TODO: Make Colorwheel start in the correct RGB/HSV settings
         InitializeComponent();
-        GlobalVar.colorWheelInstance = this;
+        GlobalVar.ColorWheelInstance = this;
     }
 
     public ColorWheel(Rectangle _colorRectangle, Rectangle _brightnessRectangle, Rectangle _selectedColorRectangle)
@@ -148,7 +148,7 @@ public class ColorWheel : Form
             }
         }
 
-        GlobalVar.colorWheelInstance = null;
+        GlobalVar.ColorWheelInstance = null;
         base.Dispose(disposing);
     }
 
@@ -920,16 +920,16 @@ public class ColorWheel : Form
 
     private void BtnOK_Click(object sender, EventArgs e)
     {
-        if (GlobalVar.settingBackColor)
+        if (GlobalVar.SettingBackColor)
         {
-            GlobalVar.backColor = Color.FromArgb((int)nudRed.Value, (int)nudGreen.Value, (int)nudBlue.Value);
+            GlobalVar.BackColor = Color.FromArgb((int)nudRed.Value, (int)nudGreen.Value, (int)nudBlue.Value);
         }
         else
         {
-            GlobalVar.fontColor = Color.FromArgb((int)nudRed.Value, (int)nudGreen.Value, (int)nudBlue.Value);
+            GlobalVar.FontColor = Color.FromArgb((int)nudRed.Value, (int)nudGreen.Value, (int)nudBlue.Value);
         }
-        GlobalVar.settingFontColor = false;
-        GlobalVar.settingBackColor = false;
+        GlobalVar.SettingFontColor = false;
+        GlobalVar.SettingBackColor = false;
         GlobalVar.UpdateColors();
         Close();
     }
@@ -937,7 +937,7 @@ public class ColorWheel : Form
     private void BtnCancel_Click(object sender, EventArgs e)
     {
         Close();
-        GlobalVar.settingBackColor = false;
-        GlobalVar.settingFontColor = false;
+        GlobalVar.SettingBackColor = false;
+        GlobalVar.SettingFontColor = false;
     }
 }
