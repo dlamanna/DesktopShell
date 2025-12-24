@@ -1,19 +1,19 @@
-﻿using System;
-using System.Collections;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Text.RegularExpressions;
+﻿using System.Collections.Generic;
 
 namespace DesktopShell
 {
-    class Combination
+    internal class Combination
     {
-        public string keyword;
-        public ArrayList filePath;
-        public ArrayList arguments;
+        public string? keyword;
+        public List<string> filePath;
+        public List<string> arguments;
 
         //Constructors
-        public Combination(string _keyword, ArrayList _filePath, ArrayList _arguments) { keyword = _keyword; filePath = _filePath; arguments = _arguments; } 
+        public Combination(string? _keyword, List<string> _filePath, List<string> _arguments) 
+        { 
+            keyword = _keyword; 
+            filePath = _filePath; 
+            arguments = _arguments; 
+        }
     }
 }

@@ -1,13 +1,15 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Diagnostics;
-using System.Linq;
 using System.Windows.Forms;
+using System.Runtime.InteropServices;
 
 namespace DesktopShell
 {
     static class Program
     {
+        [DllImport("user32.dll")]
+        private static extern bool SetProcessDPIAware();
+        
         /// <summary>
         /// The main entry point for the application.
         /// </summary>
@@ -16,24 +18,59 @@ namespace DesktopShell
         [STAThread]
         static void Main()
         {
-            Application.EnableVisualStyles();
-            Application.SetCompatibleTextRenderingDefault(false);
-
-            //Scan through running processes to see if there's already an instance
-            Boolean isRunning = false;
-            Process[] processList = Process.GetProcessesByName("DesktopShell");
-            if(processList.Length > 1)
+            try
             {
-                foreach(Process p in processList)
+                // Set DPI awareness before enabling visual styles
+                if (Environment.OSVersion.Version.Major >= 6)
                 {
-                    Console.WriteLine("Process Found: " + p.ProcessName + "\t{" + p.Id + "}");
+                    SetProcessDPIAware();
                 }
-                Process.Start("Bin\\ToolTipper.exe", "DesktopShell already running!");
-                isRunning = true;
-            }
+                
+                Application.EnableVisualStyles();
+                Application.SetHighDpiMode(HighDpiMode.PerMonitorV2);
+                Application.SetCompatibleTextRenderingDefault(false);
 
-            if(!isRunning)
-                Application.Run(GlobalVar.shellInstance = new Shell());
+                //Scan through running processes to see if there's already an instance
+                Boolean isRunning = false;
+                Process[] processList = Process.GetProcessesByName("DesktopShell");
+                if(processList.Length > 1)
+                {
+                    foreach(Process p in processList)
+                    {
+                        Console.WriteLine($"Process Found: {p.ProcessName}\t{p.Id}");
+                    }
+                    GlobalVar.ToolTip("Error", "DesktopShell already running!");
+                    isRunning = true;
+                }
+
+                if(!isRunning)
+                    Application.Run(GlobalVar.shellInstance = new Shell());
+            }
+            catch (Exception ex)
+            {
+                string errorMsg = $"DesktopShell Fatal Error:\n\n{ex.GetType().Name}: {ex.Message}\n\nStackTrace:\n{ex.StackTrace}";
+                
+                // Try to show message box
+                try
+                {
+                    MessageBox.Show(errorMsg, "DesktopShell Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
+                catch
+                {
+                    // If MessageBox fails, write to console and file
+                    Console.Error.WriteLine(errorMsg);
+                }
+                
+                // Also write to a log file for debugging
+                try
+                {
+                    System.IO.File.AppendAllText("DesktopShell_error.log", 
+                        $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] {errorMsg}\n\n");
+                }
+                catch { }
+                
+                Environment.Exit(1);
+            }
         }
     }
 }

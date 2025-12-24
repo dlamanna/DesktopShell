@@ -11,9 +11,9 @@ namespace DesktopShell
     public partial class ConfigForm : Form
     {
         #region Declarations
-        private Regex hexCheck = new Regex("^(#)?([a-fA-F0-9]){6}$");
-        private string checkString;
-        private Thread t = null;
+        private readonly Regex hexCheck = new("^(#)?([a-fA-F0-9]){6}$");
+        private string? checkString;
+        private Thread? t = null;
         #endregion
 
         #region ConfigForm Constructor / Startup
@@ -24,167 +24,207 @@ namespace DesktopShell
         private void ConfigForm_Load(object sender, EventArgs e)
         {
             // create checkboxes for each monitor
-            List<CheckBox> screenCheckBoxList = new List<CheckBox>();
-            for(int i = 0; i < Screen.AllScreens.Length; i++) {
-                CheckBox tempBox = new CheckBox();
-                tempBox.AutoSize = true;
-                tempBox.CheckAlign = ContentAlignment.MiddleRight;
-                if(i < Properties.Settings.multiscreenEnabled.Count) {
-                    if(Properties.Settings.multiscreenEnabled[i]) {
+            List<CheckBox> screenCheckBoxList = [];
+            for(int i = 0; i < Screen.AllScreens.Length; i++) 
+            {
+                CheckBox tempBox = new()
+                {
+                    AutoSize = true,
+                    CheckAlign = ContentAlignment.MiddleRight
+                };
+                if (i < Properties.Settings.multiscreenEnabled.Count) 
+                {
+                    if(Properties.Settings.multiscreenEnabled[i]) 
+                    {
                         tempBox.CheckState = CheckState.Checked;
                     }
-                    else {
+                    else 
+                    {
                         tempBox.CheckState = CheckState.Unchecked;
                     }
                 }
-                tempBox.Location = new System.Drawing.Point((130 + (50 * i)), 76);
-                tempBox.Name = ("multiScreenCheckbox" + (i + 1));
-                tempBox.Size = new System.Drawing.Size(50, 17);
+                tempBox.Location = new Point(130 + (50 * i), 90);
+                tempBox.Name = $"multiScreenCheckbox{i + 1}";
+                tempBox.Size = new Size(50, 17);
                 tempBox.TabIndex = 3 + i;
-                tempBox.Text = ("" + (i + 1) + ":");
+                tempBox.Text = $"{i + 1}:";
                 tempBox.UseVisualStyleBackColor = true;
-                tempBox.Click += tempBox_Click;
+                tempBox.Click += TempBox_Click;
                 UpdateColorTextBoxes();
 
                 screenCheckBoxList.Add(tempBox);
             }
-            foreach(CheckBox c in screenCheckBoxList) {
-                this.interfaceBox.Controls.Add(c);
+            foreach(CheckBox c in screenCheckBoxList) 
+            {
+                interfaceBox.Controls.Add(c);
             }
 
             //checkbox initialization
-            if(Properties.Settings.hourlyChimeChecked) {
-                this.hourlyChimeCheckbox.CheckState = CheckState.Checked;
+            if(Properties.Settings.hourlyChimeChecked) 
+            {
+                hourlyChimeCheckbox.CheckState = CheckState.Checked;
             }
-            else {
-                this.hourlyChimeCheckbox.CheckState = CheckState.Unchecked;
+            else 
+            {
+                hourlyChimeCheckbox.CheckState = CheckState.Unchecked;
             }
-            //foreground color initialization
-            this.textColorInputBox.Text = ColorTranslator.ToHtml(Properties.Settings.foregroundColor);
-            //background color initialization
-            this.backgroundColorInputBox.Text = ColorTranslator.ToHtml(Properties.Settings.backgroundColor);
-            //set initial position
-            this.Location = Cursor.Position;
+
+            textColorInputBox.Text = ColorTranslator.ToHtml(Properties.Settings.foregroundColor);           //foreground color initialization            
+            backgroundColorInputBox.Text = ColorTranslator.ToHtml(Properties.Settings.backgroundColor);     //background color initialization           
+            Location = Cursor.Position;                                                                     //set initial position
         }
 
-        void tempBox_Click(object sender, EventArgs e)
+        void TempBox_Click(object sender, EventArgs e)
         {
             string whichCheckBox = ((CheckBox)sender).Name.Replace("multiScreenCheckbox", "");
-            int checkBoxIdx = (Convert.ToInt32(whichCheckBox) - 1);
+            int checkBoxIdx = Convert.ToInt32(whichCheckBox) - 1;
             Properties.Settings.multiscreenEnabled[checkBoxIdx] = !Properties.Settings.multiscreenEnabled[checkBoxIdx];
 
-            GlobalVar.initDropDownRects(GlobalVar.shellInstance);
+            if (GlobalVar.shellInstance != null)
+            {
+                GlobalVar.InitDropDownRects(GlobalVar.shellInstance);
+            }
         }
+        
         private void ConfigForm_FormClosed(object sender, EventArgs e)
         {
             //t.Join();
             //GlobalVar.colorWheelInstance.Close();
-            if(t != null) {
-                t.Abort();
+            if(t != null) 
+            {
+                //t.Abort();
             }
 
             GlobalVar.screenSelectorInstance = null;
             GlobalVar.configInstance = null;
         }
-        private void checkKeys_textColor(object sender, KeyEventArgs e)
+
+        private void CheckKeys_textColor(object sender, KeyEventArgs e)
         {
-            if(e.KeyCode == Keys.Enter) {
+            if(e.KeyCode == Keys.Enter) 
+            {
                 e.SuppressKeyPress = true; //prevents beep
-                checkString = this.textColorInputBox.Text;
-                if(hexCheck.IsMatch(checkString)) {
+                checkString = textColorInputBox.Text;
+                if(hexCheck.IsMatch(checkString)) 
+                {
                     MessageBox.Show("Font Color Changed");
-                    //change setting
-                    Properties.Settings.foregroundColor = System.Drawing.ColorTranslator.FromHtml(checkString);
-                    //change in program
-                    GlobalVar.shellInstance.changeFontColor();
-                    //write to file
-                    Properties.Settings.writeSettings();
+                    Properties.Settings.foregroundColor = ColorTranslator.FromHtml(checkString);    //change setting
+                    GlobalVar.shellInstance?.ChangeFontColor();                                     //change in program
+                    Properties.Settings.WriteSettings();
                 }
-                else {
+                else 
+                {
                     MessageBox.Show("Incorrect Format: (#123456)");
                 }
             }
         }
-        private void checkKeys_backgroundColor(object sender, KeyEventArgs e)
+
+        private void CheckKeys_backgroundColor(object sender, KeyEventArgs e)
         {
-            if(e.KeyCode == Keys.Enter) {
+            if(e.KeyCode == Keys.Enter) 
+            {
                 e.SuppressKeyPress = true; //prevents beep
-                checkString = this.backgroundColorInputBox.Text;
-                if(hexCheck.IsMatch(checkString)) {
-                    MessageBox.Show("Background Color Changed");
-                    //Changing in settings
-                    Properties.Settings.backgroundColor = System.Drawing.ColorTranslator.FromHtml(checkString);
-                    //Changing in program
-                    GlobalVar.shellInstance.changeBackgroundColor();
-                    //Write to file
-                    Properties.Settings.writeSettings();
+                checkString = backgroundColorInputBox.Text;
+                if(hexCheck.IsMatch(checkString)) 
+                {
+                    MessageBox.Show("Background Color Changed");                    
+                    Properties.Settings.backgroundColor = ColorTranslator.FromHtml(checkString);//Changing in settings                   
+                    GlobalVar.shellInstance?.ChangeBackgroundColor();                           //Changing in program
+                    Properties.Settings.WriteSettings();
                 }
-                else {
+                else 
+                {
                     MessageBox.Show("Incorrect Format: (#123456)");
                 }
             }
         }
-        private void hourlyChimeCheckbox_CheckedChanged(object sender, EventArgs e)
+
+        private void HourlyChimeCheckbox_CheckedChanged(object sender, EventArgs e)
         {
-            //Toggle / save setting
-            GlobalVar.hourlyChime.Enabled = Properties.Settings.hourlyChimeChecked = !GlobalVar.hourlyChime.Enabled;
-            //Write to file
-            Properties.Settings.writeSettings();
+            if (GlobalVar.hourlyChime != null)
+            {
+                GlobalVar.hourlyChime.Enabled = Properties.Settings.hourlyChimeChecked = !GlobalVar.hourlyChime.Enabled;
+                Properties.Settings.WriteSettings();
+            }
         }
-        private void screenSelectorButton_Click(object sender, EventArgs e)
+        
+        private void ScreenSelectorButton_Click(object sender, EventArgs e)
         {
-            t = new Thread(new ThreadStart(ScreenSelectorProc));
+            t = new(start: new ThreadStart(ScreenSelectorProc));
             t.IsBackground = true;
             t.Start();
         }
-        private void ColorWheel_Click(object sender, EventArgs e, string label)
+        
+        private void ColorWheel_Click()
         {
-            if(GlobalVar.colorWheelInstance == null) {
+            if (GlobalVar.colorWheelInstance == null)
+            {
                 ThreadStart starter = ColorWheelProc;
                 starter += () =>
                 {
                     UpdateColorTextBoxes();
-                    t.Join();
+                    if (t != null)
+                    {
+                        t.Join();
+                    }
                 };
-                t = new Thread(starter);
+                t = new(starter);
                 t.IsBackground = true;
                 t.Start();
             }
-            else { Console.WriteLine("### Colorwheel already opened"); }
+            else 
+            { 
+                GlobalVar.Log($"### ConfigForm::ColorWheel_Click() - Colorwheel already opened"); 
+            }
         }
-        private delegate void SetControlPropertyThreadSafeDelegate(Control control, string propertyName,object propertyValue);
+        
+        private delegate void SetControlPropertyThreadSafeDelegate(Control control, string propertyName, object propertyValue);
+        
         public static void SetControlPropertyThreadSafe(Control control, string propertyName, object propertyValue)
         {
-            if(control.InvokeRequired) {
-                control.Invoke(new SetControlPropertyThreadSafeDelegate(SetControlPropertyThreadSafe),
-                            new object[] { control, propertyName, propertyValue });
+            if(control.InvokeRequired) 
+            {
+                _ = control.Invoke(new SetControlPropertyThreadSafeDelegate(SetControlPropertyThreadSafe),
+                            args: new object[] { control, propertyName, propertyValue });
             }
-            else {
-                control.GetType().InvokeMember(propertyName,BindingFlags.SetProperty,null,control, new object[] { propertyValue });
+            else 
+            {
+                _ = control.GetType().InvokeMember(propertyName, BindingFlags.SetProperty, null, control, new object[] { propertyValue });
             }
         }
+        
         private void UpdateColorTextBoxes()
         { 
-            SetControlPropertyThreadSafe(this.backgroundColorInputBox,"Text",ColorTranslator.ToHtml(GlobalVar.backColor));
-            SetControlPropertyThreadSafe(this.textColorInputBox, "Text", ColorTranslator.ToHtml(GlobalVar.fontColor));
-            SetControlPropertyThreadSafe(this.BackColorExample, "BackColor", GlobalVar.backColor);
-            SetControlPropertyThreadSafe(this.ForeColorExample, "BackColor", GlobalVar.fontColor);
-            Properties.Settings.writeSettings();
+            SetControlPropertyThreadSafe(control: backgroundColorInputBox,
+                                         propertyName: "Text",
+                                         propertyValue: ColorTranslator.ToHtml(GlobalVar.backColor));
+            SetControlPropertyThreadSafe(control: textColorInputBox,
+                                         propertyName: "Text",
+                                         propertyValue: ColorTranslator.ToHtml(GlobalVar.fontColor));
+            SetControlPropertyThreadSafe(control: BackColorExample,
+                                         propertyName: "BackColor",
+                                         propertyValue: GlobalVar.backColor);
+            SetControlPropertyThreadSafe(control: ForeColorExample,
+                                         propertyName: "BackColor",
+                                         propertyValue: GlobalVar.fontColor);
+            Properties.Settings.WriteSettings();
         }
+
         private void BackColorWheel_Click(object sender, EventArgs e)
         {
             GlobalVar.settingBackColor = true;
-            ColorWheel_Click(sender, e, "BG");
+            ColorWheel_Click();
         }
 
         private void ForeColorWheel_Click(object sender, EventArgs e)
         {
             GlobalVar.settingFontColor = true;
-            ColorWheel_Click(sender, e, "FG");
+            ColorWheel_Click();
+            //ColorWheel_Click(sender, e, "FG");
         }
         #endregion
 
-        public static void ScreenSelectorProc() { Application.Run(GlobalVar.screenSelectorInstance = new DesktopShell.Forms.ScreenSelectorForm()); }
-        public static void ColorWheelProc() { Application.Run(GlobalVar.colorWheelInstance = new DesktopShell.Forms.ColorWheel()); }
+        public static void ScreenSelectorProc() { Application.Run(GlobalVar.screenSelectorInstance = new Forms.ScreenSelectorForm()); }
+        public static void ColorWheelProc() { Application.Run(GlobalVar.colorWheelInstance = new Forms.ColorWheel()); }
     }
 }

@@ -53,7 +53,7 @@ namespace DesktopShell
             this.textBox1.Size = new System.Drawing.Size(324, 18);
             this.textBox1.TabIndex = 0;
             this.textBox1.WordWrap = false;
-            this.textBox1.DoubleClick += new System.EventHandler(this.textBox1_DoubleClick);
+            this.textBox1.DoubleClick += new System.EventHandler(this.TextBox1_DoubleClick);
             this.textBox1.KeyDown += new System.Windows.Forms.KeyEventHandler(this.CheckKeys);
             // 
             // label1
@@ -75,7 +75,7 @@ namespace DesktopShell
             this.button1.Name = "button1";
             this.button1.Size = new System.Drawing.Size(23, 19);
             this.button1.TabIndex = 1;
-            this.button1.Click += new System.EventHandler(this.button1_Click);
+            this.button1.Click += new System.EventHandler(this.Button1_Click);
             // 
             // Shell
             // 

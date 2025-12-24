@@ -9,45 +9,45 @@ namespace DesktopShell.Forms
     /// <summary>
     /// Summary description for ColorWheel.
     /// </summary>
-    public class ColorWheel : System.Windows.Forms.Form
+    public class ColorWheel : Form
     {
-        internal System.Windows.Forms.Button btnCancel;
-        internal System.Windows.Forms.Button btnOK;
-        internal System.Windows.Forms.Label Label3;
-        internal System.Windows.Forms.NumericUpDown nudSaturation;
-        internal System.Windows.Forms.Label Label7;
-        internal System.Windows.Forms.NumericUpDown nudBrightness;
-        internal System.Windows.Forms.NumericUpDown nudRed;
-        internal System.Windows.Forms.Panel pnlColor;
-        internal System.Windows.Forms.Label Label6;
-        internal System.Windows.Forms.Label Label1;
-        internal System.Windows.Forms.Label Label5;
-        internal System.Windows.Forms.Panel pnlSelectedColor;
-        internal System.Windows.Forms.Panel pnlBrightness;
-        internal System.Windows.Forms.NumericUpDown nudBlue;
-        internal System.Windows.Forms.Label Label4;
-        internal System.Windows.Forms.NumericUpDown nudGreen;
-        internal System.Windows.Forms.Label Label2;
-        internal System.Windows.Forms.NumericUpDown nudHue;
+        internal Button btnCancel;
+        internal Button btnOK;
+        internal Label Label3;
+        internal NumericUpDown nudSaturation;
+        internal Label Label7;
+        internal NumericUpDown nudBrightness;
+        internal NumericUpDown nudRed;
+        internal Panel pnlColor;
+        internal Label Label6;
+        internal Label Label1;
+        internal Label Label5;
+        internal Panel pnlSelectedColor;
+        internal Panel pnlBrightness;
+        internal NumericUpDown nudBlue;
+        internal Label Label4;
+        internal NumericUpDown nudGreen;
+        internal Label Label2;
+        internal NumericUpDown nudHue;
 
         private Rectangle colorRectangle;
         private Rectangle brightnessRectangle;
         private Rectangle selectedColorRectangle;
         private Point centerPoint;
-        private int radius;
-        private int brightnessX;
-        private double brightnessScaling;
+        private readonly int radius;
+        private readonly int brightnessX;
+        private readonly double brightnessScaling;
         private const int COLOR_COUNT = 6 * 256;
         private const double DEGREES_PER_RADIAN = 180.0 / Math.PI;
         private Point colorPoint;
         private Point brightnessPoint;
         private Graphics g;
-        private Region colorRegion;
-        private Region brightnessRegion;
+        private readonly Region colorRegion;
+        private readonly Region brightnessRegion;
         private Bitmap colorImage;
         private int brightness;
-        private int brightnessMin;
-        private int brightnessMax;
+        private readonly int brightnessMin;
+        private readonly int brightnessMax;
         private Color selectedColor = Color.White;
         private Color fullColor;
 
@@ -68,61 +68,60 @@ namespace DesktopShell.Forms
         }
 
         private MouseState currentState = MouseState.MouseUp;
-
-        private System.ComponentModel.Container components = null;
+        private readonly System.ComponentModel.Container? components = null;
 
         public ColorWheel()
         {
+            ///TODO: Make Colorwheel start in the correct RGB/HSV settings
             InitializeComponent();
             GlobalVar.colorWheelInstance = this;
         }
 
-        public ColorWheel(Rectangle colorRectangle, Rectangle brightnessRectangle, Rectangle selectedColorRectangle)
+        public ColorWheel(Rectangle _colorRectangle, Rectangle _brightnessRectangle, Rectangle _selectedColorRectangle)
         {
-            using(GraphicsPath path = new GraphicsPath()) {
-                // Store away locations for later use.
-                this.colorRectangle = colorRectangle;
-                this.brightnessRectangle = brightnessRectangle;
-                this.selectedColorRectangle = selectedColorRectangle;
+            using GraphicsPath path = new();
+            // Store away locations for later use.
+            colorRectangle = _colorRectangle;
+            brightnessRectangle = _brightnessRectangle;
+            selectedColorRectangle = _selectedColorRectangle;
 
-                // Calculate the center of the circle. Start with the location, then offset the point by the radius. Use the smaller of the width and height of
-                // the colorRectangle value.
-                this.radius = (int)Math.Min(colorRectangle.Width, colorRectangle.Height) / 2;
-                this.centerPoint = colorRectangle.Location;
-                this.centerPoint.Offset(radius, radius);
+            // Calculate the center of the circle. Start with the location, then offset the point by the radius. Use the smaller of the width and height of
+            // the colorRectangle value.
+            radius = (int)Math.Min(colorRectangle.Width, colorRectangle.Height) / 2;
+            centerPoint = colorRectangle.Location;
+            centerPoint.Offset(radius, radius);
 
-                // Start the pointer in the center.
-                this.colorPoint = this.centerPoint;
+            // Start the pointer in the center.
+            colorPoint = centerPoint;
 
-                // Create a region corresponding to the color circle. Code uses this later to determine if a specified point is within the region, using the IsVisible method.
-                path.AddEllipse(colorRectangle);
-                colorRegion = new Region(path);
+            // Create a region corresponding to the color circle. Code uses this later to determine if a specified point is within the region, using the IsVisible method.
+            path.AddEllipse(colorRectangle);
+            colorRegion = new Region(path);
 
-                // set the range for the brightness selector.
-                this.brightnessMin = this.brightnessRectangle.Top;
-                this.brightnessMax = this.brightnessRectangle.Bottom;
+            // set the range for the brightness selector.
+            brightnessMin = brightnessRectangle.Top;
+            brightnessMax = brightnessRectangle.Bottom;
 
-                // Create a region corresponding to the brightness rectangle, with a little extra padding.
-                path.AddRectangle(new Rectangle(brightnessRectangle.Left, brightnessRectangle.Top - 10, brightnessRectangle.Width + 10, brightnessRectangle.Height + 20));
+            // Create a region corresponding to the brightness rectangle, with a little extra padding.
+            path.AddRectangle(new Rectangle(brightnessRectangle.Left, brightnessRectangle.Top - 10, brightnessRectangle.Width + 10, brightnessRectangle.Height + 20));
 
-                // Create region corresponding to brightness rectangle. Later code uses this to determine if a specified point is within the region, using the IsVisible method.
-                brightnessRegion = new Region(path);
+            // Create region corresponding to brightness rectangle. Later code uses this to determine if a specified point is within the region, using the IsVisible method.
+            brightnessRegion = new Region(path);
 
-                // Set the location for the brightness indicator "marker". Also calculate the scaling factor, scaling the height to be between 0 and 255.
-                brightnessX = brightnessRectangle.Left + brightnessRectangle.Width;
-                brightnessScaling = (double)255 / (brightnessMax - brightnessMin);
+            // Set the location for the brightness indicator "marker". Also calculate the scaling factor, scaling the height to be between 0 and 255.
+            brightnessX = brightnessRectangle.Left + brightnessRectangle.Width;
+            brightnessScaling = (double)255 / (brightnessMax - brightnessMin);
 
-                // Calculate the location of the brightness pointer. Assume it's at the highest position.
-                brightnessPoint = new Point(brightnessX, brightnessMax);
+            // Calculate the location of the brightness pointer. Assume it's at the highest position.
+            brightnessPoint = new Point(brightnessX, brightnessMax);
 
-                // Create the bitmap that contains the circular gradient.
-                CreateGradient();
-            }
+            // Create the bitmap that contains the circular gradient.
+            CreateGradient();
         }
 
         protected override void Dispose(bool disposing)
         {
-            Console.WriteLine("!!! Disposing ColorWheel");
+            GlobalVar.Log($"!!! Disposing ColorWheel");
             if(disposing) {
                 // Dispose of graphic resources
                 if(colorImage != null) {
@@ -158,279 +157,279 @@ namespace DesktopShell.Forms
         /// </summary>
         private void InitializeComponent()
         {
-            this.btnCancel = new System.Windows.Forms.Button();
-            this.btnOK = new System.Windows.Forms.Button();
-            this.Label3 = new System.Windows.Forms.Label();
-            this.nudSaturation = new System.Windows.Forms.NumericUpDown();
-            this.Label7 = new System.Windows.Forms.Label();
-            this.nudBrightness = new System.Windows.Forms.NumericUpDown();
-            this.nudRed = new System.Windows.Forms.NumericUpDown();
-            this.pnlColor = new System.Windows.Forms.Panel();
-            this.Label6 = new System.Windows.Forms.Label();
-            this.Label1 = new System.Windows.Forms.Label();
-            this.Label5 = new System.Windows.Forms.Label();
-            this.pnlSelectedColor = new System.Windows.Forms.Panel();
-            this.pnlBrightness = new System.Windows.Forms.Panel();
-            this.nudBlue = new System.Windows.Forms.NumericUpDown();
-            this.Label4 = new System.Windows.Forms.Label();
-            this.nudGreen = new System.Windows.Forms.NumericUpDown();
-            this.Label2 = new System.Windows.Forms.Label();
-            this.nudHue = new System.Windows.Forms.NumericUpDown();
-            ((System.ComponentModel.ISupportInitialize)(this.nudSaturation)).BeginInit();
-            ((System.ComponentModel.ISupportInitialize)(this.nudBrightness)).BeginInit();
-            ((System.ComponentModel.ISupportInitialize)(this.nudRed)).BeginInit();
-            ((System.ComponentModel.ISupportInitialize)(this.nudBlue)).BeginInit();
-            ((System.ComponentModel.ISupportInitialize)(this.nudGreen)).BeginInit();
-            ((System.ComponentModel.ISupportInitialize)(this.nudHue)).BeginInit();
-            this.SuspendLayout();
+            btnCancel = new Button();
+            btnOK = new Button();
+            Label3 = new Label();
+            nudSaturation = new NumericUpDown();
+            Label7 = new Label();
+            nudBrightness = new NumericUpDown();
+            nudRed = new NumericUpDown();
+            pnlColor = new Panel();
+            Label6 = new Label();
+            Label1 = new Label();
+            Label5 = new Label();
+            pnlSelectedColor = new Panel();
+            pnlBrightness = new Panel();
+            nudBlue = new NumericUpDown();
+            Label4 = new Label();
+            nudGreen = new NumericUpDown();
+            Label2 = new Label();
+            nudHue = new NumericUpDown();
+            ((System.ComponentModel.ISupportInitialize)(nudSaturation)).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)(nudBrightness)).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)(nudRed)).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)(nudBlue)).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)(nudGreen)).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)(nudHue)).BeginInit();
+            SuspendLayout();
             //
             // btnCancel
             //
-            this.btnCancel.DialogResult = System.Windows.Forms.DialogResult.Cancel;
-            this.btnCancel.Font = new System.Drawing.Font("Microsoft Sans Serif", 10F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.btnCancel.Location = new System.Drawing.Point(192, 320);
-            this.btnCancel.Name = "btnCancel";
-            this.btnCancel.Size = new System.Drawing.Size(64, 24);
-            this.btnCancel.TabIndex = 55;
-            this.btnCancel.Text = "Cancel";
-            this.btnCancel.Click += new System.EventHandler(this.btnCancel_Click);
+            btnCancel.DialogResult = DialogResult.Cancel;
+            btnCancel.Font = new Font("Microsoft Sans Serif", 10F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            btnCancel.Location = new Point(192, 320);
+            btnCancel.Name = "btnCancel";
+            btnCancel.Size = new Size(64, 24);
+            btnCancel.TabIndex = 55;
+            btnCancel.Text = "Cancel";
+            btnCancel.Click += new EventHandler(BtnCancel_Click);
             //
             // btnOK
             //
-            this.btnOK.DialogResult = System.Windows.Forms.DialogResult.OK;
-            this.btnOK.Font = new System.Drawing.Font("Microsoft Sans Serif", 10F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.btnOK.Location = new System.Drawing.Point(120, 320);
-            this.btnOK.Name = "btnOK";
-            this.btnOK.Size = new System.Drawing.Size(64, 24);
-            this.btnOK.TabIndex = 54;
-            this.btnOK.Text = "OK";
-            this.btnOK.Click += new System.EventHandler(this.btnOK_Click);
+            btnOK.DialogResult = DialogResult.OK;
+            btnOK.Font = new Font("Microsoft Sans Serif", 10F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            btnOK.Location = new Point(120, 320);
+            btnOK.Name = "btnOK";
+            btnOK.Size = new Size(64, 24);
+            btnOK.TabIndex = 54;
+            btnOK.Text = "OK";
+            btnOK.Click += new EventHandler(BtnOK_Click);
             //
             // Label3
             //
-            this.Label3.Font = new System.Drawing.Font("Microsoft Sans Serif", 9.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.Label3.Location = new System.Drawing.Point(152, 280);
-            this.Label3.Name = "Label3";
-            this.Label3.Size = new System.Drawing.Size(48, 23);
-            this.Label3.TabIndex = 45;
-            this.Label3.Text = "Blue:";
-            this.Label3.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
+            Label3.Font = new Font("Microsoft Sans Serif", 9.75F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            Label3.Location = new Point(152, 280);
+            Label3.Name = "Label3";
+            Label3.Size = new Size(48, 23);
+            Label3.TabIndex = 45;
+            Label3.Text = "Blue:";
+            Label3.TextAlign = ContentAlignment.MiddleLeft;
             //
             // nudSaturation
             //
-            this.nudSaturation.Font = new System.Drawing.Font("Microsoft Sans Serif", 9.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.nudSaturation.Location = new System.Drawing.Point(96, 256);
-            this.nudSaturation.Maximum = new decimal(new int[] {
+            nudSaturation.Font = new Font("Microsoft Sans Serif", 9.75F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            nudSaturation.Location = new Point(96, 256);
+            nudSaturation.Maximum = new decimal(new int[] {
             255,
             0,
             0,
             0});
-            this.nudSaturation.Name = "nudSaturation";
-            this.nudSaturation.Size = new System.Drawing.Size(48, 22);
-            this.nudSaturation.TabIndex = 42;
-            this.nudSaturation.TextChanged += new System.EventHandler(this.HandleTextChanged);
-            this.nudSaturation.ValueChanged += new System.EventHandler(this.HandleHSVChange);
+            nudSaturation.Name = "nudSaturation";
+            nudSaturation.Size = new Size(48, 22);
+            nudSaturation.TabIndex = 42;
+            nudSaturation.TextChanged += new EventHandler(HandleTextChanged);
+            nudSaturation.ValueChanged += new EventHandler(HandleHSVChange);
             //
             // Label7
             //
-            this.Label7.Font = new System.Drawing.Font("Microsoft Sans Serif", 9.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.Label7.Location = new System.Drawing.Point(16, 280);
-            this.Label7.Name = "Label7";
-            this.Label7.Size = new System.Drawing.Size(72, 23);
-            this.Label7.TabIndex = 50;
-            this.Label7.Text = "Brightness:";
-            this.Label7.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
+            Label7.Font = new Font("Microsoft Sans Serif", 9.75F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            Label7.Location = new Point(16, 280);
+            Label7.Name = "Label7";
+            Label7.Size = new Size(72, 23);
+            Label7.TabIndex = 50;
+            Label7.Text = "Brightness:";
+            Label7.TextAlign = ContentAlignment.MiddleLeft;
             //
             // nudBrightness
             //
-            this.nudBrightness.Font = new System.Drawing.Font("Microsoft Sans Serif", 9.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.nudBrightness.Location = new System.Drawing.Point(96, 280);
-            this.nudBrightness.Maximum = new decimal(new int[] {
+            nudBrightness.Font = new Font("Microsoft Sans Serif", 9.75F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            nudBrightness.Location = new Point(96, 280);
+            nudBrightness.Maximum = new decimal(new int[] {
             255,
             0,
             0,
             0});
-            this.nudBrightness.Name = "nudBrightness";
-            this.nudBrightness.Size = new System.Drawing.Size(48, 22);
-            this.nudBrightness.TabIndex = 47;
-            this.nudBrightness.TextChanged += new System.EventHandler(this.HandleTextChanged);
-            this.nudBrightness.ValueChanged += new System.EventHandler(this.HandleHSVChange);
+            nudBrightness.Name = "nudBrightness";
+            nudBrightness.Size = new Size(48, 22);
+            nudBrightness.TabIndex = 47;
+            nudBrightness.TextChanged += new EventHandler(HandleTextChanged);
+            nudBrightness.ValueChanged += new EventHandler(HandleHSVChange);
             //
             // nudRed
             //
-            this.nudRed.Font = new System.Drawing.Font("Microsoft Sans Serif", 9.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.nudRed.Location = new System.Drawing.Point(208, 232);
-            this.nudRed.Maximum = new decimal(new int[] {
+            nudRed.Font = new Font("Microsoft Sans Serif", 9.75F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            nudRed.Location = new Point(208, 232);
+            nudRed.Maximum = new decimal(new int[] {
             255,
             0,
             0,
             0});
-            this.nudRed.Name = "nudRed";
-            this.nudRed.Size = new System.Drawing.Size(48, 22);
-            this.nudRed.TabIndex = 38;
-            this.nudRed.TextChanged += new System.EventHandler(this.HandleTextChanged);
-            this.nudRed.ValueChanged += new System.EventHandler(this.HandleRGBChange);
+            nudRed.Name = "nudRed";
+            nudRed.Size = new Size(48, 22);
+            nudRed.TabIndex = 38;
+            nudRed.TextChanged += new EventHandler(HandleTextChanged);
+            nudRed.ValueChanged += new EventHandler(HandleRGBChange);
             //
             // pnlColor
             //
-            this.pnlColor.Location = new System.Drawing.Point(8, 8);
-            this.pnlColor.Name = "pnlColor";
-            this.pnlColor.Size = new System.Drawing.Size(176, 176);
-            this.pnlColor.TabIndex = 51;
-            this.pnlColor.Visible = false;
-            this.pnlColor.MouseUp += new System.Windows.Forms.MouseEventHandler(this.frmMain_MouseUp);
+            pnlColor.Location = new Point(8, 8);
+            pnlColor.Name = "pnlColor";
+            pnlColor.Size = new Size(176, 176);
+            pnlColor.TabIndex = 51;
+            pnlColor.Visible = false;
+            pnlColor.MouseUp += new MouseEventHandler(FrmMain_MouseUp);
             //
             // Label6
             //
-            this.Label6.Font = new System.Drawing.Font("Microsoft Sans Serif", 9.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.Label6.Location = new System.Drawing.Point(16, 256);
-            this.Label6.Name = "Label6";
-            this.Label6.Size = new System.Drawing.Size(72, 23);
-            this.Label6.TabIndex = 49;
-            this.Label6.Text = "Saturation:";
-            this.Label6.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
+            Label6.Font = new Font("Microsoft Sans Serif", 9.75F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            Label6.Location = new Point(16, 256);
+            Label6.Name = "Label6";
+            Label6.Size = new Size(72, 23);
+            Label6.TabIndex = 49;
+            Label6.Text = "Saturation:";
+            Label6.TextAlign = ContentAlignment.MiddleLeft;
             //
             // Label1
             //
-            this.Label1.Font = new System.Drawing.Font("Microsoft Sans Serif", 9.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.Label1.Location = new System.Drawing.Point(152, 232);
-            this.Label1.Name = "Label1";
-            this.Label1.Size = new System.Drawing.Size(48, 23);
-            this.Label1.TabIndex = 43;
-            this.Label1.Text = "Red:";
-            this.Label1.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
+            Label1.Font = new Font("Microsoft Sans Serif", 9.75F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            Label1.Location = new Point(152, 232);
+            Label1.Name = "Label1";
+            Label1.Size = new Size(48, 23);
+            Label1.TabIndex = 43;
+            Label1.Text = "Red:";
+            Label1.TextAlign = ContentAlignment.MiddleLeft;
             //
             // Label5
             //
-            this.Label5.Font = new System.Drawing.Font("Microsoft Sans Serif", 9.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.Label5.Location = new System.Drawing.Point(16, 232);
-            this.Label5.Name = "Label5";
-            this.Label5.Size = new System.Drawing.Size(72, 23);
-            this.Label5.TabIndex = 48;
-            this.Label5.Text = "Hue:";
-            this.Label5.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
+            Label5.Font = new Font("Microsoft Sans Serif", 9.75F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            Label5.Location = new Point(16, 232);
+            Label5.Name = "Label5";
+            Label5.Size = new Size(72, 23);
+            Label5.TabIndex = 48;
+            Label5.Text = "Hue:";
+            Label5.TextAlign = ContentAlignment.MiddleLeft;
             //
             // pnlSelectedColor
             //
-            this.pnlSelectedColor.Location = new System.Drawing.Point(208, 200);
-            this.pnlSelectedColor.Name = "pnlSelectedColor";
-            this.pnlSelectedColor.Size = new System.Drawing.Size(48, 24);
-            this.pnlSelectedColor.TabIndex = 53;
-            this.pnlSelectedColor.Visible = false;
+            pnlSelectedColor.Location = new Point(208, 200);
+            pnlSelectedColor.Name = "pnlSelectedColor";
+            pnlSelectedColor.Size = new Size(48, 24);
+            pnlSelectedColor.TabIndex = 53;
+            pnlSelectedColor.Visible = false;
             //
             // pnlBrightness
             //
-            this.pnlBrightness.Location = new System.Drawing.Point(208, 8);
-            this.pnlBrightness.Name = "pnlBrightness";
-            this.pnlBrightness.Size = new System.Drawing.Size(16, 176);
-            this.pnlBrightness.TabIndex = 52;
-            this.pnlBrightness.Visible = false;
+            pnlBrightness.Location = new Point(208, 8);
+            pnlBrightness.Name = "pnlBrightness";
+            pnlBrightness.Size = new Size(16, 176);
+            pnlBrightness.TabIndex = 52;
+            pnlBrightness.Visible = false;
             //
             // nudBlue
             //
-            this.nudBlue.Font = new System.Drawing.Font("Microsoft Sans Serif", 9.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.nudBlue.Location = new System.Drawing.Point(208, 280);
-            this.nudBlue.Maximum = new decimal(new int[] {
+            nudBlue.Font = new Font("Microsoft Sans Serif", 9.75F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            nudBlue.Location = new Point(208, 280);
+            nudBlue.Maximum = new decimal(new int[] {
             255,
             0,
             0,
             0});
-            this.nudBlue.Name = "nudBlue";
-            this.nudBlue.Size = new System.Drawing.Size(48, 22);
-            this.nudBlue.TabIndex = 40;
-            this.nudBlue.TextChanged += new System.EventHandler(this.HandleTextChanged);
-            this.nudBlue.ValueChanged += new System.EventHandler(this.HandleRGBChange);
+            nudBlue.Name = "nudBlue";
+            nudBlue.Size = new Size(48, 22);
+            nudBlue.TabIndex = 40;
+            nudBlue.TextChanged += new EventHandler(HandleTextChanged);
+            nudBlue.ValueChanged += new EventHandler(HandleRGBChange);
             //
             // Label4
             //
-            this.Label4.Font = new System.Drawing.Font("Microsoft Sans Serif", 9.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.Label4.Location = new System.Drawing.Point(152, 200);
-            this.Label4.Name = "Label4";
-            this.Label4.Size = new System.Drawing.Size(48, 24);
-            this.Label4.TabIndex = 46;
-            this.Label4.Text = "Color:";
-            this.Label4.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
+            Label4.Font = new Font("Microsoft Sans Serif", 9.75F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            Label4.Location = new Point(152, 200);
+            Label4.Name = "Label4";
+            Label4.Size = new Size(48, 24);
+            Label4.TabIndex = 46;
+            Label4.Text = "Color:";
+            Label4.TextAlign = ContentAlignment.MiddleLeft;
             //
             // nudGreen
             //
-            this.nudGreen.Font = new System.Drawing.Font("Microsoft Sans Serif", 9.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.nudGreen.Location = new System.Drawing.Point(208, 256);
-            this.nudGreen.Maximum = new decimal(new int[] {
+            nudGreen.Font = new Font("Microsoft Sans Serif", 9.75F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            nudGreen.Location = new Point(208, 256);
+            nudGreen.Maximum = new decimal(new int[] {
             255,
             0,
             0,
             0});
-            this.nudGreen.Name = "nudGreen";
-            this.nudGreen.Size = new System.Drawing.Size(48, 22);
-            this.nudGreen.TabIndex = 39;
-            this.nudGreen.TextChanged += new System.EventHandler(this.HandleTextChanged);
-            this.nudGreen.ValueChanged += new System.EventHandler(this.HandleRGBChange);
+            nudGreen.Name = "nudGreen";
+            nudGreen.Size = new Size(48, 22);
+            nudGreen.TabIndex = 39;
+            nudGreen.TextChanged += new EventHandler(HandleTextChanged);
+            nudGreen.ValueChanged += new EventHandler(HandleRGBChange);
             //
             // Label2
             //
-            this.Label2.Font = new System.Drawing.Font("Microsoft Sans Serif", 9.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.Label2.Location = new System.Drawing.Point(152, 256);
-            this.Label2.Name = "Label2";
-            this.Label2.Size = new System.Drawing.Size(48, 23);
-            this.Label2.TabIndex = 44;
-            this.Label2.Text = "Green:";
-            this.Label2.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
+            Label2.Font = new Font("Microsoft Sans Serif", 9.75F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            Label2.Location = new Point(152, 256);
+            Label2.Name = "Label2";
+            Label2.Size = new Size(48, 23);
+            Label2.TabIndex = 44;
+            Label2.Text = "Green:";
+            Label2.TextAlign = ContentAlignment.MiddleLeft;
             //
             // nudHue
             //
-            this.nudHue.Font = new System.Drawing.Font("Microsoft Sans Serif", 9.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.nudHue.Location = new System.Drawing.Point(96, 232);
-            this.nudHue.Maximum = new decimal(new int[] {
+            nudHue.Font = new Font("Microsoft Sans Serif", 9.75F, FontStyle.Regular, GraphicsUnit.Point, 0);
+            nudHue.Location = new Point(96, 232);
+            nudHue.Maximum = new decimal(new int[] {
             255,
             0,
             0,
             0});
-            this.nudHue.Name = "nudHue";
-            this.nudHue.Size = new System.Drawing.Size(48, 22);
-            this.nudHue.TabIndex = 41;
-            this.nudHue.TextChanged += new System.EventHandler(this.HandleTextChanged);
-            this.nudHue.ValueChanged += new System.EventHandler(this.HandleHSVChange);
+            nudHue.Name = "nudHue";
+            nudHue.Size = new Size(48, 22);
+            nudHue.TabIndex = 41;
+            nudHue.TextChanged += new EventHandler(HandleTextChanged);
+            nudHue.ValueChanged += new EventHandler(HandleHSVChange);
             //
             // ColorWheel
             //
-            this.AutoScaleBaseSize = new System.Drawing.Size(5, 13);
-            this.ClientSize = new System.Drawing.Size(264, 349);
-            this.Controls.Add(this.btnCancel);
-            this.Controls.Add(this.btnOK);
-            this.Controls.Add(this.Label3);
-            this.Controls.Add(this.nudSaturation);
-            this.Controls.Add(this.Label7);
-            this.Controls.Add(this.nudBrightness);
-            this.Controls.Add(this.nudRed);
-            this.Controls.Add(this.pnlColor);
-            this.Controls.Add(this.Label6);
-            this.Controls.Add(this.Label1);
-            this.Controls.Add(this.Label5);
-            this.Controls.Add(this.pnlSelectedColor);
-            this.Controls.Add(this.pnlBrightness);
-            this.Controls.Add(this.nudBlue);
-            this.Controls.Add(this.Label4);
-            this.Controls.Add(this.nudGreen);
-            this.Controls.Add(this.Label2);
-            this.Controls.Add(this.nudHue);
-            this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedDialog;
-            this.MaximizeBox = false;
-            this.MinimizeBox = false;
-            this.Name = "ColorWheel";
-            this.ShowInTaskbar = false;
-            this.Text = "Select Color";
-            this.Load += new System.EventHandler(this.ColorWheel_Load);
-            this.Paint += new System.Windows.Forms.PaintEventHandler(this.ColorWheel_Paint);
-            this.MouseDown += new System.Windows.Forms.MouseEventHandler(this.HandleMouse);
-            this.MouseMove += new System.Windows.Forms.MouseEventHandler(this.HandleMouse);
-            this.MouseUp += new System.Windows.Forms.MouseEventHandler(this.frmMain_MouseUp);
-            ((System.ComponentModel.ISupportInitialize)(this.nudSaturation)).EndInit();
-            ((System.ComponentModel.ISupportInitialize)(this.nudBrightness)).EndInit();
-            ((System.ComponentModel.ISupportInitialize)(this.nudRed)).EndInit();
-            ((System.ComponentModel.ISupportInitialize)(this.nudBlue)).EndInit();
-            ((System.ComponentModel.ISupportInitialize)(this.nudGreen)).EndInit();
-            ((System.ComponentModel.ISupportInitialize)(this.nudHue)).EndInit();
-            this.ResumeLayout(false);
+            AutoScaleBaseSize = new Size(5, 13);
+            ClientSize = new Size(264, 349);
+            Controls.Add(btnCancel);
+            Controls.Add(btnOK);
+            Controls.Add(Label3);
+            Controls.Add(nudSaturation);
+            Controls.Add(Label7);
+            Controls.Add(nudBrightness);
+            Controls.Add(nudRed);
+            Controls.Add(pnlColor);
+            Controls.Add(Label6);
+            Controls.Add(Label1);
+            Controls.Add(Label5);
+            Controls.Add(pnlSelectedColor);
+            Controls.Add(pnlBrightness);
+            Controls.Add(nudBlue);
+            Controls.Add(Label4);
+            Controls.Add(nudGreen);
+            Controls.Add(Label2);
+            Controls.Add(nudHue);
+            FormBorderStyle = FormBorderStyle.FixedDialog;
+            MaximizeBox = false;
+            MinimizeBox = false;
+            Name = "ColorWheel";
+            ShowInTaskbar = false;
+            Text = "Select Color";
+            Load += new EventHandler(ColorWheel_Load);
+            Paint += new PaintEventHandler(ColorWheel_Paint);
+            MouseDown += new MouseEventHandler(HandleMouse);
+            MouseMove += new MouseEventHandler(HandleMouse);
+            MouseUp += new MouseEventHandler(FrmMain_MouseUp);
+            ((System.ComponentModel.ISupportInitialize)(nudSaturation)).EndInit();
+            ((System.ComponentModel.ISupportInitialize)(nudBrightness)).EndInit();
+            ((System.ComponentModel.ISupportInitialize)(nudRed)).EndInit();
+            ((System.ComponentModel.ISupportInitialize)(nudBlue)).EndInit();
+            ((System.ComponentModel.ISupportInitialize)(nudGreen)).EndInit();
+            ((System.ComponentModel.ISupportInitialize)(nudHue)).EndInit();
+            ResumeLayout(false);
         }
 
         #endregion Windows Form Designer generated code
@@ -451,12 +450,12 @@ namespace DesktopShell.Forms
         private ColorHandler.HSV HSV;
         private bool isInUpdate = false;
 
-        private void ColorWheel_Load(object sender, System.EventArgs e)
+        private void ColorWheel_Load(object sender, EventArgs e)
         {
             // Turn on double-buffering, so the form looks better.
-            this.SetStyle(ControlStyles.AllPaintingInWmPaint, true);
-            this.SetStyle(ControlStyles.UserPaint, true);
-            this.SetStyle(ControlStyles.DoubleBuffer, true);
+            SetStyle(ControlStyles.AllPaintingInWmPaint, true);
+            SetStyle(ControlStyles.UserPaint, true);
+            SetStyle(ControlStyles.DoubleBuffer, true);
 
             // These properties are set in design view, as well, but they have to be set to false in order for the Paint event to be able to display their contents.
             pnlSelectedColor.Visible = false;
@@ -464,19 +463,21 @@ namespace DesktopShell.Forms
             pnlColor.Visible = false;
 
             // Calculate the coordinates of the three required regions on the form.
-            Rectangle SelectedColorRectangle = new Rectangle(pnlSelectedColor.Location, pnlSelectedColor.Size);
-            Rectangle BrightnessRectangle = new Rectangle(pnlBrightness.Location, pnlBrightness.Size);
-            Rectangle ColorRectangle = new Rectangle(pnlColor.Location, pnlColor.Size);
+            Rectangle SelectedColorRectangle = new(pnlSelectedColor.Location, pnlSelectedColor.Size);
+            Rectangle BrightnessRectangle = new(pnlBrightness.Location, pnlBrightness.Size);
+            Rectangle ColorRectangle = new(pnlColor.Location, pnlColor.Size);
 
             // Create the new ColorWheel class, indicating the locations of the color wheel itself, the brightness area, and the position of the selected color.
             myColorWheel = new ColorWheel(ColorRectangle, BrightnessRectangle, SelectedColorRectangle);
-            myColorWheel.ColorChanged += new ColorWheel.ColorChangedEventHandler(this.myColorWheel_ColorChanged);
+            myColorWheel.ColorChanged += new ColorChangedEventHandler(MyColorWheel_ColorChanged);
+
+            /// TODO: I think this is where I need to do the conversion from hash color code to RGB HSV
 
             // Set the RGB and HSV values of the NumericUpDown controls.
             SetRGB(RGB);
             SetHSV(HSV);
 
-            this.Location = Cursor.Position;
+            Location = Cursor.Position;
         }
 
         private void HandleMouse(object sender, MouseEventArgs e)
@@ -485,11 +486,11 @@ namespace DesktopShell.Forms
             if(e.Button == MouseButtons.Left) {
                 changeType = ChangeStyle.MouseMove;
                 selectedPoint = new Point(e.X, e.Y);
-                this.Invalidate();
+                Invalidate();
             }
         }
 
-        private void frmMain_MouseUp(object sender, MouseEventArgs e)
+        private void FrmMain_MouseUp(object sender, MouseEventArgs e)
         {
             myColorWheel.SetMouseUp();
             changeType = ChangeStyle.None;
@@ -501,7 +502,7 @@ namespace DesktopShell.Forms
             currentState = MouseState.MouseUp;
         }
 
-        private void HandleRGBChange(object sender, System.EventArgs e)
+        private void HandleRGBChange(object sender, EventArgs e)
         {
             // If the R, G, or B values change, use this code to update the HSV values and invalidate the color wheel (so it updates the pointers). Check the isInUpdate flag to avoid recursive events
             // when you update the NumericUpdownControls.
@@ -509,7 +510,7 @@ namespace DesktopShell.Forms
                 changeType = ChangeStyle.RGB;
                 RGB = new ColorHandler.RGB((int)nudRed.Value, (int)nudGreen.Value, (int)nudBlue.Value);
                 SetHSV(ColorHandler.RGBtoHSV(RGB));
-                this.Invalidate();
+                Invalidate();
             }
         }
 
@@ -519,9 +520,9 @@ namespace DesktopShell.Forms
             // when you update the NumericUpdownControls.
             if(!isInUpdate) {
                 changeType = ChangeStyle.HSV;
-                HSV = new ColorHandler.HSV((int)(nudHue.Value), (int)(nudSaturation.Value), (int)(nudBrightness.Value));
+                HSV = new ColorHandler.HSV((int)nudHue.Value, (int)nudSaturation.Value, (int)nudBrightness.Value);
                 SetRGB(ColorHandler.HSVtoRGB(HSV));
-                this.Invalidate();
+                Invalidate();
             }
         }
 
@@ -545,14 +546,14 @@ namespace DesktopShell.Forms
             isInUpdate = false;
         }
 
-        private void HandleTextChanged(object sender, System.EventArgs e)
+        private void HandleTextChanged(object sender, EventArgs e)
         {
             // This step works around a bug -- unless you actively retrieve the value, the min and max settings for the control aren't honored when you type text. This may be fixed in the 1.1 version, but in VS.NET 1.0, this
             // step is required.
-            Decimal x = ((NumericUpDown)sender).Value;
+            _ = ((NumericUpDown)sender).Value;
         }
 
-        private void RefreshValue(NumericUpDown nud, int value)
+        private static void RefreshValue(NumericUpDown nud, int value)
         {
             // Update the value of the NumericUpDown control, if the value is different than the current value. Refresh the control, causing an immediate repaint.
             if(nud.Value != value) {
@@ -574,13 +575,13 @@ namespace DesktopShell.Forms
             }
         }
 
-        private void myColorWheel_ColorChanged(object sender, ColorChangedEventArgs e)
+        private void MyColorWheel_ColorChanged(object sender, ColorChangedEventArgs e)
         {
             SetRGB(e.RGB);
             SetHSV(e.HSV);
         }
 
-        private void ColorWheel_Paint(object sender, System.Windows.Forms.PaintEventArgs e)
+        private void ColorWheel_Paint(object sender, PaintEventArgs e)
         {
             // Depending on the circumstances, force a repaint of the color wheel passing different information.
             switch(changeType) {
@@ -602,26 +603,20 @@ namespace DesktopShell.Forms
         private void CreateGradient()
         {
             // Create a new PathGradientBrush, supplying an array of points created by calling the GetPoints method.
-            using(PathGradientBrush pgb = new PathGradientBrush(GetPoints(radius, new Point(radius, radius)))) {
-                // Set the various properties. Note the SurroundColors property, which contains an array of points, in a one-to-one relationship with the points that created the gradient.
-                pgb.CenterColor = Color.White;
-                pgb.CenterPoint = new PointF(radius, radius);
-                pgb.SurroundColors = GetColors();
+            using PathGradientBrush pgb = new(GetPoints(radius: radius, new Point(radius, radius)));
+            // Set the various properties. Note the SurroundColors property, which contains an array of points, in a one-to-one relationship with the points that created the gradient.
+            pgb.CenterColor = Color.White;
+            pgb.CenterPoint = new PointF(radius, radius);
+            pgb.SurroundColors = GetColors();
 
-                // Create a new bitmap containing the color wheel gradient, so the code only needs to do all this work once. Later code uses the bitmap rather than recreating the gradient.
-                colorImage = new Bitmap(
-                    colorRectangle.Width, colorRectangle.Height,
-                    PixelFormat.Format32bppArgb);
+            // Create a new bitmap containing the color wheel gradient, so the code only needs to do all this work once. Later code uses the bitmap rather than recreating the gradient.
+            colorImage = new Bitmap(colorRectangle.Width, colorRectangle.Height, PixelFormat.Format32bppArgb);
 
-                using(Graphics newGraphics =
-                                 Graphics.FromImage(colorImage)) {
-                    newGraphics.FillEllipse(pgb, 0, 0,
-                        colorRectangle.Width, colorRectangle.Height);
-                }
-            }
+            using Graphics newGraphics = Graphics.FromImage(colorImage);
+            newGraphics.FillEllipse(pgb, 0, 0, colorRectangle.Width, colorRectangle.Height);
         }
 
-        private Color[] GetColors()
+        private static Color[] GetColors()
         {
             // Create an array of COLOR_COUNT colors, looping through all the hues between 0 and 255, broken into COLOR_COUNT intervals. HSV is particularly well-suited for this,
             // because the only value that changes as you create colors is the Hue.
@@ -634,7 +629,7 @@ namespace DesktopShell.Forms
             return Colors;
         }
 
-        private Point[] GetPoints(double radius, Point centerPoint)
+        private static Point[] GetPoints(double radius, Point centerPoint)
         {
             // Generate the array of points that describe the locations of the COLOR_COUNT colors to be displayed on the color wheel.
             Point[] Points = new Point[COLOR_COUNT];
@@ -646,7 +641,7 @@ namespace DesktopShell.Forms
             return Points;
         }
 
-        private Point GetPoint(double degrees, double radius, Point centerPoint)
+        private static Point GetPoint(double degrees, double radius, Point centerPoint)
         {
             // Given the center of a circle and its radius, along with the angle corresponding to the point, find the coordinates. In other words, conver  t from polar to rectangular coordinates.
             double radians = degrees / DEGREES_PER_RADIAN;
@@ -657,7 +652,7 @@ namespace DesktopShell.Forms
 
         protected void OnColorChanged(ColorHandler.RGB RGB, ColorHandler.HSV HSV)
         {
-            ColorChangedEventArgs e = new ColorChangedEventArgs(RGB, HSV);
+            ColorChangedEventArgs e = new(RGB, HSV);
             ColorChanged(this, e);
         }
 
@@ -674,8 +669,8 @@ namespace DesktopShell.Forms
         {
             // Given RGB values, calculate HSV and then update the screen.
             this.g = g;
-            this.HSV = ColorHandler.RGBtoHSV(RGB);
-            CalcCoordsAndUpdate(this.HSV);
+            HSV = ColorHandler.RGBtoHSV(RGB);
+            CalcCoordsAndUpdate(HSV);
             UpdateDisplay();
         }
 
@@ -752,7 +747,7 @@ namespace DesktopShell.Forms
                     }
 
                     // Calculate the new HSV and RGB values.
-                    HSV.Hue = (int)(degrees * 255 / 360);
+                    HSV.Hue = degrees * 255 / 360;
                     HSV.Saturation = (int)(distance * 255);
                     HSV.value = brightness;
                     RGB = ColorHandler.HSVtoRGB(HSV);
@@ -820,14 +815,13 @@ namespace DesktopShell.Forms
         private void DrawLinearGradient(Color TopColor)
         {
             // Given the top color, draw a linear gradient ranging from black to the top color. Use the brightness rectangle as the area to fill.
-            using(LinearGradientBrush lgb =
-                             new LinearGradientBrush(brightnessRectangle, TopColor,
-                             Color.Black, LinearGradientMode.Vertical)) {
-                g.FillRectangle(lgb, brightnessRectangle);
-            }
+            using LinearGradientBrush lgb =
+                             new(rect: brightnessRectangle, color1: TopColor,
+                             color2: Color.Black, linearGradientMode: LinearGradientMode.Vertical);
+            g.FillRectangle(lgb, brightnessRectangle);
         }
 
-        private int CalcDegrees(Point pt)
+        private static int CalcDegrees(Point pt)
         {
             int degrees;
 
@@ -861,29 +855,27 @@ namespace DesktopShell.Forms
         private void UpdateDisplay()
         {
             // Update the gradients, and place the pointers correctly based on colors and brightness.
+            using Brush selectedBrush = new SolidBrush(selectedColor);
 
-            using(Brush selectedBrush = new SolidBrush(selectedColor)) {
-                // Draw the saved color wheel image.
-                g.DrawImage(colorImage, colorRectangle);
+            // Draw the saved color wheel image.
+            g.DrawImage(colorImage, colorRectangle);
 
-                // Draw the "selected color" rectangle.
-                g.FillRectangle(selectedBrush, selectedColorRectangle);
+            // Draw the "selected color" rectangle.
+            g.FillRectangle(selectedBrush, selectedColorRectangle);
 
-                // Draw the "brightness" rectangle.
-                DrawLinearGradient(fullColor);
+            // Draw the "brightness" rectangle.
+            DrawLinearGradient(fullColor);
 
-                // Draw the two pointers.
-                DrawColorPointer(colorPoint);
-                DrawBrightnessPointer(brightnessPoint);
-            }
+            // Draw the two pointers.
+            DrawColorPointer(colorPoint);
+            DrawBrightnessPointer(brightnessPoint);
         }
 
         private void DrawColorPointer(Point pt)
         {
             // Given a point, draw the color selector. The constant SIZE represents half the width -- the square will be twice this value in width and height.
             const int SIZE = 3;
-            g.DrawRectangle(Pens.Black,
-                pt.X - SIZE, pt.Y - SIZE, SIZE * 2, SIZE * 2);
+            g.DrawRectangle(Pens.Black, pt.X - SIZE, pt.Y - SIZE, SIZE * 2, SIZE * 2);
         }
 
         private void DrawBrightnessPointer(Point pt)
@@ -899,7 +891,7 @@ namespace DesktopShell.Forms
             g.FillPolygon(Brushes.Black, Points);
         }
 
-        private void btnOK_Click(object sender, EventArgs e)
+        private void BtnOK_Click(object sender, EventArgs e)
         {
             if(GlobalVar.settingBackColor) {
                 GlobalVar.backColor = Color.FromArgb((int)nudRed.Value, (int)nudGreen.Value, (int)nudBlue.Value);
@@ -909,13 +901,13 @@ namespace DesktopShell.Forms
             }
             GlobalVar.settingFontColor = false;
             GlobalVar.settingBackColor = false;
-            GlobalVar.updateColors();
-            this.Close();
+            GlobalVar.UpdateColors();
+            Close();
         }
 
-        private void btnCancel_Click(object sender, EventArgs e)
+        private void BtnCancel_Click(object sender, EventArgs e)
         {
-            this.Close();
+            Close();
             GlobalVar.settingBackColor = false;
             GlobalVar.settingFontColor = false;
         }

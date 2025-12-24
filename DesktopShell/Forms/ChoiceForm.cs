@@ -1,11 +1,5 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Data;
-using System.Drawing;
 using System.IO;
-using System.Linq;
-using System.Text;
 using System.Text.RegularExpressions;
 using System.Windows.Forms;
 
@@ -13,50 +7,77 @@ namespace DesktopShell
 {
     public partial class ChoiceForm : Form
     {
-        public ChoiceForm() { InitializeComponent(); }
+        public ChoiceForm()
+        {
+            InitializeComponent();
+        }
 
         public void ChoiceForm_Load(object sender, EventArgs e)
         {
-            //GlobalVar.setBounds(this);
-            GlobalVar.setCentered(Screen.FromPoint(Properties.Settings.positionSave), this);
-            this.filesGroup.Controls.AddRange(GlobalVar.populateLabels());
-            
+            GlobalVar.SetCentered(Screen.FromPoint(Properties.Settings.positionSave), this);
+            filesGroup.Controls.AddRange(GlobalVar.PopulateLabels());
+
             int fileCount = GlobalVar.fileChoices.Count;
-            foreach (Control c in this.filesGroup.Controls) c.Click += new EventHandler(ChoiceForm_Click);
-            this.titleLabel.Left = (350 / 2 - (this.titleLabel.Width / 2));
-            this.titleLabel.Text = GlobalVar.searchType + " (" + fileCount.ToString() + ")";
-            this.BackColor = this.titleLabel.BackColor = Properties.Settings.backgroundColor;
-            this.ForeColor = this.titleLabel.ForeColor = Properties.Settings.foregroundColor;
-            this.ClientSize = new System.Drawing.Size(350, (fileCount * 18) + 4);
+            foreach(Control c in filesGroup.Controls) {
+                c.Click += new EventHandler(ChoiceForm_Click);
+            }
+
+            titleLabel.Left = (350 / 2 - (titleLabel.Width / 2));
+            titleLabel.Text = $"{GlobalVar.searchType} ({fileCount})";
+            BackColor = titleLabel.BackColor = Properties.Settings.backgroundColor;
+            ForeColor = titleLabel.ForeColor = Properties.Settings.foregroundColor;
+            ClientSize = new System.Drawing.Size(GlobalVar.width, (fileCount * 18) + 4);
+            Location = new System.Drawing.Point(Location.X,Location.Y+20);
         }
-        public void ChoiceForm_Click(object sender, EventArgs e)
+
+        public void ChoiceForm_Click(object? sender, EventArgs e)
         {
-            Regex extension = new Regex(".([a-z]|[A-Z]){3,4}$");
-            foreach (FileInfo f in GlobalVar.fileChoices)
+            if (sender == null)
             {
-                if (((Label)sender).Text.IndexOf(extension.Replace(f.Name,"")) != -1)
-                {
-                    if (GlobalVar.searchType == "Movie") GlobalVar.Run(@"D:\Program Files (x86)\VLC Media Player\vlc.exe", f.FullName);
-                    else GlobalVar.Run(f.FullName);
-                    
-                    this.Close();
+                GlobalVar.Log($"### ChoiceForm::ChoiceForm_Click sender = null");
+                return;
+            }
+            Regex extension = new(".([a-z]|[A-Z]){3,4}$");
+            foreach(FileInfo f in GlobalVar.fileChoices) {
+                if(((Label)sender).Text.Contains(extension.Replace(f.Name, ""), StringComparison.CurrentCulture)) {
+                    if(GlobalVar.searchType == "Movie") {
+                        GlobalVar.Run(@"D:\Program Files (x86)\VLC Media Player\vlc.exe", f.FullName);
+                    }
+                    else {
+                        GlobalVar.Run(f.FullName);
+                    }
+
+                    Close();
                 }
             }
         }
+
         public void ChoiceForm_DoubleClick(object sender, EventArgs e)
         {
-            this.Close();
+            Close();
         }
-        private void RandomLabel_Click(object sender, System.EventArgs e)
+
+        private void RandomLabel_Click(object sender, EventArgs e)
         {
-            Random random = new Random();
-            int randNum = random.Next(0,GlobalVar.fileChoices.Count);
-            String fileName = ((FileInfo)GlobalVar.fileChoices[randNum]).FullName;
+            Random random = new();
+            int randNum = random.Next(0, GlobalVar.fileChoices.Count);
 
-            if (GlobalVar.searchType == "Movie") GlobalVar.Run(@"D:\Program Files (x86)\VLC Media Player\vlc.exe", fileName);
-            else GlobalVar.Run(fileName);
-
-            this.Close();
+            if (GlobalVar.fileChoices != null && GlobalVar.fileChoices[randNum] != null)
+            {
+                if (GlobalVar.fileChoices[randNum] is FileInfo fileInfo)
+                {
+                    string fileName = fileInfo.FullName;
+                    if (GlobalVar.searchType == "Movie")
+                    {
+                        GlobalVar.Run(@"D:\Program Files (x86)\VLC Media Player\vlc.exe", fileName);
+                    }
+                    else
+                    {
+                        GlobalVar.Run(fileName);
+                    }
+                    Close();
+                }
+            }
         }
     }
 }

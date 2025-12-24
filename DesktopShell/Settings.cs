@@ -21,32 +21,33 @@ namespace DesktopShell.Properties {
         public static bool hourlyChimeChecked = false;
         public static List<bool> multiscreenEnabled;
         public static bool checkVersion = false;
+        public static bool enableTCPServer = false;
         public static Regex fontRegex;
         public static Regex backgroundRegex;
         public static Regex hourlyChimeRegex;
         public static Regex screensRegex;
         public static Regex updateRegex;
+        public static Regex enableTCPServerRegex;
         public static Regex musicRegex;
         public static Regex gamesRegex;
         public static Regex moviesRegex;
         public static Regex showsRegex;
         public static Regex videoPlayerRegex;
         public static Regex positionRegex;
-        
-        /**/
         public static System.Drawing.Point positionSave;
         
         public Settings() {
             // // To add event handlers for saving and changing settings, uncomment the lines below:
             //
-            this.SettingChanging += this.SettingChangingEventHandler;
-            this.SettingsSaving += this.SettingsSavingEventHandler;
+            SettingChanging += SettingChangingEventHandler;
+            SettingsSaving += SettingsSavingEventHandler;
 
             fontRegex = new Regex("fontColor");
             backgroundRegex = new Regex("backgroundColor");
             hourlyChimeRegex = new Regex("hourlyChime");
             screensRegex = new Regex("screensEnabled");
             updateRegex = new Regex("updateCheck");
+            enableTCPServerRegex = new Regex("enableTCPServer");
             musicRegex = new Regex("musicDirectory");
             gamesRegex = new Regex("gamesDirectory");
             moviesRegex = new Regex("moviesDirectory");
@@ -63,92 +64,103 @@ namespace DesktopShell.Properties {
             // Add code to handle the SettingsSaving event here.
         }
 
-        public static void scanSettings() {
+        public static void ScanSettings() {
             multiscreenEnabled = new List<bool>();
             //change stuff here to read settings into program
             try
             {
-                using (var sr = new StreamReader("settings.ini"))
+                using var sr = new StreamReader("settings.ini");
+                while (!sr.EndOfStream)
                 {
-                    while (!sr.EndOfStream)
+                    string? rawLine = sr.ReadLine();
+                    if (rawLine == null) return;
+                    string? curLine = ScanLine(rawLine);
+                    if (fontRegex.IsMatch(rawLine))
+                        foregroundColor = System.Drawing.ColorTranslator.FromHtml(curLine);
+                    else if (backgroundRegex.IsMatch(rawLine))
+                        backgroundColor = System.Drawing.ColorTranslator.FromHtml(curLine);
+                    else if (hourlyChimeRegex.IsMatch(rawLine))
+                        hourlyChimeChecked = System.Convert.ToBoolean(curLine);
+                    else if (screensRegex.IsMatch(rawLine))
                     {
-                        string rawLine = sr.ReadLine();
-                        string curLine = scanLine(rawLine);
-                        if (fontRegex.IsMatch(rawLine))
-                            foregroundColor = System.Drawing.ColorTranslator.FromHtml(curLine);
-                        else if (backgroundRegex.IsMatch(rawLine))
-                            backgroundColor = System.Drawing.ColorTranslator.FromHtml(curLine);
-                        else if (hourlyChimeRegex.IsMatch(rawLine))
-                            hourlyChimeChecked = System.Convert.ToBoolean(curLine);
-                        else if (screensRegex.IsMatch(rawLine))
+                        string[]? screenStrings = curLine.Split(',');
+                        for (int i = 0; i < screenStrings.Length; i++)
                         {
-                            string[] screenStrings = curLine.Split(',');
-                            for (int i = 0; i < screenStrings.Length; i++)
-                            {
-                                //GlobalVar.log("!!! Screen" + (i+1) + " enabled: " + screenStrings[i]);
-                                multiscreenEnabled.Add(System.Convert.ToBoolean(screenStrings[i]));
-                            }
-                        }
-                        else if (updateRegex.IsMatch(rawLine))
-                            checkVersion = System.Convert.ToBoolean(curLine);
-                        else if (musicRegex.IsMatch(rawLine))
-                            musicDirectory = curLine;
-                        else if (gamesRegex.IsMatch(rawLine))
-                            gamesDirectory = curLine;
-                        else if (moviesRegex.IsMatch(rawLine))
-                            moviesDirectory = curLine;
-                        else if (showsRegex.IsMatch(rawLine))
-                            showsDirectory = curLine;
-                        else if (videoPlayerRegex.IsMatch(rawLine))
-                            videoPlayer = curLine;
-                        else if (positionRegex.IsMatch(rawLine))
-                        {
-                            var positionString = curLine;
-                            var g = Regex.Replace(positionString, @"[\{\}a-zA-Z=]", "").Split(',');
-                            positionSave = new System.Drawing.Point(int.Parse(g[0]), int.Parse(g[1]));
+                            //GlobalVar.log("!!! Screen" + (i+1) + " enabled: " + screenStrings[i]);
+                            multiscreenEnabled.Add(System.Convert.ToBoolean(screenStrings[i]));
                         }
                     }
-                    writeSettings(false);
+                    else if (updateRegex.IsMatch(rawLine))
+                        checkVersion = System.Convert.ToBoolean(curLine);
+                    else if (enableTCPServerRegex.IsMatch(rawLine))
+                        enableTCPServer = System.Convert.ToBoolean(curLine);
+                    else if (musicRegex.IsMatch(rawLine))
+                        musicDirectory = curLine;
+                    else if (gamesRegex.IsMatch(rawLine))
+                        gamesDirectory = curLine;
+                    else if (moviesRegex.IsMatch(rawLine))
+                        moviesDirectory = curLine;
+                    else if (showsRegex.IsMatch(rawLine))
+                        showsDirectory = curLine;
+                    else if (videoPlayerRegex.IsMatch(rawLine))
+                        videoPlayer = curLine;
+                    else if (positionRegex.IsMatch(rawLine))
+                    {
+                        var positionString = curLine;
+                        var g = Regex.Replace(positionString, @"[\{\}a-zA-Z=]", "").Split(',');
+                        positionSave = new System.Drawing.Point(int.Parse(g[0]), int.Parse(g[1]));
+                    }
                 }
+                WriteSettings(false);
             }
             catch (IOException e)
             {
-                GlobalVar.log(e.Message);
+                GlobalVar.Log(e.Message);
             }
         }
-        public static string scanLine(StreamReader sr) {
-            string tempLine = "";
-            int i = ((tempLine = sr.ReadLine()).IndexOf("=") + 1);
-            return tempLine.Substring(i);
-        }
-        public static string scanLine(string line)
+
+        public static string? ScanLine(StreamReader sr)
         {
-            string tempLine = "";
-            int i = ((tempLine = line).IndexOf("=") + 1);
-            return tempLine.Substring(i);
+            if (sr != null)
+            {
+                string? tempLine = sr.ReadLine();
+                if (tempLine == null) return null;
+
+                int i = tempLine.IndexOf("=") + 1;
+                return tempLine[i..];
+            }
+            return null;
         }
-        public static void writeSettings() {
-            writeSettings(true);
+        public static string ScanLine(string line)
+        {
+            string tempLine;
+            int i = (tempLine = line).IndexOf("=") + 1;
+            return tempLine[i..];
         }
-        public static void writeSettings(bool toFile) {
+
+        public static void WriteSettings() 
+        {
+            WriteSettings(true);
+        }
+        public static void WriteSettings(bool toFile) {
             string[] tempLines = new string[11];
-            tempLines[0] = "fontColor=" + System.Drawing.ColorTranslator.ToHtml(foregroundColor);
-            tempLines[1] = "backgroundColor=" + System.Drawing.ColorTranslator.ToHtml(backgroundColor);
-            tempLines[2] = "hourlyChime=" + hourlyChimeChecked.ToString();
-            tempLines[3] = "screensEnabled=" + string.Join(",", multiscreenEnabled.ToArray()); ;
-            tempLines[4] = "updateCheck=" + checkVersion.ToString();
-            tempLines[5] = "musicDirectory=" + musicDirectory;
-            tempLines[6] = "gamesDirectory=" + gamesDirectory;
-            tempLines[7] = "moviesDirectory=" + moviesDirectory;
-            tempLines[8] = "showsDirectory=" + showsDirectory;
-            tempLines[9] = "videoPlayer=" + videoPlayer;
-            tempLines[10] = "positionSave=" + positionSave.X + "," + positionSave.Y;
+            tempLines[0] = $"fontColor={System.Drawing.ColorTranslator.ToHtml(foregroundColor)}";
+            tempLines[1] = $"backgroundColor={System.Drawing.ColorTranslator.ToHtml(backgroundColor)}";
+            tempLines[2] = $"hourlyChime={hourlyChimeChecked}";
+            tempLines[3] = $"screensEnabled={string.Join(",", multiscreenEnabled)}";
+            tempLines[4] = $"updateCheck={checkVersion}";
+            tempLines[5] = $"musicDirectory={musicDirectory}";
+            tempLines[6] = $"gamesDirectory={gamesDirectory}";
+            tempLines[7] = $"moviesDirectory={moviesDirectory}";
+            tempLines[8] = $"showsDirectory={showsDirectory}";
+            tempLines[9] = $"videoPlayer={videoPlayer}";
+            tempLines[10] = $"positionSave={positionSave.X},{positionSave.Y}";
 
             if (toFile) {
-                foreach (string s in tempLines) File.WriteAllLines("settings.ini", tempLines);
+                File.WriteAllLines("settings.ini", tempLines);
             }
             else {
-                foreach (string s in tempLines) GlobalVar.log(s);
+                foreach (string s in tempLines) GlobalVar.Log($"@@@ Writing setting: {s}");
             }
         }
     }

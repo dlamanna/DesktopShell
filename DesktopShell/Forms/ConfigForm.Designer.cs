@@ -129,7 +129,7 @@
             this.backgroundColorInputBox.Name = "backgroundColorInputBox";
             this.backgroundColorInputBox.Size = new System.Drawing.Size(121, 20);
             this.backgroundColorInputBox.TabIndex = 0;
-            this.backgroundColorInputBox.KeyDown += new System.Windows.Forms.KeyEventHandler(this.checkKeys_backgroundColor);
+            this.backgroundColorInputBox.KeyDown += new System.Windows.Forms.KeyEventHandler(this.CheckKeys_backgroundColor);
             // 
             // textColorInputBox
             // 
@@ -137,7 +137,7 @@
             this.textColorInputBox.Name = "textColorInputBox";
             this.textColorInputBox.Size = new System.Drawing.Size(121, 20);
             this.textColorInputBox.TabIndex = 1;
-            this.textColorInputBox.KeyDown += new System.Windows.Forms.KeyEventHandler(this.checkKeys_textColor);
+            this.textColorInputBox.KeyDown += new System.Windows.Forms.KeyEventHandler(this.CheckKeys_textColor);
             // 
             // functionalityBox
             // 
@@ -158,7 +158,7 @@
             this.hourlyChimeCheckbox.TabIndex = 0;
             this.hourlyChimeCheckbox.Text = "Hourly Chime";
             this.hourlyChimeCheckbox.UseVisualStyleBackColor = true;
-            this.hourlyChimeCheckbox.CheckedChanged += new System.EventHandler(this.hourlyChimeCheckbox_CheckedChanged);
+            this.hourlyChimeCheckbox.CheckedChanged += new System.EventHandler(this.HourlyChimeCheckbox_CheckedChanged);
             // 
             // ConfigForm
             // 

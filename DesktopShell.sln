@@ -1,27 +1,51 @@
 ﻿
-Microsoft Visual Studio Solution File, Format Version 11.00
-# Visual Studio 2010
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DesktopShell", "DesktopShell\DesktopShell.csproj", "{C0CF9377-E469-46EF-BBA0-C4223A50FCD1}"
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31912.275
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DesktopShell", "DesktopShell\DesktopShell.csproj", "{C0CF9377-E469-46EF-BBA0-C4223A50FCD1}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{67719F98-1D36-4F37-9B40-8108F223CD48}"
+	ProjectSection(SolutionItems) = preProject
+		.editorconfig = .editorconfig
+	EndProjectSection
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DesktopShell.Tests", "DesktopShell.Tests\DesktopShell.Tests.csproj", "{70D25FA7-99D9-4840-8047-FAACD1BEE390}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|x64 = Debug|x64
 		Debug|x86 = Debug|x86
+		Release|x64 = Release|x64
 		Release|x86 = Release|x86
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{C0CF9377-E469-46EF-BBA0-C4223A50FCD1}.Debug|x64.ActiveCfg = Debug|x64
+		{C0CF9377-E469-46EF-BBA0-C4223A50FCD1}.Debug|x64.Build.0 = Debug|x64
 		{C0CF9377-E469-46EF-BBA0-C4223A50FCD1}.Debug|x86.ActiveCfg = Debug|x86
 		{C0CF9377-E469-46EF-BBA0-C4223A50FCD1}.Debug|x86.Build.0 = Debug|x86
-		{C0CF9377-E469-46EF-BBA0-C4223A50FCD1}.Release|x86.ActiveCfg = Release|x86
-		{C0CF9377-E469-46EF-BBA0-C4223A50FCD1}.Release|x86.Build.0 = Release|x86
+		{C0CF9377-E469-46EF-BBA0-C4223A50FCD1}.Release|x64.ActiveCfg = Release|x64
+		{C0CF9377-E469-46EF-BBA0-C4223A50FCD1}.Release|x64.Build.0 = Release|x64
+		{C0CF9377-E469-46EF-BBA0-C4223A50FCD1}.Release|x86.ActiveCfg = Release|Any CPU
+		{C0CF9377-E469-46EF-BBA0-C4223A50FCD1}.Release|x86.Build.0 = Release|Any CPU
+		{70D25FA7-99D9-4840-8047-FAACD1BEE390}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{70D25FA7-99D9-4840-8047-FAACD1BEE390}.Debug|x64.Build.0 = Debug|Any CPU
+		{70D25FA7-99D9-4840-8047-FAACD1BEE390}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{70D25FA7-99D9-4840-8047-FAACD1BEE390}.Debug|x86.Build.0 = Debug|Any CPU
+		{70D25FA7-99D9-4840-8047-FAACD1BEE390}.Release|x64.ActiveCfg = Release|Any CPU
+		{70D25FA7-99D9-4840-8047-FAACD1BEE390}.Release|x64.Build.0 = Release|Any CPU
+		{70D25FA7-99D9-4840-8047-FAACD1BEE390}.Release|x86.ActiveCfg = Release|Any CPU
+		{70D25FA7-99D9-4840-8047-FAACD1BEE390}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
-		BuildVersion_AssemblyInfoFilename = DesktopShell\Properties\AssemblyInfo.cs
-		BuildVersion_BuildVersioningStyle = None.None.Increment.TimeStamp
-		BuildVersion_StartDate = 2011/12/9
-		BuildVersion_UpdateFileVersion = True
 		BuildVersion_UpdateAssemblyVersion = True
+		BuildVersion_UpdateFileVersion = True
+		BuildVersion_StartDate = 2011/12/9
+		BuildVersion_BuildVersioningStyle = None.None.Increment.TimeStamp
+		BuildVersion_AssemblyInfoFilename = DesktopShell\Properties\AssemblyInfo.cs
+		SolutionGuid = {2E95ED2D-E63D-4452-98AD-3D958452A47C}
 	EndGlobalSection
 EndGlobal

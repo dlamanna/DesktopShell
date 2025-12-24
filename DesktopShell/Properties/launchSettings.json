@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "DesktopShell": {
+      "commandName": "Project",
+      "workingDirectory": "C:\\Program Files\\DesktopShell"
+    }
+  }
+}

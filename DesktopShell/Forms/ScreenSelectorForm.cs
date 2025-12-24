@@ -43,9 +43,10 @@ namespace DesktopShell.Forms
         private void ScreenSelectorForm_Click(object sender, System.EventArgs e)
         {
             Properties.Settings.positionSave = Cursor.Position;
-            Properties.Settings.writeSettings();
-            GlobalVar.setCentered(Screen.FromPoint(Cursor.Position), GlobalVar.shellInstance);
-            //GlobalVar.toolTip("ScreenSelector_Click", "");
+            Properties.Settings.WriteSettings();
+            if(GlobalVar.shellInstance != null)
+                GlobalVar.SetCentered(Screen.FromPoint(Cursor.Position), obj: GlobalVar.shellInstance);
+
             Application.ExitThread();
         }
         private void borderLabel_Paint(object sender, System.Windows.Forms.PaintEventArgs e)
