@@ -834,21 +834,49 @@ namespace DesktopShell
 
         public void DecideToShow()
         {
-            if (fadeDirection != 0 || isFading) {
+            // Check if we're currently hiding - if so, reverse the animation
+            if (fadeDirection == -1 && isFading) {
+                GlobalVar.Log(">>> Reversing hide animation - mouse re-entered trigger area");
+                // Stop the current hide animation
+                if (fadeTimer != null)
+                {
+                    fadeTimer.Stop();
+                    fadeTimer.Dispose();
+                    fadeTimer = null;
+                }
+                // Reset state and start show animation
+                hasFaded = false;
+                isFading = false;
+                fadeDirection = 0;
+                isHidden = false;
+                TopMost = true;
+                FadeAway(1);
+                return;
+            }
+            
+            // Don't start a new show animation if one is already running
+            if (fadeDirection == 1 && isFading) {
+                return;
+            }
+            
+            // Only start show animation if we're currently hidden
+            if (!isHidden) {
                 return;
             }
 
             foreach(var r in GlobalVar.dropDownRects) 
             {
-                if(IsInField(r) && !isFading) 
+                if(IsInField(r)) 
                 {
                     GlobalVar.Log($"^^^ Activating window now - Cursor: X={Cursor.Position.X}, Y={Cursor.Position.Y}, Rect: L={r.Left}, T={r.Top}, R={r.Right}, B={r.Bottom}");
                     TopMost = true;                                                                                     //make window foreground
-                    GlobalVar.topBound = r.Top - ClientSize.Height;                                                     //move window down 20 pixels
-                    GlobalVar.leftBound = r.Left;
-                    GlobalVar.rightBound = r.Right;
-                    GlobalVar.bottomBound = r.Top;
-                    GlobalVar.width = r.Right - r.Left;
+                    // The trigger rect is extended by horizontal padding on each side, but form bounds should use actual form size
+                    int formLeft = r.Left + GlobalVar.dropDownRectHorizontalPadding;  // Offset to get back to center of extended rect
+                    GlobalVar.topBound = r.Top + GlobalVar.dropDownRectVerticalPadding - ClientSize.Height;
+                    GlobalVar.leftBound = formLeft;
+                    GlobalVar.rightBound = formLeft + ClientSize.Width;
+                    GlobalVar.bottomBound = r.Top + GlobalVar.dropDownRectVerticalPadding;
+                    GlobalVar.width = ClientSize.Width;
                     FadeAway(1);
                     break; // Important: exit after starting animation
                 }

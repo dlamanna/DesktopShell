@@ -26,6 +26,8 @@ namespace DesktopShell
         public static ColorWheel? colorWheelInstance = null;
         public static List<FileInfo> fileChoices = new();
         public static List<Rectangle> dropDownRects = new();
+        public static int dropDownRectHorizontalPadding = 50;  // Extra pixels on left/right of trigger area
+        public static int dropDownRectVerticalPadding = 50;     // Extra pixels on top/bottom of trigger area
         public static List<KeyValuePair<string, string>> hostList = new();
         public static Color backColor;
         public static Color fontColor;
@@ -224,9 +226,16 @@ namespace DesktopShell
                     Size shellSize = ((Shell)sender).ClientSize;
                     int pointX = s.WorkingArea.Left + ((s.WorkingArea.Width / 2) - shellSize.Width / 2);
                     int pointY = s.WorkingArea.Top + shellSize.Height;
-                    Point rectPoint = new(pointX, pointY);
+                    
+                    // Extend trigger rect by padding on all sides
+                    int extendedX = pointX - dropDownRectHorizontalPadding;
+                    int extendedWidth = shellSize.Width + (dropDownRectHorizontalPadding * 2);
+                    int extendedY = pointY - dropDownRectVerticalPadding;
+                    int extendedHeight = shellSize.Height + (dropDownRectVerticalPadding * 2);
+                    Point rectPoint = new(extendedX, extendedY);
+                    Size extendedSize = new(extendedWidth, extendedHeight);
 
-                    Rectangle tempRect = new(rectPoint, shellSize);
+                    Rectangle tempRect = new(rectPoint, extendedSize);
                     dropDownRects.Add(tempRect);
                     
                     Log($"### InitDropDownRects: Screen {i} - WorkingArea: L={s.WorkingArea.Left}, T={s.WorkingArea.Top}, W={s.WorkingArea.Width}, H={s.WorkingArea.Height}");
