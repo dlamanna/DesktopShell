@@ -33,7 +33,7 @@ jobs:
       run: |
         $coverageFile = Get-ChildItem -Path TestResults -Filter coverage.cobertura.xml -Recurse | Select-Object -First 1 -ExpandProperty FullName
         Write-Output "Coverage file: $coverageFile"
-        echo "coverage-path=$coverageFile" >> $env:GITHUB_OUTPUT
+        "coverage-path=$coverageFile" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
     
     - name: Generate Coverage Report
       uses: danielpalme/ReportGenerator-GitHub-Action@5.3.10
