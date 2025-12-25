@@ -27,20 +27,27 @@ jobs:
     - name: Run tests with coverage
       run: dotnet test --no-build --configuration Release --verbosity normal --collect:"XPlat Code Coverage" --results-directory ./TestResults
     
+    - name: Debug - List all files
+      shell: pwsh
+      run: |
+        Write-Output "=== Complete TestResults directory structure ==="
+        Get-ChildItem -Path TestResults -Recurse | Format-Table FullName, Length -AutoSize
+    
     - name: Install and Run ReportGenerator
       shell: pwsh
       run: |
-        Write-Output "=== Listing TestResults directory ==="
-        Get-ChildItem -Path TestResults -Recurse | ForEach-Object { Write-Output $_.FullName }
-        
-        Write-Output "`n=== Installing ReportGenerator ==="
+        Write-Output "=== Installing ReportGenerator ==="
         dotnet tool install -g dotnet-reportgenerator-globaltool
         
         Write-Output "`n=== Finding coverage files ==="
-        $coverageFiles = Get-ChildItem -Path TestResults -Filter coverage.cobertura.xml -Recurse | Select-Object -ExpandProperty FullName
+        $coverageFiles = Get-ChildItem -Path TestResults -Filter "*.cobertura.xml" -Recurse | Select-Object -ExpandProperty FullName
         
         if ($coverageFiles.Count -eq 0) {
           Write-Output "ERROR: No coverage files found!"
+          Write-Output "Trying alternative search..."
+          $coverageFiles = Get-ChildItem -Path TestResults -Filter "*.xml" -Recurse | Select-Object -ExpandProperty FullName
+          Write-Output "Found XML files:"
+          $coverageFiles | ForEach-Object { Write-Output $_ }
           exit 1
         }
         
