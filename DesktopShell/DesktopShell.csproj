@@ -134,7 +134,4 @@
     <NoWarn>1701;1702;8622;8618</NoWarn>
     <DebugType>full</DebugType>
   </PropertyGroup>
-  <Target Name="PostBuild" AfterTargets="PostBuildEvent">
-    <Exec Command="if $(Configuration) == Release (&#xD;&#xA; &quot;C:\Program Files\DesktopShell\Bin\VersionIncrementor.exe&quot; DesktopShell&#xD;&#xA;)" />
-  </Target>
 </Project>
