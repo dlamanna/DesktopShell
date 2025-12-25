@@ -79,20 +79,47 @@ public partial class Shell : Form
 
     #region Hardcoded regex section
 
-    private readonly Regex crosshair = new("^(crosshair|xhair){1}");
-    private readonly Regex passwd = new("(^pass(wd)?){1}|(^password){1}|(^pw){1}");
-    private readonly Regex rescan = new("(^rescan$){1}");
-    private readonly Regex roll = new("(^roll$){1}");
-    private readonly Regex randomGame = new("(^randomgame$){1}");
-    private readonly Regex shutdown = new("^(timed )?(shutdown){1}$");
-    private readonly Regex options = new("(^config$){1}|(^options$){1}");
-    private readonly Regex games = new("(^game(s)? ){1}");
-    private readonly Regex showsRaw = new("(^show){1}(s)?( ){1}(raw )?");
-    private readonly Regex musicSearch = new("(^music ){1}");
-    private readonly Regex movieSearch = new("(^movie(s)? ){1}");
-    private readonly Regex positionFix = new("(^positionfix$){1}");
-    private readonly Regex remoteCommand = new("(^[a-zA-Z]+:){1}");
-    private readonly Regex version = new("(^ver(sion)?$){1}");
+    [GeneratedRegex("^(crosshair|xhair){1}")]
+    private static partial Regex Crosshair();
+
+    [GeneratedRegex("(^pass(wd)?){1}|(^password){1}|(^pw){1}")]
+    private static partial Regex Passwd();
+
+    [GeneratedRegex("(^rescan$){1}")]
+    private static partial Regex Rescan();
+
+    [GeneratedRegex("(^roll$){1}")]
+    private static partial Regex Roll();
+
+    [GeneratedRegex("(^randomgame$){1}")]
+    private static partial Regex RandomGame();
+
+    [GeneratedRegex("^(timed )?(shutdown){1}$")]
+    private static partial Regex Shutdown();
+
+    [GeneratedRegex("(^config$){1}|(^options$){1}")]
+    private static partial Regex Options();
+
+    [GeneratedRegex("(^game(s)? ){1}")]
+    private static partial Regex Games();
+
+    [GeneratedRegex("(^show){1}(s)?( ){1}(raw )?")]
+    private static partial Regex ShowsRaw();
+
+    [GeneratedRegex("(^music ){1}")]
+    private static partial Regex MusicSearch();
+
+    [GeneratedRegex("(^movie(s)? ){1}")]
+    private static partial Regex MovieSearch();
+
+    [GeneratedRegex("(^positionfix$){1}")]
+    private static partial Regex PositionFix();
+
+    [GeneratedRegex("(^[a-zA-Z]+:){1}")]
+    private static partial Regex RemoteCommand();
+
+    [GeneratedRegex("(^ver(sion)?$){1}")]
+    private static partial Regex Version();
 
     #endregion Hardcoded regex section
 
@@ -153,7 +180,7 @@ public partial class Shell : Form
     private void CheckVersions()
     {
         using (var sr = new StreamReader("version.txt")) { shellVersionF = Convert.ToSingle(sr.ReadLine()); }
-        
+
         // Note: StreamReader cannot read from HTTP URLs directly
         // This code is unreachable/non-functional
         // TODO: Implement proper HTTP version checking using HttpClient
@@ -345,7 +372,7 @@ public partial class Shell : Form
     private void HardCodedCombos(string originalCMD, string[] splitWords)
     {
         //Crosshair
-        if (crosshair.IsMatch(splitWords[0]))
+        if (Crosshair().IsMatch(splitWords[0]))
         {
             if (splitWords.Length == 1)
             {
@@ -367,7 +394,7 @@ public partial class Shell : Form
             }
         }
         //PasswordTabula
-        else if (passwd.IsMatch(splitWords[0]))
+        else if (Passwd().IsMatch(splitWords[0]))
         {
             if (splitWords.Length == 1)
             {
@@ -379,7 +406,7 @@ public partial class Shell : Form
             }
         }
         //RescanRegex function
-        else if (rescan.IsMatch(splitWords[0]))
+        else if (Rescan().IsMatch(splitWords[0]))
         {
             if (PopulateCombos())
             {
@@ -393,13 +420,13 @@ public partial class Shell : Form
             PopulateWebSites();
         }
         //Attempted Position Fix
-        else if (positionFix.IsMatch(splitWords[0]))
+        else if (PositionFix().IsMatch(splitWords[0]))
         {
             GlobalVar.InitDropDownRects(this);
             GlobalVar.Log("!!! Attempting Positioning Fix");
         }
         //RandomGame function
-        else if (randomGame.IsMatch(splitWords[0]))
+        else if (RandomGame().IsMatch(splitWords[0]))
         {
             DirectoryInfo dir = new(@"C:\ProgramData\Microsoft\Windows\Start Menu\Programs\Games");
             FileInfo[] fileEntries = dir.GetFiles();
@@ -419,12 +446,12 @@ public partial class Shell : Form
             GlobalVar.SearchType = "Game";
         }
         //Timed shutdown function
-        else if (shutdown.IsMatch(splitWords[0]))
+        else if (Shutdown().IsMatch(splitWords[0]))
         {
             TimedShutdown(splitWords);
         }
         //Roll function
-        else if (roll.IsMatch(splitWords[0]))
+        else if (Roll().IsMatch(splitWords[0]))
         {
             Random randNum = new();
             int? num = 0;
@@ -444,7 +471,7 @@ public partial class Shell : Form
             GlobalVar.ToolTip("Roll", $"Randomed: {Convert.ToString(num)}");
         }
         //Options
-        else if (options.IsMatch(splitWords[0]))
+        else if (Options().IsMatch(splitWords[0]))
         {
             t = new Thread(new ThreadStart(ConfigProc))
             {
@@ -453,28 +480,28 @@ public partial class Shell : Form
             t.Start();
         }
         //Shows Raw Input Function
-        else if (showsRaw.IsMatch(originalCMD))
+        else if (ShowsRaw().IsMatch(originalCMD))
         {
-            string? rawSearch = showsRaw.Replace(originalCMD, "");
+            string? rawSearch = ShowsRaw().Replace(originalCMD, "");
             GlobalVar.Run("Bin\\showListCreator.exe", rawSearch);
         }
         //Game Shortcut Searcher
-        else if (games.IsMatch(originalCMD))
+        else if (Games().IsMatch(originalCMD))
         {
             OpenRandomGame(originalCMD);
         }
         //Music Searcher
-        else if (musicSearch.IsMatch(originalCMD))
+        else if (MusicSearch().IsMatch(originalCMD))
         {
             MusicSearcher(originalCMD);
         }
         //Movie Searcher
-        else if (movieSearch.IsMatch(originalCMD))
+        else if (MovieSearch().IsMatch(originalCMD))
         {
             MovieSearcher(originalCMD);
         }
         //Sending Remote Command
-        else if (remoteCommand.IsMatch(originalCMD))
+        else if (RemoteCommand().IsMatch(originalCMD))
         {
             string[] splitString = originalCMD.Split(':');
             if (splitString is { Length: 2 })
@@ -503,7 +530,7 @@ public partial class Shell : Form
             }
         }
         //Outputting DesktopShell version
-        else if (version.IsMatch(originalCMD))
+        else if (Version().IsMatch(originalCMD))
         {
             Regex desktopShellRegex = new("DesktopShell");
             try
@@ -590,7 +617,7 @@ public partial class Shell : Form
 
     private void OpenRandomGame(string originalCMD)
     {
-        string? rawSearch = games.Replace(originalCMD, "");
+        string? rawSearch = Games().Replace(originalCMD, "");
         GlobalVar.FileChoices.Clear();
         DirectoryInfo dir = new(Settings.gamesDirectory);
         foreach (var f in dir.GetFiles())
@@ -615,7 +642,7 @@ public partial class Shell : Form
 
     private void MusicSearcher(string originalCMD)
     {
-        string? rawSearch = musicSearch.Replace(originalCMD, "");
+        string? rawSearch = MusicSearch().Replace(originalCMD, "");
         GlobalVar.FileChoices.Clear();
         DirectoryInfo dir = new(Properties.Settings.musicDirectory);
         foreach (var f in dir.GetFiles())
@@ -643,7 +670,7 @@ public partial class Shell : Form
 
     private void MovieSearcher(string originalCMD)
     {
-        string? rawSearch = movieSearch.Replace(originalCMD, "");
+        string? rawSearch = MovieSearch().Replace(originalCMD, "");
         GlobalVar.FileChoices.Clear();
         List<FileInfo> tempList2 = [];
         string[] tempList = Directory.GetFiles(Settings.moviesDirectory, "*.*", SearchOption.AllDirectories);
