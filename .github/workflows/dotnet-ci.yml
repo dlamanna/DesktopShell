@@ -27,21 +27,15 @@ jobs:
     - name: Run tests with coverage
       run: dotnet test --no-build --configuration Release --verbosity normal --collect:"XPlat Code Coverage" --results-directory ./TestResults
     
-    - name: Find Coverage File
-      id: find-coverage
+    - name: Install and Run ReportGenerator
       shell: pwsh
       run: |
-        $coverageFile = Get-ChildItem -Path TestResults -Filter coverage.cobertura.xml -Recurse | Select-Object -First 1 -ExpandProperty FullName
-        Write-Output "Coverage file: $coverageFile"
-        "coverage-path=$coverageFile" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
-    
-    - name: Generate Coverage Report
-      uses: danielpalme/ReportGenerator-GitHub-Action@5.3.10
-      with:
-        reports: '${{ steps.find-coverage.outputs.coverage-path }}'
-        targetdir: 'coveragereport'
-        reporttypes: 'Html;MarkdownSummaryGithub'
-        sourcedirs: '.'
+        dotnet tool install -g dotnet-reportgenerator-globaltool
+        $coverageFiles = Get-ChildItem -Path TestResults -Filter coverage.cobertura.xml -Recurse | Select-Object -ExpandProperty FullName
+        Write-Output "Found coverage files:"
+        $coverageFiles | ForEach-Object { Write-Output $_ }
+        $reportsParam = $coverageFiles -join ';'
+        reportgenerator -reports:"$reportsParam" -targetdir:"coveragereport" -reporttypes:"Html;MarkdownSummaryGithub"
     
     - name: Add Coverage Comment to PR
       uses: marocchino/sticky-pull-request-comment@v2
