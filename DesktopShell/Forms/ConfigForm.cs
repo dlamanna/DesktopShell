@@ -7,6 +7,7 @@ public partial class ConfigForm : Form
 {
     #region Declarations
     private readonly Regex hexCheck = new("^(#)?([a-fA-F0-9]){6}$");
+    private const string colorFormatErrorMessage = "Incorrect Format: (#123456)";
     private string? checkString;
     private Thread? t = null;
     #endregion
@@ -109,7 +110,7 @@ public partial class ConfigForm : Form
             }
             else
             {
-                MessageBox.Show("Incorrect Format: (#123456)");
+                MessageBox.Show(colorFormatErrorMessage);
             }
         }
     }
@@ -129,7 +130,7 @@ public partial class ConfigForm : Form
             }
             else
             {
-                MessageBox.Show("Incorrect Format: (#123456)");
+                MessageBox.Show(colorFormatErrorMessage);
             }
         }
     }

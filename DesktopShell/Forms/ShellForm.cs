@@ -15,7 +15,7 @@ public partial class Shell : Form
     private readonly List<Combination> shortcutList = [];
     private readonly List<WwwBrowser> browserList = [];
     private readonly List<WebCombo> webSiteList = [];
-    private readonly bool[] hourSounded = new bool[24];
+    private readonly bool[] hourSounded = new bool[GlobalVar.HoursInDay];
     private bool webSiteHit = false;
     private bool isHidden = true;
     private bool hasFaded = false;
@@ -111,18 +111,18 @@ public partial class Shell : Form
         // Timer Instantiations
         GlobalVar.HourlyChime = new System.Windows.Forms.Timer
         {
-            Interval = 1000
+            Interval = GlobalVar.HourlyChimeIntervalMs
         };
         GlobalVar.HourlyChime.Tick += delegate { TimerTick(); };
         GlobalVar.HourlyChime.Enabled = Settings.hourlyChimeChecked;
-        for (int i = 0; i < 24; i++)
+        for (int i = 0; i < GlobalVar.HoursInDay; i++)
         {
             hourSounded[i] = false;
         }
 
         hideTimer = new System.Windows.Forms.Timer
         {
-            Interval = 50
+            Interval = GlobalVar.HideTimerIntervalMs
         };
         hideTimer.Tick += delegate { HideTimerTick(hideTimer, EventArgs.Empty); };
         hideTimer.Enabled = true;
@@ -153,15 +153,19 @@ public partial class Shell : Form
     private void CheckVersions()
     {
         using (var sr = new StreamReader("version.txt")) { shellVersionF = Convert.ToSingle(sr.ReadLine()); }
-        if (!File.Exists("http://phuze.is-leet.com/version.txt"))
-        {
-            GlobalVar.ToolTip("Version Website", "version can't be obtained");
-            return;
-        }
-        else
+        
+        // Note: StreamReader cannot read from HTTP URLs directly
+        // This code is unreachable/non-functional
+        // TODO: Implement proper HTTP version checking using HttpClient
+        try
         {
             using var sr = new StreamReader("http://phuze.is-leet.com/version.txt");
             shellVersionW = Convert.ToSingle(sr.ReadLine());
+        }
+        catch
+        {
+            GlobalVar.ToolTip("Version Website", "version can't be obtained");
+            return;
         }
 
         if (shellVersionF != shellVersionW)
@@ -721,7 +725,7 @@ public partial class Shell : Form
                 foreach (var s in combo.WebsiteBase)
                 {
                     GlobalVar.Run(path: browserPath, arguments: $"{s}{searchTerms}");
-                    Thread.Sleep(500);
+                    Thread.Sleep(GlobalVar.WebBrowserLaunchDelayMs);
                 }
             }
             else
@@ -729,7 +733,7 @@ public partial class Shell : Form
                 foreach (var s in combo.WebsiteBase)
                 {
                     GlobalVar.Run(path: browserPath, arguments: s);
-                    Thread.Sleep(500);
+                    Thread.Sleep(GlobalVar.WebBrowserLaunchDelayMs);
                 }
             }
         }
@@ -830,7 +834,7 @@ public partial class Shell : Form
 
         fadeTimer = new System.Windows.Forms.Timer
         {
-            Interval = 15
+            Interval = GlobalVar.FadeTimerIntervalMs
         };
         fadeTimer.Tick += delegate { FadeTimerTick(direction); };
         fadeTimer.Enabled = true;
@@ -958,8 +962,8 @@ public partial class Shell : Form
         if (!mouseInForm && !mouseInTriggerArea && !isFading)
         {
             GlobalVar.Log($"!!! Hiding main window now - mouse left active area. Cursor: X={cursorPos.X}, Y={cursorPos.Y}");
-            FadeAway(-1);                                                                                           //move window position up 20 pixels
-            TopMost = false;                                                                                        //make window not foreground
+            FadeAway(-1);  // Start fade out animation
+            TopMost = false;  // Make window not foreground
         }
     }
 

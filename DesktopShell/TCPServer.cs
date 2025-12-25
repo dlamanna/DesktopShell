@@ -64,7 +64,7 @@ public class TCPServer
                         tcpClient = await tcplistener.AcceptTcpClientAsync().ConfigureAwait(false);
                         Thread clientThread = new(new ParameterizedThreadStart(HandleClientComm));
                         clientThread.Start(tcpClient);
-                        await Task.Delay(300);
+                        await Task.Delay(GlobalVar.TcpConnectionRetryDelayMs);
                     }
                     catch (Exception e)
                     {
@@ -91,7 +91,7 @@ public class TCPServer
     private string ReadStream()
     {
         int bytesRead;
-        byte[] message = new byte[4096];
+        byte[] message = new byte[GlobalVar.TcpBufferSize];
         string receivedString = "";
 
         do
@@ -101,7 +101,7 @@ public class TCPServer
             {
                 if (clientStream.CanRead && clientStream.DataAvailable)
                 {
-                    bytesRead = clientStream.Read(message, 0, 4096);
+                    bytesRead = clientStream.Read(message, 0, GlobalVar.TcpBufferSize);
                     ASCIIEncoding encoder = new();
                     receivedString = TrimPassPhrase(encoder.GetString(message, 0, bytesRead).Trim());
                     GlobalVar.Log($"$$$ TCPServer::ReadStream() - {receivedString}");
@@ -113,7 +113,7 @@ public class TCPServer
                 GlobalVar.Log($"### TCPServer::ReadStream() - {e.Message}");
                 return "";
             }
-            Thread.Sleep(100);
+            Thread.Sleep(GlobalVar.TcpReadDelayMs);
         } while (receivedString.Length <= 1 && tcpClient.Connected);
 
         return receivedString;
@@ -133,7 +133,7 @@ public class TCPServer
             GlobalVar.Log($"@@@ HandleClientComm()");
             if (receivedString.Equals(""))
             {
-                Thread.Sleep(500);
+                Thread.Sleep(GlobalVar.WebBrowserLaunchDelayMs);
                 continue;
             }
             else

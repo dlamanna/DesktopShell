@@ -49,6 +49,27 @@ public class GlobalVar
     public static int FadeAnimationStartOffset = 21;  // Initial offset for fade animation
     public static int FadeTickMaxAmount = 20;         // Maximum fade tick count
 
+    // Timer Interval Constants (milliseconds)
+    public const int HourlyChimeIntervalMs = 1000;
+    public const int HideTimerIntervalMs = 50;
+    public const int FadeTimerIntervalMs = 15;
+
+    // Thread Sleep Durations (milliseconds)
+    public const int WebBrowserLaunchDelayMs = 500;
+    public const int TcpConnectionRetryDelayMs = 300;
+    public const int TcpReadDelayMs = 100;
+
+    // Network Constants
+    public const int TcpBufferSize = 4096;
+    public const int TcpConnectionTimeoutSeconds = 5;
+
+    // UI Layout Constants
+    public const int HoursInDay = 24;
+    public const int MinimumScreenWidth = 1025;
+    public const int LegacyScreenWidth = 1024;
+    public const int ControlHeight = 18;
+    public const int ControlSpacing = 50;
+
 #pragma warning disable IDE1006 // Naming rule violation - Windows API constants use UPPER_CASE
     private static readonly uint SWP_NOSIZE = 0x0001;
     private static readonly uint SWP_NOZORDER = 0x0004;
@@ -147,7 +168,7 @@ public class GlobalVar
         Screen curScreen = Screen.FromPoint(curPos);
 
         // temp hack for now, fix later
-        if (curScreen.Bounds.Width <= 1025)
+        if (curScreen.Bounds.Width <= MinimumScreenWidth)
         {
             int numIncrements = 0;
             int numSecondsUntilTimeout = 10;
@@ -379,7 +400,7 @@ public class GlobalVar
         {
             if (Screen.AllScreens.Length == 3)
             {
-                if (s.Bounds.Width == 1024)
+                if (s.Bounds.Width == LegacyScreenWidth)
                 {
                     continue;
                 }
@@ -419,7 +440,7 @@ public class GlobalVar
             clientSocket = new(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
             IPAddress serverAddress = Dns.GetHostEntry(serverHost).AddressList[0];
             IPEndPoint ipEndPoint = new(serverAddress, port);
-            SocketExtensions.Connect(clientSocket, serverHost, port, new TimeSpan(5000));
+            SocketExtensions.Connect(clientSocket, serverHost, port, TimeSpan.FromSeconds(TcpConnectionTimeoutSeconds));
             if (clientSocket.Connected)
             {
                 ASCIIEncoding encoder = new();
