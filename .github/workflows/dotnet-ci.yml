@@ -30,10 +30,24 @@ jobs:
     - name: Install and Run ReportGenerator
       shell: pwsh
       run: |
+        Write-Output "=== Listing TestResults directory ==="
+        Get-ChildItem -Path TestResults -Recurse | ForEach-Object { Write-Output $_.FullName }
+        
+        Write-Output "`n=== Installing ReportGenerator ==="
         dotnet tool install -g dotnet-reportgenerator-globaltool
+        
+        Write-Output "`n=== Finding coverage files ==="
         $coverageFiles = Get-ChildItem -Path TestResults -Filter coverage.cobertura.xml -Recurse | Select-Object -ExpandProperty FullName
+        
+        if ($coverageFiles.Count -eq 0) {
+          Write-Output "ERROR: No coverage files found!"
+          exit 1
+        }
+        
         Write-Output "Found coverage files:"
         $coverageFiles | ForEach-Object { Write-Output $_ }
+        
+        Write-Output "`n=== Running ReportGenerator ==="
         $reportsParam = $coverageFiles -join ';'
         reportgenerator -reports:"$reportsParam" -targetdir:"coveragereport" -reporttypes:"Html;MarkdownSummaryGithub"
     
