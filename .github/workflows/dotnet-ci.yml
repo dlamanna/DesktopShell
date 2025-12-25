@@ -27,10 +27,18 @@ jobs:
     - name: Run tests with coverage
       run: dotnet test --no-build --configuration Release --verbosity normal --collect:"XPlat Code Coverage" --results-directory ./TestResults
     
+    - name: Find Coverage File
+      id: find-coverage
+      shell: pwsh
+      run: |
+        $coverageFile = Get-ChildItem -Path TestResults -Filter coverage.cobertura.xml -Recurse | Select-Object -First 1 -ExpandProperty FullName
+        Write-Output "Coverage file: $coverageFile"
+        echo "coverage-path=$coverageFile" >> $env:GITHUB_OUTPUT
+    
     - name: Generate Coverage Report
       uses: danielpalme/ReportGenerator-GitHub-Action@5.3.10
       with:
-        reports: 'TestResults/**/coverage.cobertura.xml'
+        reports: '${{ steps.find-coverage.outputs.coverage-path }}'
         targetdir: 'coveragereport'
         reporttypes: 'Html;MarkdownSummaryGithub'
         sourcedirs: '.'
