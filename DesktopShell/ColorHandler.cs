@@ -1,23 +1,16 @@
 namespace DesktopShell;
 
-public class ColorHandler
+public static class ColorHandler
 {
     // Handle conversions between RGB and HSV
     // (and Color types, as well).
 
-    public struct RGB
+    public readonly struct RGB(int R, int G, int B)
     {
         // All values are between 0 and 255.
-        public int Red;
-        public int Green;
-        public int Blue;
-
-        public RGB(int R, int G, int B)
-        {
-            Red = R;
-            Green = G;
-            Blue = B;
-        }
+        public readonly int Red = R;
+        public readonly int Green = G;
+        public readonly int Blue = B;
 
         public override string ToString()
         {
@@ -25,24 +18,17 @@ public class ColorHandler
         }
     }
 
-    public struct HSV
+    public readonly struct HSV(int H, int S, int V)
     {
         // All values are between 0 and 255.
-        public int Hue;
+        public readonly int Hue = H;
 
-        public int Saturation;
-        public int value;
+        public readonly int Saturation = S;
+        public readonly int Value = V;
 
-        public HSV(int H, int S, int V)
+        public override readonly string ToString()
         {
-            Hue = H;
-            Saturation = S;
-            value = V;
-        }
-
-        public override string ToString()
-        {
-            return $"({Hue}, {Saturation}, {value})";
+            return $"({Hue}, {Saturation}, {Value})";
         }
     }
 
@@ -79,7 +65,7 @@ public class ColorHandler
         // Scale Hue to be between 0 and 360. Saturation and value scale to be between 0 and 1.
         h = ((double)HSV.Hue / 255 * 360) % 360;
         s = (double)HSV.Saturation / 255;
-        v = (double)HSV.value / 255;
+        v = (double)HSV.Value / 255;
 
         if (s == 0)
         {

@@ -38,7 +38,7 @@
             this.borderLabel.Location = new System.Drawing.Point(0, 0);
             this.borderLabel.MouseLeave += new System.EventHandler(this.ScreenSelectorForm_MouseLeave);
             this.borderLabel.Name = "borderLabel";
-            this.borderLabel.Paint += borderLabel_Paint;
+            this.borderLabel.Paint += BorderLabel_Paint;
             this.borderLabel.Size = new System.Drawing.Size(1217, 820);
             this.borderLabel.TabIndex = 0;
             // 

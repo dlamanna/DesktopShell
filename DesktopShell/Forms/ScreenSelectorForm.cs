@@ -45,7 +45,7 @@ public partial class ScreenSelectorForm : Form
 
         Application.ExitThread();
     }
-    private void borderLabel_Paint(object sender, System.Windows.Forms.PaintEventArgs e)
+    private void BorderLabel_Paint(object sender, System.Windows.Forms.PaintEventArgs e)
     {
         int borderWidth = 20;
         ControlPaint.DrawBorder(e.Graphics, borderLabel.DisplayRectangle,

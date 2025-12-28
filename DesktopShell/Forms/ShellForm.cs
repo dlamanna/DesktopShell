@@ -335,20 +335,20 @@ public partial class Shell : Form
         //Generic combo running (shortcuts.txt)
         foreach (Combination combo in shortcutList)
         {
-            if (combo is not { keyword: not null })
+            if (combo is not { Keyword: not null })
             {
                 GlobalVar.Log($"### ShellForm::ProcessCommand() - combo.keyword = null\ncombo:{combo}");
                 continue;
             }
 
-            Match match = Regex.Match(originalCMD, combo.keyword, RegexOptions.IgnoreCase);
+            Match match = Regex.Match(originalCMD, combo.Keyword, RegexOptions.IgnoreCase);
             if (match.Success)
             {
                 GlobalVar.Log($"!!! Command found in shortcuts.txt: {originalCMD}");
-                for (int i = 0; i < combo.filePath.Count; i++)
+                for (int i = 0; i < combo.FilePath.Count; i++)
                 {
-                    string tempFilePath = combo.filePath[i];
-                    string tempArguments = combo.arguments[i];
+                    string tempFilePath = combo.FilePath[i];
+                    string tempArguments = combo.Arguments[i];
                     if (string.IsNullOrEmpty(tempArguments))
                     {
                         GlobalVar.Run(path: tempFilePath);
@@ -944,11 +944,11 @@ public partial class Shell : Form
             {
                 GlobalVar.Log($"^^^ Activating window now - Cursor: X={Cursor.Position.X}, Y={Cursor.Position.Y}, Rect: L={r.Left}, T={r.Top}, R={r.Right}, B={r.Bottom}");
                 TopMost = true;                                                                                     //make window foreground
-                                                                                                                    // The trigger rect is extended by horizontal padding on each side, but form bounds should use actual form size
+                                                                                                                    // The trigger rect is extended by padding on each side, but form bounds should use actual form size
                 int formLeft = r.Left + GlobalVar.DropDownRectHorizontalPadding;  // Offset to get back to center of extended rect
-                // Form animates down from screen top, ending with bottom at r.Bottom
-                GlobalVar.BottomBound = r.Bottom;
-                GlobalVar.TopBound = r.Bottom - ClientSize.Height;
+                // Form animates down from screen top, the trigger rect is extended but form position is natural
+                GlobalVar.BottomBound = r.Bottom - GlobalVar.DropDownRectVerticalPadding;  // Remove padding from bottom
+                GlobalVar.TopBound = GlobalVar.BottomBound - ClientSize.Height;
                 GlobalVar.LeftBound = formLeft;
                 GlobalVar.RightBound = formLeft + ClientSize.Width;
                 GlobalVar.Width = ClientSize.Width;

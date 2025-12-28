@@ -9,19 +9,20 @@ using System.Threading;
 
 namespace DesktopShell;
 
-public class GlobalVar
+public static partial class GlobalVar
 {
+    #region Declarations
     public static System.Windows.Forms.Timer? HourlyChime;
-    public static Shell? ShellInstance = null;
-    public static TCPServer? ServerInstance = null;
-    public static ConfigForm? ConfigInstance = null;
-    public static ChoiceForm? ChoiceInstance = null;
-    public static ScreenSelectorForm? ScreenSelectorInstance = null;
-    public static ColorWheel? ColorWheelInstance = null;
+    public static Shell? ShellInstance;
+    public static TCPServer? ServerInstance;
+    public static ConfigForm? ConfigInstance;
+    public static ChoiceForm? ChoiceInstance;
+    public static ScreenSelectorForm? ScreenSelectorInstance;
+    public static ColorWheel? ColorWheelInstance;
     public static List<FileInfo> FileChoices = [];
     public static List<Rectangle> DropDownRects = [];
     public static int DropDownRectHorizontalPadding = 50;  // Extra pixels on left/right of trigger area
-    public static int DropDownRectVerticalPadding = 0;     // Extra pixels on top/bottom of trigger area
+    public static int DropDownRectVerticalPadding = 20;     // Extra pixels on top/bottom of trigger area
     public static List<KeyValuePair<string, string>> HostList = [];
     public static Color BackColor;
     public static Color FontColor;
@@ -29,13 +30,13 @@ public class GlobalVar
     public static bool SettingBackColor = false;
     public static bool IsWindows = RuntimeInformation.IsOSPlatform(OSPlatform.Windows);
     public static string SearchType = "";
-    public static readonly string PassPhrase = "cupcake";
+
+    // Security: PassPhrase is loaded from environment variable DESKTOPSHELL_PASSPHRASE
+    // Fallback to "default" if not set (should be changed in production)
+    public static readonly string PassPhrase = Environment.GetEnvironmentVariable("DESKTOPSHELL_PASSPHRASE") ?? "default";
 
     // FilePath Section
-    public static string[] DeletePaths = { @"C:\automount.bat", @"C:\keyk", @"C:\keye", @"C:\keyd", @"C:\keyx" };
     public static string CurrentAssemblyDirectory = Directory.GetCurrentDirectory();
-    public static string DesktopShellPath = @"C:\Users\phuzE\Dropbox\Programming\DesktopShell\DesktopShell.sln";
-    public static string DesktopShellReleasePath = @"C:\Users\phuzE\Dropbox\Programming\DesktopShell\DesktopShell\bin\Release";
 
     // Form Bounds
     public static int LeftBound;
@@ -70,14 +71,20 @@ public class GlobalVar
     public const int ControlHeight = 18;
     public const int ControlSpacing = 50;
 
+    // Regex patterns
+    [GeneratedRegex(".([a-z]|[A-Z]){3,4}$")]
+    private static partial Regex FileExtension();
+
 #pragma warning disable IDE1006 // Naming rule violation - Windows API constants use UPPER_CASE
-    private static readonly uint SWP_NOSIZE = 0x0001;
-    private static readonly uint SWP_NOZORDER = 0x0004;
+    private const uint SWP_NOSIZE = 0x0001;
+    private const uint SWP_NOZORDER = 0x0004;
 
     [DllImport("user32.dll", SetLastError = true)]
     private static extern bool SetWindowPos(IntPtr hWnd, IntPtr hWndInsertAfter, int X, int Y, int W, int H, uint uFlags);
 #pragma warning restore IDE1006
+    #endregion
 
+    #region Setting Functions
     // Global Functions
     public static string? GetSetting(int line)
     {
@@ -123,43 +130,11 @@ public class GlobalVar
 
     public static void SetSetting(int line, string settingChange)
     {
-        line -= 1;
+        line--;
         string[] tempLines = File.ReadAllLines("settings.ini");
         tempLines[line] = settingChange;
 
         File.WriteAllLines("settings.ini", tempLines);
-    }
-
-    public static bool StartProcess(Process p)
-    {
-        Log($"!!! Running {p.StartInfo.WorkingDirectory}{p.StartInfo.FileName}\t{p.StartInfo.Arguments}");
-        try
-        {
-            p.Start();
-        }
-        catch (Exception ex)
-        {
-            if (ex.GetType() == typeof(Win32Exception))
-            {
-                p.StartInfo.UseShellExecute = true;
-                p.StartInfo.Verb = "runas";
-                try
-                {
-                    p.Start();
-                }
-                catch
-                {
-                    Log($"### GlobalVar::StartProcess() Failed to start program on second attempt - {ex.Message}");
-                    return false;
-                }
-            }
-            else
-            {
-                ToolTip("Error", $"Run: {p.StartInfo.FileName}\n{ex.GetType()} - {ex.Message}");
-                return false;
-            }
-        }
-        return true;
     }
 
     public static void MoveToCurrentScreen(Process p)
@@ -171,9 +146,9 @@ public class GlobalVar
         if (curScreen.Bounds.Width <= MinimumScreenWidth)
         {
             int numIncrements = 0;
-            int numSecondsUntilTimeout = 10;
-            int increment = 50;
-            int numMaxIncrements = ((numSecondsUntilTimeout * 1000) / increment);
+            const int numSecondsUntilTimeout = 10;
+            const int increment = 50;
+            const int numMaxIncrements = ((numSecondsUntilTimeout * 1000) / increment);
             bool timeout = false;
             do
             {
@@ -207,26 +182,9 @@ public class GlobalVar
         }
     }
 
-    public static void Run(string path, string arguments)
-    {
-        Process p = new();
-        p.StartInfo.Arguments = arguments;
-        p.StartInfo.FileName = path;
-        //p.StartInfo.WorkingDirectory = Path.GetDirectoryName(path);   // i think this should be unnecessary
-        p.StartInfo.UseShellExecute = false;                            // this must be true, or we can't run as admin below
-                                                                        //p.StartInfo.RedirectStandardOutput = true;                    // these lines cause stackoverflow exceptions, not sure why
-                                                                        //p.StartInfo.RedirectStandardInput = true;
-        p.StartInfo.CreateNoWindow = true;
-        if (!StartProcess(p)) return;
+    #endregion
 
-        MoveToCurrentScreen(p);
-    }
-
-    public static void Run(string path)
-    {
-        Run(path, "");
-    }
-
+    #region UI Functions
     public static void InitDropDownRects(object sender)
     {
         DropDownRects.Clear();
@@ -249,11 +207,11 @@ public class GlobalVar
                 int pointX = s.WorkingArea.Left + ((s.WorkingArea.Width / 2) - shellSize.Width / 2);
                 // Position the form's reference point after dropdown animation completes
                 int pointY = s.WorkingArea.Top + shellSize.Height;
-                // Extend trigger area upward to catch mouse at screen top
+                // Extend trigger area downward from screen top to make it easier to trigger
                 int extendedX = pointX - DropDownRectHorizontalPadding;
                 int extendedY = s.WorkingArea.Top;  // Start trigger area at screen top
                 int extendedWidth = shellSize.Width + (DropDownRectHorizontalPadding * 2);
-                int extendedHeight = pointY - s.WorkingArea.Top;  // Height from screen top to form bottom
+                int extendedHeight = pointY - s.WorkingArea.Top + DropDownRectVerticalPadding;  // Extend downward by padding amount
                 Point rectPoint = new(extendedX, extendedY);
                 Size extendedSize = new(extendedWidth, extendedHeight);
 
@@ -271,37 +229,8 @@ public class GlobalVar
         }
     }
 
-    public static void ScanHosts()
-    {
-        try
-        {
-            using StreamReader? sr = new("hostlist.txt");
-            while (!sr.EndOfStream)
-            {
-                var hostPort = sr.ReadLine();
-                if (hostPort == null) return;
-
-                if (hostPort.Contains(':'))
-                {
-                    string[] splitHostPort = hostPort.Split(':');
-                    KeyValuePair<string, string> hostPortPair = new(splitHostPort[0], splitHostPort[1]);
-                    HostList.Add(hostPortPair);
-                }
-                else
-                {
-                    Log($"### GlobalVar::ScanHosts() - Bad format found in hostlist.txt, no colon");
-                }
-            }
-        }
-        catch (IOException e)
-        {
-            Log($"### GlobalVar::ScanHosts() - {e.Message}");
-        }
-    }
-
     public static Label[] PopulateLabels()
     {
-        Regex extension = new(".([a-z]|[A-Z]){3,4}$");
         List<Label> tempArray = [];
         int fileCount = FileChoices.Count;
         for (int i = 0; i < fileCount; i++)
@@ -325,12 +254,12 @@ public class GlobalVar
                 }
                 else
                 {
-                    tempLabel.Text = $"• {extension.Replace(tempFileInfo.Name, "")}";
+                    tempLabel.Text = $"• {FileExtension().Replace(tempFileInfo.Name, "")}";
                 }
             }
             tempArray.Add(tempLabel);
         }
-        return tempArray.ToArray();
+        return [.. tempArray];
     }
 
     public static void SetBounds(Form obj)
@@ -384,12 +313,6 @@ public class GlobalVar
         obj.Location = new Point(widthAdder, 1 + heightDiff - 20);
     }
 
-    public static void ToolTip(string title, string body)
-    {
-        Log($"\t\t@@@ ToolTipping: {title} // {body}");
-        Run($@"{CurrentAssemblyDirectory}\Bin\ToolTipper.exe", $"{title} {body}");
-    }
-
     public static int CalculateWidth()
     {
         Screen[] screens = Screen.AllScreens;
@@ -431,7 +354,36 @@ public class GlobalVar
         }
         Log($"&&& GlobalVar::UpdateColors() - Changing Colors: ({BackColor.Name})\t({FontColor.Name})");
     }
+    #endregion
 
+    #region Networking Functions
+    public static void ScanHosts()
+    {
+        try
+        {
+            using StreamReader? sr = new("hostlist.txt");
+            while (!sr.EndOfStream)
+            {
+                var hostPort = sr.ReadLine();
+                if (hostPort == null) return;
+
+                if (hostPort.Contains(':'))
+                {
+                    string[] splitHostPort = hostPort.Split(':');
+                    KeyValuePair<string, string> hostPortPair = new(splitHostPort[0], splitHostPort[1]);
+                    HostList.Add(hostPortPair);
+                }
+                else
+                {
+                    Log($"### GlobalVar::ScanHosts() - Bad format found in hostlist.txt, no colon");
+                }
+            }
+        }
+        catch (IOException e)
+        {
+            Log($"### GlobalVar::ScanHosts() - {e.Message}");
+        }
+    }
     public static void SendRemoteCommand(int port, string command, string serverHost)
     {
         Socket? clientSocket;
@@ -440,7 +392,7 @@ public class GlobalVar
             clientSocket = new(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
             IPAddress serverAddress = Dns.GetHostEntry(serverHost).AddressList[0];
             IPEndPoint ipEndPoint = new(serverAddress, port);
-            SocketExtensions.Connect(clientSocket, serverHost, port, TimeSpan.FromSeconds(TcpConnectionTimeoutSeconds));
+            clientSocket.Connect(serverHost, port, TimeSpan.FromSeconds(TcpConnectionTimeoutSeconds));
             if (clientSocket.Connected)
             {
                 ASCIIEncoding encoder = new();
@@ -524,7 +476,13 @@ public class GlobalVar
         Log($"### No hostname found in hostlist.txt: {hostName}");
         return -1;
     }
+    #endregion
 
+    #region Utility Functions
+    public static string GetSoundFolderLocation()
+    {
+        return $"{Path.GetDirectoryName(AppContext.BaseDirectory)}\\Sounds";
+    }
     public static bool KillProcess(string processName)
     {
         bool isRunning = false;
@@ -547,13 +505,6 @@ public class GlobalVar
             Log($"### GlobalVar::KillProcess() - {e.Message}");
             return false;
         }
-    }
-
-    public static string GetSoundFolderLocation()
-    {
-        string folderPath = $"{Path.GetDirectoryName(AppContext.BaseDirectory)}\\Sounds";
-        //throw new NotImplementedException();
-        return folderPath;
     }
 
     public static void Log(string logOutput)
@@ -585,4 +536,62 @@ public class GlobalVar
             ToolTip("Error", $"GlobalVar::ResetLog() - {e.GetType()}\n{e.Message}");
         }
     }
+
+    public static void Run(string path, string arguments)
+    {
+        Process p = new();
+        p.StartInfo.Arguments = arguments;
+        p.StartInfo.FileName = path;
+        p.StartInfo.UseShellExecute = false;                            // this must be true, or we can't run as admin below
+                                                                        //p.StartInfo.RedirectStandardOutput = true;                    // these lines cause stackoverflow exceptions, not sure why
+                                                                        //p.StartInfo.RedirectStandardInput = true;
+        p.StartInfo.CreateNoWindow = true;
+        if (!StartProcess(p)) return;
+
+        MoveToCurrentScreen(p);
+    }
+
+    public static void Run(string path)
+    {
+        Run(path, "");
+    }
+
+    public static bool StartProcess(Process p)
+    {
+        Log($"!!! Running {p.StartInfo.WorkingDirectory}{p.StartInfo.FileName}\t{p.StartInfo.Arguments}");
+        try
+        {
+            p.Start();
+        }
+        catch (Exception ex)
+        {
+            if (ex.GetType() == typeof(Win32Exception))
+            {
+                p.StartInfo.UseShellExecute = true;
+                p.StartInfo.Verb = "runas";
+                try
+                {
+                    p.Start();
+                }
+                catch
+                {
+                    Log($"### GlobalVar::StartProcess() Failed to start program on second attempt - {ex.Message}");
+                    return false;
+                }
+            }
+            else
+            {
+                ToolTip("Error", $"Run: {p.StartInfo.FileName}\n{ex.GetType()} - {ex.Message}");
+                return false;
+            }
+        }
+        return true;
+    }
+
+    public static void ToolTip(string title, string body)
+    {
+        Log($"\t\t@@@ ToolTipping: {title} // {body}");
+        Run($@"{CurrentAssemblyDirectory}\Bin\ToolTipper.exe", $"{title} {body}");
+    }
+    #endregion
 }

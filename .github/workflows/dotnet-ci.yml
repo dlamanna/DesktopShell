@@ -10,6 +10,9 @@ jobs:
   build-and-test:
     runs-on: windows-latest
     
+    env:
+      DESKTOPSHELL_PASSPHRASE: ${{ secrets.DESKTOPSHELL_PASSPHRASE }}
+    
     steps:
     - uses: actions/checkout@v4
     

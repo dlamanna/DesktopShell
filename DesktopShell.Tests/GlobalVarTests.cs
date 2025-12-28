@@ -97,7 +97,24 @@ public class GlobalVarTests
         [TestMethod]
         public void PassPhrase_IsNotEmpty()
         {
+            // PassPhrase should always have a value (either from env var or default)
             GlobalVar.PassPhrase.Should().NotBeNullOrEmpty();
+        }
+
+        [TestMethod]
+        public void PassPhrase_ReadsFromEnvironmentVariable()
+        {
+            // Test that PassPhrase respects environment variable if set
+            var envValue = Environment.GetEnvironmentVariable("DESKTOPSHELL_PASSPHRASE");
+            if (!string.IsNullOrEmpty(envValue))
+            {
+                GlobalVar.PassPhrase.Should().Be(envValue);
+            }
+            else
+            {
+                // Should fall back to default if not set
+                GlobalVar.PassPhrase.Should().Be("default");
+            }
         }
 
         [TestMethod]

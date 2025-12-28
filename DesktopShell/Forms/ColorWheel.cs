@@ -548,7 +548,7 @@ public class ColorWheel : Form
         isInUpdate = true;
         RefreshValue(nudHue, HSV.Hue);
         RefreshValue(nudSaturation, HSV.Saturation);
-        RefreshValue(nudBrightness, HSV.value);
+        RefreshValue(nudBrightness, HSV.Value);
         isInUpdate = false;
     }
 
@@ -740,7 +740,7 @@ public class ColorWheel : Form
                 }
                 newBrightnessPoint = new Point(brightnessX, newPoint.Y);
                 brightness = (int)((brightnessMax - newPoint.Y) * brightnessScaling);
-                HSV.value = brightness;
+                HSV = new ColorHandler.HSV(HSV.Hue, HSV.Saturation, brightness);
                 RGB = ColorHandler.HSVtoRGB(HSV);
                 break;
 
@@ -768,9 +768,7 @@ public class ColorWheel : Form
                 }
 
                 // Calculate the new HSV and RGB values.
-                HSV.Hue = degrees * 255 / 360;
-                HSV.Saturation = (int)(distance * 255);
-                HSV.value = brightness;
+                HSV = new ColorHandler.HSV(degrees * 255 / 360, (int)(distance * 255), brightness);
                 RGB = ColorHandler.HSVtoRGB(HSV);
                 fullColor = ColorHandler.HSVtoColor(HSV.Hue, HSV.Saturation, 255);
                 break;
@@ -822,11 +820,11 @@ public class ColorWheel : Form
             (double)HSV.Saturation / 255 * radius,
             centerPoint);
 
-        // Given the brightness (HSV.value), calculate the point corresponding to the brightness indicator.
-        brightnessPoint = CalcBrightnessPoint(HSV.value);
+        // Given the brightness (HSV.Value), calculate the point corresponding to the brightness indicator.
+        brightnessPoint = CalcBrightnessPoint(HSV.Value);
 
         // Store information about the selected color.
-        brightness = HSV.value;
+        brightness = HSV.Value;
         selectedColor = ColorHandler.HSVtoColor(HSV);
         RGB = ColorHandler.HSVtoRGB(HSV);
 

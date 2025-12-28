@@ -156,3 +156,5 @@ $RECYCLE.BIN/
 /.vs/DesktopShell/v15/Server/sqlite3/db.lock
 /DesktopShell.png
 __Release
+clear_icon_cache_comprehensive.bat
+clear_icon_cache.bat

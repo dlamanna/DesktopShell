@@ -2,4 +2,4 @@
 
 namespace DesktopShell;
 
-internal record Combination(string? keyword, List<string> filePath, List<string> arguments);
+internal record Combination(string? Keyword, List<string> FilePath, List<string> Arguments);
