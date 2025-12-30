@@ -18,7 +18,6 @@ public partial class ScreenSelectorForm : Form
         this.borderLabel.Size = currentScreen.WorkingArea.Size;
         this.Size = currentScreen.WorkingArea.Size;
         this.Location = new Point(currentScreen.Bounds.Left, currentScreen.Bounds.Top);
-        //GlobalVar.toolTip("ScreenSelector_Load", "Location: " + this.Location + ", Size:" + this.Size);
     }
     protected override void OnMouseLeave(EventArgs e)
     {
@@ -34,11 +33,10 @@ public partial class ScreenSelectorForm : Form
         this.borderLabel.Size = currentScreen.WorkingArea.Size;
         this.Size = currentScreen.WorkingArea.Size;
         this.Location = new Point(currentScreen.Bounds.Left, currentScreen.Bounds.Top);
-        //GlobalVar.toolTip("MouseLeave", "CursorPos: " + Cursor.Position);
     }
     private void ScreenSelectorForm_Click(object sender, System.EventArgs e)
     {
-        Properties.Settings.positionSave = Cursor.Position;
+        Properties.Settings.PositionSave = Cursor.Position;
         Properties.Settings.WriteSettings();
         if (GlobalVar.ShellInstance != null)
             GlobalVar.SetCentered(Screen.FromPoint(Cursor.Position), obj: GlobalVar.ShellInstance);

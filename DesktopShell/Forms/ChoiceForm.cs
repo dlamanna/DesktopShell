@@ -9,7 +9,7 @@ public partial class ChoiceForm : Form
 
     public void ChoiceForm_Load(object sender, EventArgs e)
     {
-        GlobalVar.SetCentered(Screen.FromPoint(Properties.Settings.positionSave), this);
+        GlobalVar.SetCentered(Screen.FromPoint(Properties.Settings.PositionSave), this);
         filesGroup.Controls.AddRange(GlobalVar.PopulateLabels());
 
         int fileCount = GlobalVar.FileChoices.Count;
@@ -18,12 +18,12 @@ public partial class ChoiceForm : Form
             c.Click += new EventHandler(ChoiceForm_Click);
         }
 
-        titleLabel.Left = (350 / 2 - (titleLabel.Width / 2));
+        titleLabel.Left = 350 / 2 - (titleLabel.Width / 2);
         titleLabel.Text = $"{GlobalVar.SearchType} ({fileCount})";
-        BackColor = titleLabel.BackColor = Properties.Settings.backgroundColor;
-        ForeColor = titleLabel.ForeColor = Properties.Settings.foregroundColor;
-        ClientSize = new System.Drawing.Size(GlobalVar.Width, (fileCount * 18) + 4);
-        Location = new System.Drawing.Point(Location.X, Location.Y + 20);
+        BackColor = titleLabel.BackColor = Properties.Settings.BackgroundColor;
+        ForeColor = titleLabel.ForeColor = Properties.Settings.ForegroundColor;
+        ClientSize = new Size(GlobalVar.Width, (fileCount * 18) + 4);
+        Location = new Point(Location.X, Location.Y + 20);
     }
 
     public void ChoiceForm_Click(object? sender, EventArgs e)

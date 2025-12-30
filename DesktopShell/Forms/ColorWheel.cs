@@ -8,24 +8,24 @@ namespace DesktopShell.Forms;
 /// </summary>
 public class ColorWheel : Form
 {
-    internal Button btnCancel;
-    internal Button btnOK;
+    internal Button BtnCancel;
+    internal Button BtnOK;
     internal Label Label3;
-    internal NumericUpDown nudSaturation;
+    internal NumericUpDown NudSaturation;
     internal Label Label7;
-    internal NumericUpDown nudBrightness;
-    internal NumericUpDown nudRed;
-    internal Panel pnlColor;
+    internal NumericUpDown NudBrightness;
+    internal NumericUpDown NudRed;
+    internal Panel PnlColor;
     internal Label Label6;
     internal Label Label1;
     internal Label Label5;
-    internal Panel pnlSelectedColor;
-    internal Panel pnlBrightness;
-    internal NumericUpDown nudBlue;
+    internal Panel PnlSelectedColor;
+    internal Panel PnlBrightness;
+    internal NumericUpDown NudBlue;
     internal Label Label4;
-    internal NumericUpDown nudGreen;
+    internal NumericUpDown NudGreen;
     internal Label Label2;
-    internal NumericUpDown nudHue;
+    internal NumericUpDown NudHue;
 
     private Rectangle colorRectangle;
     private Rectangle brightnessRectangle;
@@ -34,8 +34,8 @@ public class ColorWheel : Form
     private readonly int radius;
     private readonly int brightnessX;
     private readonly double brightnessScaling;
-    private const int COLOR_COUNT = 6 * 256;
-    private const double DEGREES_PER_RADIAN = 180.0 / Math.PI;
+    private const int colorCount = 6 * 256;
+    private const double degreesPerRadian = 180.0 / Math.PI;
     private Point colorPoint;
     private Point brightnessPoint;
     private Graphics g;
@@ -74,13 +74,13 @@ public class ColorWheel : Form
         GlobalVar.ColorWheelInstance = this;
     }
 
-    public ColorWheel(Rectangle _colorRectangle, Rectangle _brightnessRectangle, Rectangle _selectedColorRectangle)
+    public ColorWheel(Rectangle colorRectangle, Rectangle brightnessRectangle, Rectangle selectedColorRectangle)
     {
         using GraphicsPath path = new();
         // Store away locations for later use.
-        colorRectangle = _colorRectangle;
-        brightnessRectangle = _brightnessRectangle;
-        selectedColorRectangle = _selectedColorRectangle;
+        this.colorRectangle = colorRectangle;
+        this.brightnessRectangle = brightnessRectangle;
+        this.selectedColorRectangle = selectedColorRectangle;
 
         // Calculate the center of the circle. Start with the location, then offset the point by the radius. Use the smaller of the width and height of
         // the colorRectangle value.
@@ -160,53 +160,53 @@ public class ColorWheel : Form
     /// </summary>
     private void InitializeComponent()
     {
-        btnCancel = new Button();
-        btnOK = new Button();
+        BtnCancel = new Button();
+        BtnOK = new Button();
         Label3 = new Label();
-        nudSaturation = new NumericUpDown();
+        NudSaturation = new NumericUpDown();
         Label7 = new Label();
-        nudBrightness = new NumericUpDown();
-        nudRed = new NumericUpDown();
-        pnlColor = new Panel();
+        NudBrightness = new NumericUpDown();
+        NudRed = new NumericUpDown();
+        PnlColor = new Panel();
         Label6 = new Label();
         Label1 = new Label();
         Label5 = new Label();
-        pnlSelectedColor = new Panel();
-        pnlBrightness = new Panel();
-        nudBlue = new NumericUpDown();
+        PnlSelectedColor = new Panel();
+        PnlBrightness = new Panel();
+        NudBlue = new NumericUpDown();
         Label4 = new Label();
-        nudGreen = new NumericUpDown();
+        NudGreen = new NumericUpDown();
         Label2 = new Label();
-        nudHue = new NumericUpDown();
-        ((System.ComponentModel.ISupportInitialize)(nudSaturation)).BeginInit();
-        ((System.ComponentModel.ISupportInitialize)(nudBrightness)).BeginInit();
-        ((System.ComponentModel.ISupportInitialize)(nudRed)).BeginInit();
-        ((System.ComponentModel.ISupportInitialize)(nudBlue)).BeginInit();
-        ((System.ComponentModel.ISupportInitialize)(nudGreen)).BeginInit();
-        ((System.ComponentModel.ISupportInitialize)(nudHue)).BeginInit();
+        NudHue = new NumericUpDown();
+        NudSaturation.BeginInit();
+        NudBrightness.BeginInit();
+        NudRed.BeginInit();
+        NudBlue.BeginInit();
+        NudGreen.BeginInit();
+        NudHue.BeginInit();
         SuspendLayout();
         //
-        // btnCancel
+        // BtnCancel
         //
-        btnCancel.DialogResult = DialogResult.Cancel;
-        btnCancel.Font = new Font("Microsoft Sans Serif", 10F, FontStyle.Regular, GraphicsUnit.Point, 0);
-        btnCancel.Location = new Point(192, 320);
-        btnCancel.Name = "btnCancel";
-        btnCancel.Size = new Size(64, 24);
-        btnCancel.TabIndex = 55;
-        btnCancel.Text = "Cancel";
-        btnCancel.Click += new EventHandler(BtnCancel_Click);
+        BtnCancel.DialogResult = DialogResult.Cancel;
+        BtnCancel.Font = new Font("Microsoft Sans Serif", 10F, FontStyle.Regular, GraphicsUnit.Point, 0);
+        BtnCancel.Location = new Point(192, 320);
+        BtnCancel.Name = "btnCancel";
+        BtnCancel.Size = new Size(64, 24);
+        BtnCancel.TabIndex = 55;
+        BtnCancel.Text = "Cancel";
+        BtnCancel.Click += BtnCancel_Click;
         //
-        // btnOK
+        // BtnOK
         //
-        btnOK.DialogResult = DialogResult.OK;
-        btnOK.Font = new Font("Microsoft Sans Serif", 10F, FontStyle.Regular, GraphicsUnit.Point, 0);
-        btnOK.Location = new Point(120, 320);
-        btnOK.Name = "btnOK";
-        btnOK.Size = new Size(64, 24);
-        btnOK.TabIndex = 54;
-        btnOK.Text = "OK";
-        btnOK.Click += new EventHandler(BtnOK_Click);
+        BtnOK.DialogResult = DialogResult.OK;
+        BtnOK.Font = new Font("Microsoft Sans Serif", 10F, FontStyle.Regular, GraphicsUnit.Point, 0);
+        BtnOK.Location = new Point(120, 320);
+        BtnOK.Name = "btnOK";
+        BtnOK.Size = new Size(64, 24);
+        BtnOK.TabIndex = 54;
+        BtnOK.Text = "OK";
+        BtnOK.Click += BtnOK_Click;
         //
         // Label3
         //
@@ -218,20 +218,20 @@ public class ColorWheel : Form
         Label3.Text = "Blue:";
         Label3.TextAlign = ContentAlignment.MiddleLeft;
         //
-        // nudSaturation
+        // NudSaturation
         //
-        nudSaturation.Font = new Font("Microsoft Sans Serif", 9.75F, FontStyle.Regular, GraphicsUnit.Point, 0);
-        nudSaturation.Location = new Point(96, 256);
-        nudSaturation.Maximum = new decimal(new int[] {
+        NudSaturation.Font = new Font("Microsoft Sans Serif", 9.75F, FontStyle.Regular, GraphicsUnit.Point, 0);
+        NudSaturation.Location = new Point(96, 256);
+        NudSaturation.Maximum = new decimal([
             255,
             0,
             0,
-            0});
-        nudSaturation.Name = "nudSaturation";
-        nudSaturation.Size = new Size(48, 22);
-        nudSaturation.TabIndex = 42;
-        nudSaturation.TextChanged += new EventHandler(HandleTextChanged);
-        nudSaturation.ValueChanged += new EventHandler(HandleHSVChange);
+            0]);
+        NudSaturation.Name = "nudSaturation";
+        NudSaturation.Size = new Size(48, 22);
+        NudSaturation.TabIndex = 42;
+        NudSaturation.TextChanged += HandleTextChanged;
+        NudSaturation.ValueChanged += HandleHSVChange;
         //
         // Label7
         //
@@ -243,44 +243,44 @@ public class ColorWheel : Form
         Label7.Text = "Brightness:";
         Label7.TextAlign = ContentAlignment.MiddleLeft;
         //
-        // nudBrightness
+        // NudBrightness
         //
-        nudBrightness.Font = new Font("Microsoft Sans Serif", 9.75F, FontStyle.Regular, GraphicsUnit.Point, 0);
-        nudBrightness.Location = new Point(96, 280);
-        nudBrightness.Maximum = new decimal(new int[] {
+        NudBrightness.Font = new Font("Microsoft Sans Serif", 9.75F, FontStyle.Regular, GraphicsUnit.Point, 0);
+        NudBrightness.Location = new Point(96, 280);
+        NudBrightness.Maximum = new decimal([
             255,
             0,
             0,
-            0});
-        nudBrightness.Name = "nudBrightness";
-        nudBrightness.Size = new Size(48, 22);
-        nudBrightness.TabIndex = 47;
-        nudBrightness.TextChanged += new EventHandler(HandleTextChanged);
-        nudBrightness.ValueChanged += new EventHandler(HandleHSVChange);
+            0]);
+        NudBrightness.Name = "nudBrightness";
+        NudBrightness.Size = new Size(48, 22);
+        NudBrightness.TabIndex = 47;
+        NudBrightness.TextChanged += HandleTextChanged;
+        NudBrightness.ValueChanged += HandleHSVChange;
         //
-        // nudRed
+        // NudRed
         //
-        nudRed.Font = new Font("Microsoft Sans Serif", 9.75F, FontStyle.Regular, GraphicsUnit.Point, 0);
-        nudRed.Location = new Point(208, 232);
-        nudRed.Maximum = new decimal(new int[] {
+        NudRed.Font = new Font("Microsoft Sans Serif", 9.75F, FontStyle.Regular, GraphicsUnit.Point, 0);
+        NudRed.Location = new Point(208, 232);
+        NudRed.Maximum = new decimal([
             255,
             0,
             0,
-            0});
-        nudRed.Name = "nudRed";
-        nudRed.Size = new Size(48, 22);
-        nudRed.TabIndex = 38;
-        nudRed.TextChanged += new EventHandler(HandleTextChanged);
-        nudRed.ValueChanged += new EventHandler(HandleRGBChange);
+            0]);
+        NudRed.Name = "nudRed";
+        NudRed.Size = new Size(48, 22);
+        NudRed.TabIndex = 38;
+        NudRed.TextChanged += HandleTextChanged;
+        NudRed.ValueChanged += HandleRGBChange;
         //
-        // pnlColor
+        // PnlColor
         //
-        pnlColor.Location = new Point(8, 8);
-        pnlColor.Name = "pnlColor";
-        pnlColor.Size = new Size(176, 176);
-        pnlColor.TabIndex = 51;
-        pnlColor.Visible = false;
-        pnlColor.MouseUp += new MouseEventHandler(FrmMain_MouseUp);
+        PnlColor.Location = new Point(8, 8);
+        PnlColor.Name = "pnlColor";
+        PnlColor.Size = new Size(176, 176);
+        PnlColor.TabIndex = 51;
+        PnlColor.Visible = false;
+        PnlColor.MouseUp += FrmMain_MouseUp;
         //
         // Label6
         //
@@ -312,36 +312,36 @@ public class ColorWheel : Form
         Label5.Text = "Hue:";
         Label5.TextAlign = ContentAlignment.MiddleLeft;
         //
-        // pnlSelectedColor
+        // PnlSelectedColor
         //
-        pnlSelectedColor.Location = new Point(208, 200);
-        pnlSelectedColor.Name = "pnlSelectedColor";
-        pnlSelectedColor.Size = new Size(48, 24);
-        pnlSelectedColor.TabIndex = 53;
-        pnlSelectedColor.Visible = false;
+        PnlSelectedColor.Location = new Point(208, 200);
+        PnlSelectedColor.Name = "pnlSelectedColor";
+        PnlSelectedColor.Size = new Size(48, 24);
+        PnlSelectedColor.TabIndex = 53;
+        PnlSelectedColor.Visible = false;
         //
-        // pnlBrightness
+        // PnlBrightness
         //
-        pnlBrightness.Location = new Point(208, 8);
-        pnlBrightness.Name = "pnlBrightness";
-        pnlBrightness.Size = new Size(16, 176);
-        pnlBrightness.TabIndex = 52;
-        pnlBrightness.Visible = false;
+        PnlBrightness.Location = new Point(208, 8);
+        PnlBrightness.Name = "pnlBrightness";
+        PnlBrightness.Size = new Size(16, 176);
+        PnlBrightness.TabIndex = 52;
+        PnlBrightness.Visible = false;
         //
-        // nudBlue
+        // NudBlue
         //
-        nudBlue.Font = new Font("Microsoft Sans Serif", 9.75F, FontStyle.Regular, GraphicsUnit.Point, 0);
-        nudBlue.Location = new Point(208, 280);
-        nudBlue.Maximum = new decimal(new int[] {
+        NudBlue.Font = new Font("Microsoft Sans Serif", 9.75F, FontStyle.Regular, GraphicsUnit.Point, 0);
+        NudBlue.Location = new Point(208, 280);
+        NudBlue.Maximum = new decimal([
             255,
             0,
             0,
-            0});
-        nudBlue.Name = "nudBlue";
-        nudBlue.Size = new Size(48, 22);
-        nudBlue.TabIndex = 40;
-        nudBlue.TextChanged += new EventHandler(HandleTextChanged);
-        nudBlue.ValueChanged += new EventHandler(HandleRGBChange);
+            0]);
+        NudBlue.Name = "nudBlue";
+        NudBlue.Size = new Size(48, 22);
+        NudBlue.TabIndex = 40;
+        NudBlue.TextChanged += HandleTextChanged;
+        NudBlue.ValueChanged += HandleRGBChange;
         //
         // Label4
         //
@@ -353,20 +353,20 @@ public class ColorWheel : Form
         Label4.Text = "Color:";
         Label4.TextAlign = ContentAlignment.MiddleLeft;
         //
-        // nudGreen
+        // NudGreen
         //
-        nudGreen.Font = new Font("Microsoft Sans Serif", 9.75F, FontStyle.Regular, GraphicsUnit.Point, 0);
-        nudGreen.Location = new Point(208, 256);
-        nudGreen.Maximum = new decimal(new int[] {
+        NudGreen.Font = new Font("Microsoft Sans Serif", 9.75F, FontStyle.Regular, GraphicsUnit.Point, 0);
+        NudGreen.Location = new Point(208, 256);
+        NudGreen.Maximum = new decimal([
             255,
             0,
             0,
-            0});
-        nudGreen.Name = "nudGreen";
-        nudGreen.Size = new Size(48, 22);
-        nudGreen.TabIndex = 39;
-        nudGreen.TextChanged += new EventHandler(HandleTextChanged);
-        nudGreen.ValueChanged += new EventHandler(HandleRGBChange);
+            0]);
+        NudGreen.Name = "nudGreen";
+        NudGreen.Size = new Size(48, 22);
+        NudGreen.TabIndex = 39;
+        NudGreen.TextChanged += HandleTextChanged;
+        NudGreen.ValueChanged += HandleRGBChange;
         //
         // Label2
         //
@@ -378,60 +378,60 @@ public class ColorWheel : Form
         Label2.Text = "Green:";
         Label2.TextAlign = ContentAlignment.MiddleLeft;
         //
-        // nudHue
+        // NudHue
         //
-        nudHue.Font = new Font("Microsoft Sans Serif", 9.75F, FontStyle.Regular, GraphicsUnit.Point, 0);
-        nudHue.Location = new Point(96, 232);
-        nudHue.Maximum = new decimal(new int[] {
+        NudHue.Font = new Font("Microsoft Sans Serif", 9.75F, FontStyle.Regular, GraphicsUnit.Point, 0);
+        NudHue.Location = new Point(96, 232);
+        NudHue.Maximum = new decimal([
             255,
             0,
             0,
-            0});
-        nudHue.Name = "nudHue";
-        nudHue.Size = new Size(48, 22);
-        nudHue.TabIndex = 41;
-        nudHue.TextChanged += new EventHandler(HandleTextChanged);
-        nudHue.ValueChanged += new EventHandler(HandleHSVChange);
+            0]);
+        NudHue.Name = "nudHue";
+        NudHue.Size = new Size(48, 22);
+        NudHue.TabIndex = 41;
+        NudHue.TextChanged += HandleTextChanged;
+        NudHue.ValueChanged += HandleHSVChange;
         //
         // ColorWheel
         //
         AutoScaleBaseSize = new Size(5, 13);
         ClientSize = new Size(264, 349);
-        Controls.Add(btnCancel);
-        Controls.Add(btnOK);
+        Controls.Add(BtnCancel);
+        Controls.Add(BtnOK);
         Controls.Add(Label3);
-        Controls.Add(nudSaturation);
+        Controls.Add(NudSaturation);
         Controls.Add(Label7);
-        Controls.Add(nudBrightness);
-        Controls.Add(nudRed);
-        Controls.Add(pnlColor);
+        Controls.Add(NudBrightness);
+        Controls.Add(NudRed);
+        Controls.Add(PnlColor);
         Controls.Add(Label6);
         Controls.Add(Label1);
         Controls.Add(Label5);
-        Controls.Add(pnlSelectedColor);
-        Controls.Add(pnlBrightness);
-        Controls.Add(nudBlue);
+        Controls.Add(PnlSelectedColor);
+        Controls.Add(PnlBrightness);
+        Controls.Add(NudBlue);
         Controls.Add(Label4);
-        Controls.Add(nudGreen);
+        Controls.Add(NudGreen);
         Controls.Add(Label2);
-        Controls.Add(nudHue);
+        Controls.Add(NudHue);
         FormBorderStyle = FormBorderStyle.FixedDialog;
         MaximizeBox = false;
         MinimizeBox = false;
         Name = "ColorWheel";
         ShowInTaskbar = false;
         Text = "Select Color";
-        Load += new EventHandler(ColorWheel_Load);
-        Paint += new PaintEventHandler(ColorWheel_Paint);
-        MouseDown += new MouseEventHandler(HandleMouse);
-        MouseMove += new MouseEventHandler(HandleMouse);
-        MouseUp += new MouseEventHandler(FrmMain_MouseUp);
-        ((System.ComponentModel.ISupportInitialize)(nudSaturation)).EndInit();
-        ((System.ComponentModel.ISupportInitialize)(nudBrightness)).EndInit();
-        ((System.ComponentModel.ISupportInitialize)(nudRed)).EndInit();
-        ((System.ComponentModel.ISupportInitialize)(nudBlue)).EndInit();
-        ((System.ComponentModel.ISupportInitialize)(nudGreen)).EndInit();
-        ((System.ComponentModel.ISupportInitialize)(nudHue)).EndInit();
+        Load += ColorWheel_Load;
+        Paint += ColorWheel_Paint;
+        MouseDown += HandleMouse;
+        MouseMove += HandleMouse;
+        MouseUp += FrmMain_MouseUp;
+        NudSaturation.EndInit();
+        NudBrightness.EndInit();
+        NudRed.EndInit();
+        NudBlue.EndInit();
+        NudGreen.EndInit();
+        NudHue.EndInit();
         ResumeLayout(false);
     }
 
@@ -449,8 +449,8 @@ public class ColorWheel : Form
     private Point selectedPoint;
 
     private ColorWheel myColorWheel;
-    private ColorHandler.RGB RGB;
-    private ColorHandler.HSV HSV;
+    private ColorHandler.RGB rgb;
+    private ColorHandler.HSV hsv;
     private bool isInUpdate = false;
 
     private void ColorWheel_Load(object sender, EventArgs e)
@@ -461,24 +461,24 @@ public class ColorWheel : Form
         SetStyle(ControlStyles.DoubleBuffer, true);
 
         // These properties are set in design view, as well, but they have to be set to false in order for the Paint event to be able to display their contents.
-        pnlSelectedColor.Visible = false;
-        pnlBrightness.Visible = false;
-        pnlColor.Visible = false;
+        PnlSelectedColor.Visible = false;
+        PnlBrightness.Visible = false;
+        PnlColor.Visible = false;
 
         // Calculate the coordinates of the three required regions on the form.
-        Rectangle SelectedColorRectangle = new(pnlSelectedColor.Location, pnlSelectedColor.Size);
-        Rectangle BrightnessRectangle = new(pnlBrightness.Location, pnlBrightness.Size);
-        Rectangle ColorRectangle = new(pnlColor.Location, pnlColor.Size);
+        Rectangle selectedColorRectangle = new(PnlSelectedColor.Location, PnlSelectedColor.Size);
+        Rectangle brightnessRectangle = new(PnlBrightness.Location, PnlBrightness.Size);
+        Rectangle colorRectangle = new(PnlColor.Location, PnlColor.Size);
 
         // Create the new ColorWheel class, indicating the locations of the color wheel itself, the brightness area, and the position of the selected color.
-        myColorWheel = new ColorWheel(ColorRectangle, BrightnessRectangle, SelectedColorRectangle);
+        myColorWheel = new ColorWheel(colorRectangle, brightnessRectangle, selectedColorRectangle);
         myColorWheel.ColorChanged += new ColorChangedEventHandler(MyColorWheel_ColorChanged);
 
         /// TODO: I think this is where I need to do the conversion from hash color code to RGB HSV
 
         // Set the RGB and HSV values of the NumericUpDown controls.
-        SetRGB(RGB);
-        SetHSV(HSV);
+        SetRGB(rgb);
+        SetHSV(hsv);
 
         Location = Cursor.Position;
     }
@@ -513,8 +513,8 @@ public class ColorWheel : Form
         if (!isInUpdate)
         {
             changeType = ChangeStyle.RGB;
-            RGB = new ColorHandler.RGB((int)nudRed.Value, (int)nudGreen.Value, (int)nudBlue.Value);
-            SetHSV(ColorHandler.RGBtoHSV(RGB));
+            rgb = new ColorHandler.RGB((int)NudRed.Value, (int)NudGreen.Value, (int)NudBlue.Value);
+            SetHSV(ColorHandler.RGBtoHSV(rgb));
             Invalidate();
         }
     }
@@ -526,29 +526,29 @@ public class ColorWheel : Form
         if (!isInUpdate)
         {
             changeType = ChangeStyle.HSV;
-            HSV = new ColorHandler.HSV((int)nudHue.Value, (int)nudSaturation.Value, (int)nudBrightness.Value);
-            SetRGB(ColorHandler.HSVtoRGB(HSV));
+            hsv = new ColorHandler.HSV((int)NudHue.Value, (int)NudSaturation.Value, (int)NudBrightness.Value);
+            SetRGB(ColorHandler.HSVtoRGB(hsv));
             Invalidate();
         }
     }
 
-    private void SetRGB(ColorHandler.RGB RGB)
+    private void SetRGB(ColorHandler.RGB rgb)
     {
         // Update the RGB values on the form, but don't trigger the ValueChanged event of the form. The isInUpdate variable ensures that the event procedures exit without doing anything.
         isInUpdate = true;
-        RefreshValue(nudRed, RGB.Red);
-        RefreshValue(nudBlue, RGB.Blue);
-        RefreshValue(nudGreen, RGB.Green);
+        RefreshValue(NudRed, rgb.Red);
+        RefreshValue(NudBlue, rgb.Blue);
+        RefreshValue(NudGreen, rgb.Green);
         isInUpdate = false;
     }
 
-    private void SetHSV(ColorHandler.HSV HSV)
+    private void SetHSV(ColorHandler.HSV hsv)
     {
         // Update the HSV values on the form, but don't trigger the ValueChanged event of the form. The isInUpdate variable ensures that the event procedures exit without doing anything.
         isInUpdate = true;
-        RefreshValue(nudHue, HSV.Hue);
-        RefreshValue(nudSaturation, HSV.Saturation);
-        RefreshValue(nudBrightness, HSV.Value);
+        RefreshValue(NudHue, hsv.Hue);
+        RefreshValue(NudSaturation, hsv.Saturation);
+        RefreshValue(NudBrightness, hsv.Value);
         isInUpdate = false;
     }
 
@@ -578,8 +578,8 @@ public class ColorWheel : Form
         {
             // Indicate the color change type. Either RGB or HSV will cause the color wheel to update the position of the pointer.
             changeType = ChangeStyle.RGB;
-            RGB = new ColorHandler.RGB(value.R, value.G, value.B);
-            HSV = ColorHandler.RGBtoHSV(RGB);
+            rgb = new ColorHandler.RGB(value.R, value.G, value.B);
+            hsv = ColorHandler.RGBtoHSV(rgb);
         }
     }
 
@@ -595,7 +595,7 @@ public class ColorWheel : Form
         switch (changeType)
         {
             case ChangeStyle.HSV:
-                myColorWheel.Draw(e.Graphics, HSV);
+                myColorWheel.Draw(e.Graphics, hsv);
                 break;
 
             case ChangeStyle.MouseMove:
@@ -604,7 +604,7 @@ public class ColorWheel : Form
                 break;
 
             case ChangeStyle.RGB:
-                myColorWheel.Draw(e.Graphics, RGB);
+                myColorWheel.Draw(e.Graphics, rgb);
                 break;
         }
     }
@@ -627,61 +627,61 @@ public class ColorWheel : Form
 
     private static Color[] GetColors()
     {
-        // Create an array of COLOR_COUNT colors, looping through all the hues between 0 and 255, broken into COLOR_COUNT intervals. HSV is particularly well-suited for this,
+        // Create an array of colorCount colors, looping through all the hues between 0 and 255, broken into colorCount intervals. HSV is particularly well-suited for this,
         // because the only value that changes as you create colors is the Hue.
-        Color[] Colors = new Color[COLOR_COUNT];
+        Color[] colors = new Color[colorCount];
 
-        for (int i = 0; i <= COLOR_COUNT - 1; i++)
+        for (int i = 0; i <= colorCount - 1; i++)
         {
-            Colors[i] = ColorHandler.HSVtoColor((int)((double)(i * 255) / COLOR_COUNT), 255, 255);
+            colors[i] = ColorHandler.HSVtoColor((int)((double)(i * 255) / colorCount), 255, 255);
         }
 
-        return Colors;
+        return colors;
     }
 
     private static Point[] GetPoints(double radius, Point centerPoint)
     {
-        // Generate the array of points that describe the locations of the COLOR_COUNT colors to be displayed on the color wheel.
-        Point[] Points = new Point[COLOR_COUNT];
+        // Generate the array of points that describe the locations of the colorCount colors to be displayed on the color wheel.
+        Point[] points = new Point[colorCount];
 
-        for (int i = 0; i <= COLOR_COUNT - 1; i++)
+        for (int i = 0; i <= colorCount - 1; i++)
         {
-            Points[i] = GetPoint((double)(i * 360) / COLOR_COUNT, radius, centerPoint);
+            points[i] = GetPoint((double)(i * 360) / colorCount, radius, centerPoint);
         }
 
-        return Points;
+        return points;
     }
 
     private static Point GetPoint(double degrees, double radius, Point centerPoint)
     {
         // Given the center of a circle and its radius, along with the angle corresponding to the point, find the coordinates. In other words, conver  t from polar to rectangular coordinates.
-        double radians = degrees / DEGREES_PER_RADIAN;
+        double radians = degrees / degreesPerRadian;
 
         return new Point((int)(centerPoint.X + Math.Floor(radius * Math.Cos(radians))),
             (int)(centerPoint.Y - Math.Floor(radius * Math.Sin(radians))));
     }
 
-    protected void OnColorChanged(ColorHandler.RGB RGB, ColorHandler.HSV HSV)
+    protected void OnColorChanged(ColorHandler.RGB rgb, ColorHandler.HSV hsv)
     {
-        ColorChangedEventArgs e = new() { RGB = RGB, HSV = HSV };
+        ColorChangedEventArgs e = new() { RGB = rgb, HSV = hsv };
         ColorChanged(this, e);
     }
 
-    public void Draw(Graphics g, ColorHandler.HSV HSV)
+    public void Draw(Graphics g, ColorHandler.HSV hsv)
     {
         // Given HSV values, update the screen.
         this.g = g;
-        this.HSV = HSV;
-        CalcCoordsAndUpdate(this.HSV);
+        this.hsv = hsv;
+        CalcCoordsAndUpdate(this.hsv);
         UpdateDisplay();
     }
 
-    public void Draw(Graphics g, ColorHandler.RGB RGB)
+    public void Draw(Graphics g, ColorHandler.RGB rgb)
     {
         // Given RGB values, calculate HSV and then update the screen.
         this.g = g;
-        HSV = ColorHandler.RGBtoHSV(RGB);
-        CalcCoordsAndUpdate(HSV);
+        hsv = ColorHandler.RGBtoHSV(rgb);
+        CalcCoordsAndUpdate(hsv);
         UpdateDisplay();
     }
 
@@ -740,8 +740,8 @@ public class ColorWheel : Form
                 }
                 newBrightnessPoint = new Point(brightnessX, newPoint.Y);
                 brightness = (int)((brightnessMax - newPoint.Y) * brightnessScaling);
-                HSV = new ColorHandler.HSV(HSV.Hue, HSV.Saturation, brightness);
-                RGB = ColorHandler.HSVtoRGB(HSV);
+                hsv = new ColorHandler.HSV(hsv.Hue, hsv.Saturation, brightness);
+                rgb = ColorHandler.HSVtoRGB(hsv);
                 break;
 
             case MouseState.ClickOnColor:
@@ -768,15 +768,15 @@ public class ColorWheel : Form
                 }
 
                 // Calculate the new HSV and RGB values.
-                HSV = new ColorHandler.HSV(degrees * 255 / 360, (int)(distance * 255), brightness);
-                RGB = ColorHandler.HSVtoRGB(HSV);
-                fullColor = ColorHandler.HSVtoColor(HSV.Hue, HSV.Saturation, 255);
+                hsv = new ColorHandler.HSV(degrees * 255 / 360, (int)(distance * 255), brightness);
+                rgb = ColorHandler.HSVtoRGB(hsv);
+                fullColor = ColorHandler.HSVtoColor(hsv.Hue, hsv.Saturation, 255);
                 break;
         }
-        selectedColor = ColorHandler.HSVtoColor(HSV);
+        selectedColor = ColorHandler.HSVtoColor(hsv);
 
         // Raise an event back to the parent form, so the form can update any UI it's using to display selected color values.
-        OnColorChanged(RGB, HSV);
+        OnColorChanged(rgb, hsv);
 
         // On the way out, set the new state.
         switch (currentState)
@@ -810,33 +810,33 @@ public class ColorWheel : Form
             (int)(brightnessMax - brightness / brightnessScaling));
     }
 
-    private void CalcCoordsAndUpdate(ColorHandler.HSV HSV)
+    private void CalcCoordsAndUpdate(ColorHandler.HSV hsv)
     {
-        // Convert color to real-world coordinates and then calculate the various points. HSV.Hue represents the degrees (0 to 360), HSV.Saturation represents the radius.
+        // Convert color to real-world coordinates and then calculate the various points. hsv.Hue represents the degrees (0 to 360), hsv.Saturation represents the radius.
         // This procedure doesn't draw anything--it simply updates class-level variables. The UpdateDisplay procedure uses these values to update the screen.
 
-        // Given the angle (HSV.Hue), and distance from the center (HSV.Saturation), and the center, calculate the point corresponding to the selected color, on the color wheel.
-        colorPoint = GetPoint((double)HSV.Hue / 255 * 360,
-            (double)HSV.Saturation / 255 * radius,
+        // Given the angle (hsv.Hue), and distance from the center (hsv.Saturation), and the center, calculate the point corresponding to the selected color, on the color wheel.
+        colorPoint = GetPoint((double)hsv.Hue / 255 * 360,
+            (double)hsv.Saturation / 255 * radius,
             centerPoint);
 
-        // Given the brightness (HSV.Value), calculate the point corresponding to the brightness indicator.
-        brightnessPoint = CalcBrightnessPoint(HSV.Value);
+        // Given the brightness (hsv.Value), calculate the point corresponding to the brightness indicator.
+        brightnessPoint = CalcBrightnessPoint(hsv.Value);
 
         // Store information about the selected color.
-        brightness = HSV.Value;
-        selectedColor = ColorHandler.HSVtoColor(HSV);
-        RGB = ColorHandler.HSVtoRGB(HSV);
+        brightness = hsv.Value;
+        selectedColor = ColorHandler.HSVtoColor(hsv);
+        rgb = ColorHandler.HSVtoRGB(hsv);
 
-        // The full color is the same as HSV, except that the brightness is set to full (255). This is the top-most color in the brightness gradient.
-        fullColor = ColorHandler.HSVtoColor(HSV.Hue, HSV.Saturation, 255);
+        // The full color is the same as hsv, except that the brightness is set to full (255). This is the top-most color in the brightness gradient.
+        fullColor = ColorHandler.HSVtoColor(hsv.Hue, hsv.Saturation, 255);
     }
 
-    private void DrawLinearGradient(Color TopColor)
+    private void DrawLinearGradient(Color topColor)
     {
         // Given the top color, draw a linear gradient ranging from black to the top color. Use the brightness rectangle as the area to fill.
         using LinearGradientBrush lgb =
-                         new(rect: brightnessRectangle, color1: TopColor,
+                         new(rect: brightnessRectangle, color1: topColor,
                          color2: Color.Black, linearGradientMode: LinearGradientMode.Vertical);
         g.FillRectangle(lgb, brightnessRectangle);
     }
@@ -862,7 +862,7 @@ public class ColorWheel : Form
         {
             // This value needs to be multiplied by -1 because the y-coordinate is opposite from the normal direction here. That is, a y-coordinate that's "higher" on
             // the form has a lower y-value, in this coordinate system. So everything's off by a factor of -1 when performing the ratio calculations.
-            degrees = (int)(-Math.Atan((double)pt.Y / pt.X) * DEGREES_PER_RADIAN);
+            degrees = (int)(-Math.Atan((double)pt.Y / pt.X) * degreesPerRadian);
 
             // If the x-coordinate of the selected point is to the left of the center of the circle, you need to add 180 degrees to the angle. ArcTan only
             // gives you a value on the right-hand side of the circle.
@@ -898,33 +898,33 @@ public class ColorWheel : Form
 
     private void DrawColorPointer(Point pt)
     {
-        // Given a point, draw the color selector. The constant SIZE represents half the width -- the square will be twice this value in width and height.
-        const int SIZE = 3;
-        g.DrawRectangle(Pens.Black, pt.X - SIZE, pt.Y - SIZE, SIZE * 2, SIZE * 2);
+        // Given a point, draw the color selector. The constant size represents half the width -- the square will be twice this value in width and height.
+        const int size = 3;
+        g.DrawRectangle(Pens.Black, pt.X - size, pt.Y - size, size * 2, size * 2);
     }
 
     private void DrawBrightnessPointer(Point pt)
     {
         // Draw a triangle for the brightness indicator that "points" at the provided point.
-        const int HEIGHT = 10;
-        const int WIDTH = 7;
+        const int height = 10;
+        const int width = 7;
 
-        Point[] Points = new Point[3];
-        Points[0] = pt;
-        Points[1] = new Point(pt.X + WIDTH, pt.Y + HEIGHT / 2);
-        Points[2] = new Point(pt.X + WIDTH, pt.Y - HEIGHT / 2);
-        g.FillPolygon(Brushes.Black, Points);
+        Point[] points = new Point[3];
+        points[0] = pt;
+        points[1] = new Point(pt.X + width, pt.Y + height / 2);
+        points[2] = new Point(pt.X + width, pt.Y - height / 2);
+        g.FillPolygon(Brushes.Black, points);
     }
 
     private void BtnOK_Click(object sender, EventArgs e)
     {
         if (GlobalVar.SettingBackColor)
         {
-            GlobalVar.BackColor = Color.FromArgb((int)nudRed.Value, (int)nudGreen.Value, (int)nudBlue.Value);
+            GlobalVar.BackColor = Color.FromArgb((int)NudRed.Value, (int)NudGreen.Value, (int)NudBlue.Value);
         }
         else
         {
-            GlobalVar.FontColor = Color.FromArgb((int)nudRed.Value, (int)nudGreen.Value, (int)nudBlue.Value);
+            GlobalVar.FontColor = Color.FromArgb((int)NudRed.Value, (int)NudGreen.Value, (int)NudBlue.Value);
         }
         GlobalVar.SettingFontColor = false;
         GlobalVar.SettingBackColor = false;

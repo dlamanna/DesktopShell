@@ -189,7 +189,7 @@ public static partial class GlobalVar
     {
         DropDownRects.Clear();
         int numScreensDetected = Screen.AllScreens.Length;
-        int numScreensEnteredInSettings = Properties.Settings.multiscreenEnabled.Count;
+        int numScreensEnteredInSettings = Properties.Settings.MultiscreenEnabled.Count;
 
         if (numScreensDetected > numScreensEnteredInSettings)
         {
@@ -200,7 +200,7 @@ public static partial class GlobalVar
 
         for (int i = 0; i < numScreensDetected; i++)
         {
-            if (Properties.Settings.multiscreenEnabled[i])
+            if (Properties.Settings.MultiscreenEnabled[i])
             {
                 Screen s = Screen.AllScreens[i];
                 Size shellSize = ((Shell)sender).ClientSize;
@@ -237,8 +237,8 @@ public static partial class GlobalVar
         {
             Label tempLabel = new()
             {
-                BackColor = Properties.Settings.backgroundColor,
-                ForeColor = Properties.Settings.foregroundColor,
+                BackColor = Properties.Settings.BackgroundColor,
+                ForeColor = Properties.Settings.ForegroundColor,
                 BorderStyle = BorderStyle.FixedSingle,
                 Font = new Font("Microsoft Sans Serif", 9.5F),
                 Location = new Point(10, (i * 18) + 20),
@@ -345,8 +345,8 @@ public static partial class GlobalVar
 
     public static void UpdateColors()
     {
-        Properties.Settings.backgroundColor = BackColor;
-        Properties.Settings.foregroundColor = FontColor;
+        Properties.Settings.BackgroundColor = BackColor;
+        Properties.Settings.ForegroundColor = FontColor;
         if (ShellInstance != null)
         {
             ShellInstance.ChangeBackgroundColor();

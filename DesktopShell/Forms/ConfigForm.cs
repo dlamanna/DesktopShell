@@ -28,9 +28,9 @@ public partial class ConfigForm : Form
                 AutoSize = true,
                 CheckAlign = ContentAlignment.MiddleRight
             };
-            if (i < Properties.Settings.multiscreenEnabled.Count)
+            if (i < Properties.Settings.MultiscreenEnabled.Count)
             {
-                if (Properties.Settings.multiscreenEnabled[i])
+                if (Properties.Settings.MultiscreenEnabled[i])
                 {
                     tempBox.CheckState = CheckState.Checked;
                 }
@@ -56,7 +56,7 @@ public partial class ConfigForm : Form
         }
 
         //checkbox initialization
-        if (Properties.Settings.hourlyChimeChecked)
+        if (Properties.Settings.HourlyChimeChecked)
         {
             hourlyChimeCheckbox.CheckState = CheckState.Checked;
         }
@@ -65,8 +65,8 @@ public partial class ConfigForm : Form
             hourlyChimeCheckbox.CheckState = CheckState.Unchecked;
         }
 
-        textColorInputBox.Text = ColorTranslator.ToHtml(Properties.Settings.foregroundColor);           //foreground color initialization            
-        backgroundColorInputBox.Text = ColorTranslator.ToHtml(Properties.Settings.backgroundColor);     //background color initialization           
+        textColorInputBox.Text = ColorTranslator.ToHtml(Properties.Settings.ForegroundColor);           //foreground color initialization            
+        backgroundColorInputBox.Text = ColorTranslator.ToHtml(Properties.Settings.BackgroundColor);     //background color initialization           
         Location = Cursor.Position;                                                                     //set initial position
     }
 
@@ -74,7 +74,7 @@ public partial class ConfigForm : Form
     {
         string whichCheckBox = ((CheckBox)sender).Name.Replace("multiScreenCheckbox", "");
         int checkBoxIdx = Convert.ToInt32(whichCheckBox) - 1;
-        Properties.Settings.multiscreenEnabled[checkBoxIdx] = !Properties.Settings.multiscreenEnabled[checkBoxIdx];
+        Properties.Settings.MultiscreenEnabled[checkBoxIdx] = !Properties.Settings.MultiscreenEnabled[checkBoxIdx];
 
         if (GlobalVar.ShellInstance != null)
         {
@@ -104,7 +104,7 @@ public partial class ConfigForm : Form
             if (hexCheck.IsMatch(checkString))
             {
                 MessageBox.Show("Font Color Changed");
-                Properties.Settings.foregroundColor = ColorTranslator.FromHtml(checkString);    //change setting
+                Properties.Settings.ForegroundColor = ColorTranslator.FromHtml(checkString);    //change setting
                 GlobalVar.ShellInstance?.ChangeFontColor();                                     //change in program
                 Properties.Settings.WriteSettings();
             }
@@ -124,7 +124,7 @@ public partial class ConfigForm : Form
             if (hexCheck.IsMatch(checkString))
             {
                 MessageBox.Show("Background Color Changed");
-                Properties.Settings.backgroundColor = ColorTranslator.FromHtml(checkString);//Changing in settings                   
+                Properties.Settings.BackgroundColor = ColorTranslator.FromHtml(checkString);//Changing in settings                   
                 GlobalVar.ShellInstance?.ChangeBackgroundColor();                           //Changing in program
                 Properties.Settings.WriteSettings();
             }
@@ -139,7 +139,7 @@ public partial class ConfigForm : Form
     {
         if (GlobalVar.HourlyChime != null)
         {
-            GlobalVar.HourlyChime.Enabled = Properties.Settings.hourlyChimeChecked = !GlobalVar.HourlyChime.Enabled;
+            GlobalVar.HourlyChime.Enabled = Properties.Settings.HourlyChimeChecked = !GlobalVar.HourlyChime.Enabled;
             Properties.Settings.WriteSettings();
         }
     }

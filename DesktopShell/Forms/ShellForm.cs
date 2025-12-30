@@ -141,7 +141,7 @@ public partial class Shell : Form
             Interval = GlobalVar.HourlyChimeIntervalMs
         };
         GlobalVar.HourlyChime.Tick += delegate { TimerTick(); };
-        GlobalVar.HourlyChime.Enabled = Settings.hourlyChimeChecked;
+        GlobalVar.HourlyChime.Enabled = Settings.HourlyChimeChecked;
         for (int i = 0; i < GlobalVar.HoursInDay; i++)
         {
             hourSounded[i] = false;
@@ -154,12 +154,12 @@ public partial class Shell : Form
         hideTimer.Tick += delegate { HideTimerTick(hideTimer, EventArgs.Empty); };
         hideTimer.Enabled = true;
 
-        if (Settings.checkVersion)
+        if (Settings.CheckVersion)
         {
             CheckVersions();
         }
 
-        if (Settings.enableTCPServer)
+        if (Settings.EnableTCPServer)
         {
             GlobalVar.ScanHosts();
             GlobalVar.ServerInstance = new TCPServer();
@@ -619,7 +619,7 @@ public partial class Shell : Form
     {
         string? rawSearch = Games().Replace(originalCMD, "");
         GlobalVar.FileChoices.Clear();
-        DirectoryInfo dir = new(Settings.gamesDirectory);
+        DirectoryInfo dir = new(Settings.GamesDirectory);
         foreach (var f in dir.GetFiles())
         {
             if (f.Name.ToLower().Contains(rawSearch, StringComparison.CurrentCulture))
@@ -644,7 +644,7 @@ public partial class Shell : Form
     {
         string? rawSearch = MusicSearch().Replace(originalCMD, "");
         GlobalVar.FileChoices.Clear();
-        DirectoryInfo dir = new(Properties.Settings.musicDirectory);
+        DirectoryInfo dir = new(Settings.MusicDirectory);
         foreach (var f in dir.GetFiles())
         {
             if ((f.Name.Contains(".mp3", StringComparison.CurrentCulture)) || (f.Name.Contains(".wav", StringComparison.CurrentCulture)) || (f.Name.Contains(".mp4", StringComparison.CurrentCulture)) || (f.Name.Contains(".flac", StringComparison.CurrentCulture)))
@@ -673,7 +673,7 @@ public partial class Shell : Form
         string? rawSearch = MovieSearch().Replace(originalCMD, "");
         GlobalVar.FileChoices.Clear();
         List<FileInfo> tempList2 = [];
-        string[] tempList = Directory.GetFiles(Settings.moviesDirectory, "*.*", SearchOption.AllDirectories);
+        string[] tempList = Directory.GetFiles(Settings.MoviesDirectory, "*.*", SearchOption.AllDirectories);
         foreach (string s in tempList)
         {
             tempList2.Add(new FileInfo(s));
@@ -1013,11 +1013,11 @@ public partial class Shell : Form
 
     public void Shell_Load(object sender, EventArgs e)
     {
-        GlobalVar.SetCentered(Screen.FromPoint(Settings.positionSave), this);
+        GlobalVar.SetCentered(Screen.FromPoint(Settings.PositionSave), this);
 
         // Getting colors from settings.ini
-        BackColor = textBox1.BackColor = label1.BackColor = button1.BackColor = GlobalVar.BackColor = Settings.backgroundColor;
-        button1.ForeColor = textBox1.ForeColor = label1.ForeColor = GlobalVar.FontColor = Settings.foregroundColor;
+        BackColor = textBox1.BackColor = label1.BackColor = button1.BackColor = GlobalVar.BackColor = Settings.BackgroundColor;
+        button1.ForeColor = textBox1.ForeColor = label1.ForeColor = GlobalVar.FontColor = Settings.ForegroundColor;
 
         // SetForegroundWindow here to fix hung shutdown error: https://stackoverflow.com/questions/23638290/gdi-window-preventing-shutdown
         SetForegroundWindow(this.Handle);
@@ -1063,12 +1063,12 @@ public partial class Shell : Form
 
     public void ChangeFontColor()
     {
-        textBox1.ForeColor = label1.ForeColor = Settings.foregroundColor;
+        textBox1.ForeColor = label1.ForeColor = Settings.ForegroundColor;
     }
 
     public void ChangeBackgroundColor()
     {
-        textBox1.BackColor = label1.BackColor = BackColor = Settings.backgroundColor;
+        textBox1.BackColor = label1.BackColor = BackColor = Settings.BackgroundColor;
     }
 
     #endregion Change font/background Colors
