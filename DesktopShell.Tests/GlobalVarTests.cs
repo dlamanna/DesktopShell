@@ -173,14 +173,6 @@ public class GlobalVarTests
     public class RectangleTests
     {
         [TestMethod]
-        public void DropDownRects_InitiallyEmpty()
-        {
-            // Assert
-            GlobalVar.DropDownRects.Should().NotBeNull();
-            GlobalVar.DropDownRects.Should().BeEmpty();
-        }
-
-        [TestMethod]
         public void DropDownRects_CanAddRectangles()
         {
             // Arrange

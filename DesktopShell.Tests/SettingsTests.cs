@@ -6,7 +6,7 @@ using System.Text.RegularExpressions;
 namespace DesktopShell.Tests;
 
 [TestClass]
-public class SettingsTests
+public static partial class SettingsTests
 {
     [TestClass]
     public class ColorParsingTests
@@ -43,32 +43,29 @@ public class SettingsTests
     }
 
     [TestClass]
-    public class RegexPatternsTests
+    public partial class RegexPatternsTests
     {
+        [GeneratedRegex("^(#)?([a-fA-F0-9]){6}$")]
+        private static partial Regex HexColorRegex();
+
         [TestMethod]
         public void HexColorRegex_ValidFormats_Matches()
         {
-            // Arrange
-            var hexRegex = new Regex("^(#)?([a-fA-F0-9]){6}$");
-
             // Assert - valid formats
-            hexRegex.IsMatch("#FF0000").Should().BeTrue();
-            hexRegex.IsMatch("#ff0000").Should().BeTrue();
-            hexRegex.IsMatch("#AbCdEf").Should().BeTrue();
-            hexRegex.IsMatch("FF0000").Should().BeTrue();  // Without #
+            HexColorRegex().IsMatch("#FF0000").Should().BeTrue();
+            HexColorRegex().IsMatch("#ff0000").Should().BeTrue();
+            HexColorRegex().IsMatch("#AbCdEf").Should().BeTrue();
+            HexColorRegex().IsMatch("FF0000").Should().BeTrue();  // Without #
         }
 
         [TestMethod]
         public void HexColorRegex_InvalidFormats_DoesNotMatch()
         {
-            // Arrange
-            var hexRegex = new Regex("^(#)?([a-fA-F0-9]){6}$");
-
             // Assert - invalid formats
-            hexRegex.IsMatch("#GGGGGG").Should().BeFalse();  // Invalid chars
-            hexRegex.IsMatch("#FF00").Should().BeFalse();    // Too short
-            hexRegex.IsMatch("#FF00000").Should().BeFalse(); // Too long
-            hexRegex.IsMatch("not-color").Should().BeFalse();
+            HexColorRegex().IsMatch("#GGGGGG").Should().BeFalse();  // Invalid chars
+            HexColorRegex().IsMatch("#FF00").Should().BeFalse();    // Too short
+            HexColorRegex().IsMatch("#FF00000").Should().BeFalse(); // Too long
+            HexColorRegex().IsMatch("not-color").Should().BeFalse();
         }
     }
 

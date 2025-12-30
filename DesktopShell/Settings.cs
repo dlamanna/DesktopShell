@@ -19,22 +19,60 @@ internal sealed partial class Settings
     public static string TextEditor = "";
     public static bool HourlyChimeChecked = false;
     public static List<bool> MultiscreenEnabled;
-    public static bool CheckVersion = false;
     public static bool EnableTCPServer = false;
-    public static Regex FontRegex;
-    public static Regex BackgroundRegex;
-    public static Regex HourlyChimeRegex;
-    public static Regex ScreensRegex;
-    public static Regex UpdateRegex;
-    public static Regex EnableTCPServerRegex;
-    public static Regex MusicRegex;
-    public static Regex GamesRegex;
-    public static Regex MoviesRegex;
-    public static Regex ShowsRegex;
-    public static Regex VideoPlayerRegex;
-    public static Regex TextEditorRegex;
-    public static Regex PositionRegex;
-    public static System.Drawing.Point PositionSave;
+    public static Regex FontRegex => FontColorRegex();
+    public static Regex BackgroundRegex => BackgroundColorRegex();
+    public static Regex HourlyChimeRegex => HourlyChimeSettingRegex();
+    public static Regex ScreensRegex => ScreensEnabledRegex();
+    public static Regex UpdateRegex => UpdateCheckRegex();
+    public static Regex EnableTCPServerRegex => EnableTCPServerSettingRegex();
+    public static Regex MusicRegex => MusicDirectoryRegex();
+    public static Regex GamesRegex => GamesDirectoryRegex();
+    public static Regex MoviesRegex => MoviesDirectoryRegex();
+    public static Regex ShowsRegex => ShowsDirectoryRegex();
+    public static Regex VideoPlayerRegex => VideoPlayerSettingRegex();
+    public static Regex TextEditorRegex => TextEditorSettingRegex();
+    public static Regex PositionRegex => PositionSaveRegex();
+    public static Point PositionSave;
+
+    [GeneratedRegex("fontColor")]
+    private static partial Regex FontColorRegex();
+
+    [GeneratedRegex("backgroundColor")]
+    private static partial Regex BackgroundColorRegex();
+
+    [GeneratedRegex("hourlyChime")]
+    private static partial Regex HourlyChimeSettingRegex();
+
+    [GeneratedRegex("screensEnabled")]
+    private static partial Regex ScreensEnabledRegex();
+
+    [GeneratedRegex("updateCheck")]
+    private static partial Regex UpdateCheckRegex();
+
+    [GeneratedRegex("enableTCPServer")]
+    private static partial Regex EnableTCPServerSettingRegex();
+
+    [GeneratedRegex("musicDirectory")]
+    private static partial Regex MusicDirectoryRegex();
+
+    [GeneratedRegex("gamesDirectory")]
+    private static partial Regex GamesDirectoryRegex();
+
+    [GeneratedRegex("moviesDirectory")]
+    private static partial Regex MoviesDirectoryRegex();
+
+    [GeneratedRegex("showsDirectory")]
+    private static partial Regex ShowsDirectoryRegex();
+
+    [GeneratedRegex("videoPlayer")]
+    private static partial Regex VideoPlayerSettingRegex();
+
+    [GeneratedRegex("textEditor")]
+    private static partial Regex TextEditorSettingRegex();
+
+    [GeneratedRegex("positionSave")]
+    private static partial Regex PositionSaveRegex();
 
     public Settings()
     {
@@ -42,20 +80,6 @@ internal sealed partial class Settings
         //
         SettingChanging += SettingChangingEventHandler;
         SettingsSaving += SettingsSavingEventHandler;
-
-        FontRegex = new Regex("fontColor");
-        BackgroundRegex = new Regex("backgroundColor");
-        HourlyChimeRegex = new Regex("hourlyChime");
-        ScreensRegex = new Regex("screensEnabled");
-        UpdateRegex = new Regex("updateCheck");
-        EnableTCPServerRegex = new Regex("enableTCPServer");
-        MusicRegex = new Regex("musicDirectory");
-        GamesRegex = new Regex("gamesDirectory");
-        MoviesRegex = new Regex("moviesDirectory");
-        ShowsRegex = new Regex("showsDirectory");
-        VideoPlayerRegex = new Regex("videoPlayer");
-        TextEditorRegex = new Regex("textEditor");
-        PositionRegex = new Regex("positionSave");
     }
 
     private void SettingChangingEventHandler(object sender, System.Configuration.SettingChangingEventArgs e)
@@ -81,41 +105,58 @@ internal sealed partial class Settings
                 if (rawLine == null) return;
                 string? curLine = ScanLine(rawLine);
                 if (FontRegex.IsMatch(rawLine))
-                    ForegroundColor = System.Drawing.ColorTranslator.FromHtml(curLine);
+                {
+                    ForegroundColor = ColorTranslator.FromHtml(curLine);
+                }
                 else if (BackgroundRegex.IsMatch(rawLine))
-                    BackgroundColor = System.Drawing.ColorTranslator.FromHtml(curLine);
+                {
+                    BackgroundColor = ColorTranslator.FromHtml(curLine);
+                }
                 else if (HourlyChimeRegex.IsMatch(rawLine))
-                    HourlyChimeChecked = System.Convert.ToBoolean(curLine);
+                {
+                    HourlyChimeChecked = Convert.ToBoolean(curLine);
+                }
                 else if (ScreensRegex.IsMatch(rawLine))
                 {
                     string[]? screenStrings = curLine.Split(',');
                     for (int i = 0; i < screenStrings.Length; i++)
                     {
-                        //GlobalVar.log("!!! Screen" + (i+1) + " enabled: " + screenStrings[i]);
-                        MultiscreenEnabled.Add(System.Convert.ToBoolean(screenStrings[i]));
+                        MultiscreenEnabled.Add(Convert.ToBoolean(screenStrings[i]));
                     }
                 }
-                else if (UpdateRegex.IsMatch(rawLine))
-                    CheckVersion = System.Convert.ToBoolean(curLine);
                 else if (EnableTCPServerRegex.IsMatch(rawLine))
-                    EnableTCPServer = System.Convert.ToBoolean(curLine);
+                {
+                    EnableTCPServer = Convert.ToBoolean(curLine);
+                }
                 else if (MusicRegex.IsMatch(rawLine))
+                {
                     MusicDirectory = curLine;
+                }
                 else if (GamesRegex.IsMatch(rawLine))
+                {
                     GamesDirectory = curLine;
+                }
                 else if (MoviesRegex.IsMatch(rawLine))
+                {
                     MoviesDirectory = curLine;
+                }
                 else if (ShowsRegex.IsMatch(rawLine))
+                {
                     ShowsDirectory = curLine;
+                }
                 else if (VideoPlayerRegex.IsMatch(rawLine))
+                {
                     VideoPlayer = curLine;
+                }
                 else if (TextEditorRegex.IsMatch(rawLine))
+                {
                     TextEditor = curLine;
+                }
                 else if (PositionRegex.IsMatch(rawLine))
                 {
                     var positionString = curLine;
                     var g = Regex.Replace(positionString, @"[\{\}a-zA-Z=]", "").Split(',');
-                    PositionSave = new System.Drawing.Point(int.Parse(g[0]), int.Parse(g[1]));
+                    PositionSave = new Point(int.Parse(g[0]), int.Parse(g[1]));
                 }
             }
             WriteSettings(false);
@@ -133,7 +174,7 @@ internal sealed partial class Settings
             string? tempLine = sr.ReadLine();
             if (tempLine == null) return null;
 
-            int i = tempLine.IndexOf("=") + 1;
+            int i = tempLine.IndexOf('=') + 1;
             return tempLine[i..];
         }
         return null;
@@ -141,7 +182,7 @@ internal sealed partial class Settings
     public static string ScanLine(string line)
     {
         string tempLine;
-        int i = (tempLine = line).IndexOf("=") + 1;
+        int i = (tempLine = line).IndexOf('=') + 1;
         return tempLine[i..];
     }
 
@@ -151,21 +192,21 @@ internal sealed partial class Settings
     }
     public static void WriteSettings(bool toFile)
     {
-        string[] tempLines = new string[13];
-        tempLines[0] = $"fontColor={System.Drawing.ColorTranslator.ToHtml(ForegroundColor)}";
-        tempLines[1] = $"backgroundColor={System.Drawing.ColorTranslator.ToHtml(BackgroundColor)}";
-        tempLines[2] = $"hourlyChime={HourlyChimeChecked}";
-        tempLines[3] = $"screensEnabled={string.Join(",", MultiscreenEnabled)}";
-        tempLines[4] = $"updateCheck={CheckVersion}";
-        tempLines[5] = $"enableTCPServer={EnableTCPServer}";
-        tempLines[6] = $"musicDirectory={MusicDirectory}";
-        tempLines[7] = $"gamesDirectory={GamesDirectory}";
-        tempLines[8] = $"moviesDirectory={MoviesDirectory}";
-        tempLines[9] = $"showsDirectory={ShowsDirectory}";
-        tempLines[10] = $"videoPlayer={VideoPlayer}";
-        tempLines[11] = $"textEditor={TextEditor}";
-        tempLines[12] = $"positionSave={PositionSave.X},{PositionSave.Y}";
-
+        string[] tempLines =
+        [
+            $"fontColor={ColorTranslator.ToHtml(ForegroundColor)}",
+            $"backgroundColor={ColorTranslator.ToHtml(BackgroundColor)}",
+            $"hourlyChime={HourlyChimeChecked}",
+            $"screensEnabled={string.Join(",", MultiscreenEnabled)}",
+            $"enableTCPServer={EnableTCPServer}",
+            $"musicDirectory={MusicDirectory}",
+            $"gamesDirectory={GamesDirectory}",
+            $"moviesDirectory={MoviesDirectory}",
+            $"showsDirectory={ShowsDirectory}",
+            $"videoPlayer={VideoPlayer}",
+            $"textEditor={TextEditor}",
+            $"positionSave={PositionSave.X},{PositionSave.Y}",
+        ];
         if (toFile)
         {
             File.WriteAllLines("settings.ini", tempLines);

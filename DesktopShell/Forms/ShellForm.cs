@@ -29,7 +29,6 @@ public partial class Shell : Form
     private int onHour;
     private int fadeTickAmount = 0;
     private int upCounter = 0;
-    private int? shortcutCounter = 0;
 
     #endregion Declarations
 
@@ -112,14 +111,17 @@ public partial class Shell : Form
     [GeneratedRegex("(^movie(s)? ){1}")]
     private static partial Regex MovieSearch();
 
-    [GeneratedRegex("(^positionfix$){1}")]
-    private static partial Regex PositionFix();
-
     [GeneratedRegex("(^[a-zA-Z]+:){1}")]
     private static partial Regex RemoteCommand();
 
-    [GeneratedRegex("(^ver(sion)?$){1}")]
-    private static partial Regex Version();
+    [GeneratedRegex("DesktopShell")]
+    private static partial Regex DesktopShellVersionRegex();
+
+    [GeneratedRegex("^([0-9]){4}$")]
+    private static partial Regex FourDigitRegex();
+
+    [GeneratedRegex("^([0-9]){3}$")]
+    private static partial Regex ThreeDigitRegex();
 
     #endregion Hardcoded regex section
 
@@ -154,11 +156,6 @@ public partial class Shell : Form
         hideTimer.Tick += delegate { HideTimerTick(hideTimer, EventArgs.Empty); };
         hideTimer.Enabled = true;
 
-        if (Settings.CheckVersion)
-        {
-            CheckVersions();
-        }
-
         if (Settings.EnableTCPServer)
         {
             GlobalVar.ScanHosts();
@@ -169,41 +166,11 @@ public partial class Shell : Form
         PopulateWebSites();
     }
 
-    [DllImport("user32.dll")]
+    [LibraryImport("user32.dll")]
     [return: MarshalAs(UnmanagedType.Bool)]
-    static extern bool SetForegroundWindow(IntPtr hWnd);
+    private static partial bool SetForegroundWindow(IntPtr hWnd);
 
     #endregion Startup Constructor Function
-
-    #region Versioning Functions
-
-    private void CheckVersions()
-    {
-        using (var sr = new StreamReader("version.txt")) { shellVersionF = Convert.ToSingle(sr.ReadLine()); }
-
-        // Note: StreamReader cannot read from HTTP URLs directly
-        // This code is unreachable/non-functional
-        // TODO: Implement proper HTTP version checking using HttpClient
-        try
-        {
-            using var sr = new StreamReader("http://phuze.is-leet.com/version.txt");
-            shellVersionW = Convert.ToSingle(sr.ReadLine());
-        }
-        catch
-        {
-            GlobalVar.ToolTip("Version Website", "version can't be obtained");
-            return;
-        }
-
-        if (shellVersionF != shellVersionW)
-        {
-            GlobalVar.ToolTip("Update", $"Update available: {shellVersionW}");
-            GlobalVar.Run("Updater\\download.cmd");
-            Application.Exit();
-        }
-    }
-
-    #endregion Versioning Functions
 
     #region Populating combos and websites
 
@@ -211,7 +178,6 @@ public partial class Shell : Form
     {
         shortcutList.Clear();
         browserList.Clear();
-        shortcutCounter = 0;
 
         //Populate Combinations
         using (StreamReader? sr = new("shortcuts.txt"))
@@ -240,7 +206,6 @@ public partial class Shell : Form
                     }
                 }
                 shortcutList.Add(new Combination(tempKeyword, tempFilePaths, tempArguments));
-                shortcutCounter++;
             }
         }
 
@@ -297,7 +262,7 @@ public partial class Shell : Form
             if (lastCMD.Count != 0)
             {
                 upCounter++;
-                if (((lastCMD.Count) - upCounter) < 0)
+                if (lastCMD.Count < upCounter)
                 {
                     upCounter = 1;
                 }
@@ -314,7 +279,7 @@ public partial class Shell : Form
         else if (e.KeyCode == Keys.Enter)
         {
             e.SuppressKeyPress = true;                  //Prevents Beep
-            ProcessCommand((textBox1.Text).ToLower());
+            ProcessCommand(textBox1.Text.ToLower());
         }
     }
 
@@ -341,8 +306,7 @@ public partial class Shell : Form
                 continue;
             }
 
-            Match match = Regex.Match(originalCMD, combo.Keyword, RegexOptions.IgnoreCase);
-            if (match.Success)
+            if (Regex.IsMatch(originalCMD, combo.Keyword, RegexOptions.IgnoreCase))
             {
                 GlobalVar.Log($"!!! Command found in shortcuts.txt: {originalCMD}");
                 for (int i = 0; i < combo.FilePath.Count; i++)
@@ -418,12 +382,6 @@ public partial class Shell : Form
             }
 
             PopulateWebSites();
-        }
-        //Attempted Position Fix
-        else if (PositionFix().IsMatch(splitWords[0]))
-        {
-            GlobalVar.InitDropDownRects(this);
-            GlobalVar.Log("!!! Attempting Positioning Fix");
         }
         //RandomGame function
         else if (RandomGame().IsMatch(splitWords[0]))
@@ -529,30 +487,6 @@ public partial class Shell : Form
                 GlobalVar.Log($"### ShellForm::hardCodedCombos() Invalid remote command, needs to have exactly 1 ':', command has {splitString.Length - 1}");
             }
         }
-        //Outputting DesktopShell version
-        else if (Version().IsMatch(originalCMD))
-        {
-            Regex desktopShellRegex = new("DesktopShell");
-            try
-            {
-                using var sr = new StreamReader("version.txt");
-                while (!sr.EndOfStream)
-                {
-                    string? rawLine = sr.ReadLine();
-                    if (rawLine == null) return;
-
-                    if (desktopShellRegex.IsMatch(rawLine))
-                    {
-                        string? curLine = Settings.ScanLine(rawLine);   //Getting the setting value
-                        GlobalVar.ToolTip("Version", $"DesktopShell Version: {curLine}");
-                    }
-                }
-            }
-            catch (IOException e)
-            {
-                GlobalVar.Log($"### ShellForm::HardCodedCombos version.txt - {e.Message}");
-            }
-        }
         //Website section
         foreach (var combo in webSiteList)
         {
@@ -593,15 +527,13 @@ public partial class Shell : Form
                 GlobalVar.Run("Bin\\Timed Shutdown.exe", "-trigger now");
                 break;
             case { Length: > 1 } when splitWords[1] is string timeArg:
-                Regex fourdigit = new("^([0-9]){4}$");
-                Regex threedigit = new("^([0-9]){3}$");
                 string timedShutdownArgs = "-trigger clock ";
 
-                if (fourdigit.IsMatch(timeArg))
+                if (FourDigitRegex().IsMatch(timeArg))
                 {
                     timedShutdownArgs += $"{timeArg}00";
                 }
-                else if (threedigit.IsMatch(timeArg))
+                else if (ThreeDigitRegex().IsMatch(timeArg))
                 {
                     timedShutdownArgs += $"0{timeArg}00";
                 }
@@ -615,7 +547,7 @@ public partial class Shell : Form
         }
     }
 
-    private void OpenRandomGame(string originalCMD)
+    private static void OpenRandomGame(string originalCMD)
     {
         string? rawSearch = Games().Replace(originalCMD, "");
         GlobalVar.FileChoices.Clear();
@@ -640,16 +572,17 @@ public partial class Shell : Form
         }
     }
 
-    private void MusicSearcher(string originalCMD)
+    private static void MusicSearcher(string originalCMD)
     {
         string? rawSearch = MusicSearch().Replace(originalCMD, "");
         GlobalVar.FileChoices.Clear();
         DirectoryInfo dir = new(Settings.MusicDirectory);
         foreach (var f in dir.GetFiles())
         {
-            if ((f.Name.Contains(".mp3", StringComparison.CurrentCulture)) || (f.Name.Contains(".wav", StringComparison.CurrentCulture)) || (f.Name.Contains(".mp4", StringComparison.CurrentCulture)) || (f.Name.Contains(".flac", StringComparison.CurrentCulture)))
+            if (f.Name.Contains(".mp3", StringComparison.CurrentCulture) || f.Name.Contains(".wav", StringComparison.CurrentCulture) ||
+            f.Name.Contains(".mp4", StringComparison.CurrentCulture) || f.Name.Contains(".flac", StringComparison.CurrentCulture))
             {
-                if (f.Name.ToLower().Contains(rawSearch, StringComparison.CurrentCulture))
+                if (f.Name.Contains(rawSearch, StringComparison.CurrentCultureIgnoreCase))
                 {
                     GlobalVar.FileChoices.Add(f);
                 }
@@ -673,20 +606,16 @@ public partial class Shell : Form
         string? rawSearch = MovieSearch().Replace(originalCMD, "");
         GlobalVar.FileChoices.Clear();
         List<FileInfo> tempList2 = [];
-        string[] tempList = Directory.GetFiles(Settings.MoviesDirectory, "*.*", SearchOption.AllDirectories);
-        foreach (string s in tempList)
+        foreach (string s in Directory.GetFiles(Settings.MoviesDirectory, "*.*", SearchOption.AllDirectories))
         {
             tempList2.Add(new FileInfo(s));
         }
 
         foreach (var f in tempList2)
         {
-            if ((f.Name.Contains(".avi") || f.Name.Contains(".mkv") || f.Name.Contains(".rar")) && f.Name.Contains("sample"))
+            if ((f.Name.Contains(".avi") || f.Name.Contains(".mkv") || f.Name.Contains(".rar")) && f.Name.Contains("sample") && f.Name.Contains(rawSearch, StringComparison.CurrentCultureIgnoreCase))
             {
-                if (f.Name.ToLower().Contains(rawSearch))
-                {
-                    GlobalVar.FileChoices.Add(f);
-                }
+                GlobalVar.FileChoices.Add(f);
             }
         }
 
@@ -714,8 +643,7 @@ public partial class Shell : Form
             return;
         }
 
-        Match webSiteMatch = Regex.Match(originalCMD, combo.Keyword, RegexOptions.IgnoreCase);
-        if (webSiteMatch.Success)
+        if (Regex.IsMatch(originalCMD, combo.Keyword, RegexOptions.IgnoreCase))
         {
             //Choose browser
             foreach (var b in browserList)
@@ -726,8 +654,7 @@ public partial class Shell : Form
                     continue;
                 }
 
-                Match browserMatch = Regex.Match(originalCMD, b.keyword, RegexOptions.IgnoreCase);
-                if (browserMatch.Success)
+                if (Regex.IsMatch(originalCMD, b.keyword, RegexOptions.IgnoreCase))
                 {
                     browserPath = b.filePath;
                     searchTerms = b.keyword.Replace(originalCMD, "");                                   //Remove browser terms from search
@@ -887,14 +814,12 @@ public partial class Shell : Form
 
     public void TimerTick()
     {
-        if (GlobalVar.HourlyChime != null && GlobalVar.HourlyChime.Enabled)
+        if (GlobalVar.HourlyChime?.Enabled == true)
         {
             System.Media.SoundPlayer myPlayer = new();
-            string[] splitTime;
-
-            splitTime = SplitWords(DateTime.Now.ToShortTimeString());
+            string[] splitTime = SplitWords(DateTime.Now.ToShortTimeString());
             onHour = (int)Convert.ToDecimal(splitTime[0]);
-            if ((splitTime[1] == "00") && (hourSounded[onHour] == false))
+            if ((splitTime[1] == "00") && (!hourSounded[onHour]))
             {
                 myPlayer.SoundLocation = $"Sounds\\{splitTime[0]}.wav";
                 myPlayer.PlaySync();
@@ -962,7 +887,7 @@ public partial class Shell : Form
     {
         // Check if mouse is within the form's actual bounds OR the trigger area
         // Form bounds after animation
-        Rectangle formBounds = new Rectangle(
+        Rectangle formBounds = new(
             GlobalVar.LeftBound,
             GlobalVar.TopBound,
             GlobalVar.Width,
@@ -1043,7 +968,7 @@ public partial class Shell : Form
         }
         else
         {
-            GlobalVar.Log($"### ShellForm::Shell_FormClosed() - configInstance or main thread is null");
+            GlobalVar.Log("### ShellForm::Shell_FormClosed() - configInstance or main thread is null");
         }
         GlobalVar.ServerInstance?.CloseServer();
     }
