@@ -151,7 +151,7 @@ internal sealed partial class Settings
     }
     public static void WriteSettings(bool toFile)
     {
-        string[] tempLines = new string[12];
+        string[] tempLines = new string[13];
         tempLines[0] = $"fontColor={System.Drawing.ColorTranslator.ToHtml(ForegroundColor)}";
         tempLines[1] = $"backgroundColor={System.Drawing.ColorTranslator.ToHtml(BackgroundColor)}";
         tempLines[2] = $"hourlyChime={HourlyChimeChecked}";
