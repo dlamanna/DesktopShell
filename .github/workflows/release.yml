@@ -1,0 +1,49 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Publish single-file exe
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          Set-Location "$env:GITHUB_WORKSPACE"
+          $out = Join-Path $env:RUNNER_TEMP 'publish'
+          New-Item -ItemType Directory -Path $out -Force | Out-Null
+
+          dotnet publish .\DesktopShell\DesktopShell.csproj `
+            -c Release `
+            -r win-x64 `
+            --self-contained true `
+            /p:PublishSingleFile=true `
+            /p:IncludeNativeLibrariesForSelfExtract=true `
+            /p:DebugType=None `
+            -o $out
+
+          $exe = Join-Path $out 'DesktopShell.exe'
+          if (-not (Test-Path $exe)) { throw "Expected output not found: $exe" }
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            ${{ runner.temp }}/publish/DesktopShell.exe
+          generate_release_notes: true
