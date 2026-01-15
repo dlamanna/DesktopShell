@@ -1,3 +1,3 @@
 [submodule "tools/AutoUpdate"]
 	path = tools/AutoUpdate
-	url = c:\\Users\\phuze\\Dropbox\\Programming\\DesktopShellSuiteAutoUpdate
+	url = https://github.com/dlamanna/DesktopShellSuiteAutoUpdate.git
