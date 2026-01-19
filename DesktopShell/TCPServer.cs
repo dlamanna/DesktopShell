@@ -1,6 +1,7 @@
 ﻿using System.Media;
 using System.Net;
 using System.Net.Sockets;
+using System.Diagnostics;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -123,39 +124,68 @@ public class TCPServer
         return $"spike{inString}";
     }
 
-    private static string ReadStream(TcpClient tcpClient, NetworkStream clientStream)
+    private static string ReadStream(TcpClient tcpClient, Stream clientStream, CancellationToken token)
     {
-        int bytesRead;
-        byte[] message = new byte[GlobalVar.TcpBufferSize];
-        string receivedString = "";
+        var buffer = new byte[1024];
+        var collected = new List<byte>(256);
+        var idle = Stopwatch.StartNew();
 
-        do
+        while (!token.IsCancellationRequested && tcpClient.Connected)
         {
-            GlobalVar.Log($"@@@ ReadStream()");
             try
             {
-                if (clientStream.CanRead && clientStream.DataAvailable)
+                int bytesRead = clientStream.Read(buffer, 0, buffer.Length);
+                if (bytesRead <= 0)
                 {
-                    bytesRead = clientStream.Read(message, 0, GlobalVar.TcpBufferSize);
-                    if (bytesRead <= 0)
+                    return "";
+                }
+
+                idle.Restart();
+
+                for (int i = 0; i < bytesRead; i++)
+                {
+                    byte b = buffer[i];
+                    if (b == (byte)'\n')
                     {
-                        return "";
+                        string raw = Encoding.ASCII.GetString(collected.ToArray());
+                        string line = raw.TrimEnd('\r');
+                        string receivedString = TrimPassPhrase(line.Trim());
+                        GlobalVar.Log($"$$$ TCPServer::ReadStream() - {receivedString}");
+                        return receivedString;
                     }
-                    ASCIIEncoding encoder = new();
-                    receivedString = TrimPassPhrase(encoder.GetString(message, 0, bytesRead).Trim());
-                    GlobalVar.Log($"$$$ TCPServer::ReadStream() - {receivedString}");
+
+                    collected.Add(b);
+
+                    if (collected.Count >= GlobalVar.TcpBufferSize)
+                    {
+                        string raw = Encoding.ASCII.GetString(collected.ToArray());
+                        string receivedString = TrimPassPhrase(raw.Trim());
+                        GlobalVar.Log($"$$$ TCPServer::ReadStream() (buffer full) - {receivedString}");
+                        return receivedString;
+                    }
+                }
+            }
+            catch (IOException)
+            {
+                // Timeout: if we've already received some bytes and then go idle, treat it as a complete message.
+                if (collected.Count > 0 && idle.ElapsedMilliseconds >= GlobalVar.TcpMessageIdleTimeoutMs)
+                {
+                    string raw = Encoding.ASCII.GetString(collected.ToArray());
+                    string receivedString = TrimPassPhrase(raw.Trim());
+                    GlobalVar.Log($"$$$ TCPServer::ReadStream() (idle) - {receivedString}");
                     return receivedString;
                 }
+
+                Thread.Sleep(GlobalVar.TcpReadDelayMs);
             }
             catch (Exception e)
             {
                 GlobalVar.Log($"### TCPServer::ReadStream() - {e.Message}");
                 return "";
             }
-            Thread.Sleep(GlobalVar.TcpReadDelayMs);
-        } while (receivedString.Length <= 1 && tcpClient.Connected);
+        }
 
-        return receivedString;
+        return "";
     }
 
     private void HandleClientComm(object client)
@@ -164,20 +194,32 @@ public class TCPServer
         string soundLocation = $"{GlobalVar.GetSoundFolderLocation()}\\remote.wav";
         var tcpClient = (TcpClient)client;
 
-        using NetworkStream clientStream = tcpClient.GetStream();
-        bool isCommunicationOver = false;
-
-        do
+        Stream? clientStream = null;
+        try
         {
-            string receivedString = ReadStream(tcpClient, clientStream);
-            GlobalVar.Log($"@@@ HandleClientComm()");
-            if (receivedString.Equals(""))
+            clientStream = GlobalVar.CreateInboundCommandStream(tcpClient);
+        }
+        catch (Exception e)
+        {
+            GlobalVar.Log($"### TCPServer::HandleClientComm - Failed to create inbound stream: {e.GetType()}: {e.Message}");
+            try { tcpClient.Close(); } catch { }
+            return;
+        }
+
+        using (clientStream)
+        {
+            bool isCommunicationOver = false;
+
+            do
             {
-                Thread.Sleep(GlobalVar.WebBrowserLaunchDelayMs);
-                continue;
-            }
-            else
-            {
+                string receivedString = ReadStream(tcpClient, clientStream, token);
+                GlobalVar.Log($"@@@ HandleClientComm()");
+                if (receivedString.Equals(""))
+                {
+                    Thread.Sleep(GlobalVar.WebBrowserLaunchDelayMs);
+                    continue;
+                }
+
                 switch (receivedString)
                 {
                     case "ack":
@@ -208,12 +250,12 @@ public class TCPServer
                     case "ringdoorbell":
                         ///TODO: Add ring doorbell functionality here to pull up video stream or snapshot
                         GlobalVar.ToolTip("Ring", "");
-                        GlobalVar.SendRemoteCommand(tcpClient, "ack\r\n");
+                        GlobalVar.WriteRemoteCommand(clientStream, "ack", includePassPhrase: true);
                         break;
                     case string a when a.Contains("spike"):
                         int idx = receivedString.IndexOf("spike", StringComparison.OrdinalIgnoreCase) + "spike".Length;
                         GlobalVar.Log($"$$$ Got fake command: {receivedString[idx..]}");
-                        GlobalVar.SendRemoteCommand(tcpClient, "lol\r\n");
+                        GlobalVar.WriteRemoteCommand(clientStream, "lol", includePassPhrase: false);
                         break;
                     default:
                         //GlobalVar.SendRemoteCommand(tcpClient, "ack\r\n");
@@ -221,8 +263,8 @@ public class TCPServer
                         isCommunicationOver = true;
                         break;
                 }
-            }
-        } while (!isCommunicationOver && tcpClient.Connected);
+            } while (!isCommunicationOver && tcpClient.Connected);
+        }
 
         if (tcpClient != null)
         {

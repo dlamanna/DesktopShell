@@ -2,8 +2,10 @@
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Net;
+using System.Net.Security;
 using System.Net.Sockets;
 using System.Runtime.InteropServices;
+using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Threading;
 
@@ -35,6 +37,16 @@ public static partial class GlobalVar
     // Fallback to "default" if not set (should be changed in production)
     public static readonly string PassPhrase = Environment.GetEnvironmentVariable("DESKTOPSHELL_PASSPHRASE") ?? "default";
 
+    // Optional TLS for TCP remote commands.
+    // Enable with DESKTOPSHELL_TCP_TLS=1 and provide server cert via DESKTOPSHELL_TCP_TLS_PFX + DESKTOPSHELL_TCP_TLS_PFX_PASSWORD.
+    // Client validates via OS trust by default; for self-signed, pin with DESKTOPSHELL_TCP_TLS_THUMBPRINT.
+    public static bool TcpTlsEnabled => string.Equals(Environment.GetEnvironmentVariable("DESKTOPSHELL_TCP_TLS"), "1", StringComparison.OrdinalIgnoreCase);
+    public static string? TcpTlsPfxPath => Environment.GetEnvironmentVariable("DESKTOPSHELL_TCP_TLS_PFX");
+    public static string? TcpTlsPfxPassword => Environment.GetEnvironmentVariable("DESKTOPSHELL_TCP_TLS_PFX_PASSWORD");
+    public static string? TcpTlsPinnedThumbprint => Environment.GetEnvironmentVariable("DESKTOPSHELL_TCP_TLS_THUMBPRINT");
+
+    private static X509Certificate2? tcpServerCertificate;
+
     // FilePath Section
     public static string CurrentAssemblyDirectory = Directory.GetCurrentDirectory();
 
@@ -63,6 +75,10 @@ public static partial class GlobalVar
     // Network Constants
     public const int TcpBufferSize = 4096;
     public const int TcpConnectionTimeoutSeconds = 5;
+    public const int TcpReadTimeoutMs = 250;
+    public const int TcpMessageIdleTimeoutMs = 1500;
+
+    public const string TcpMessageTerminator = "\r\n";
 
     // UI Layout Constants
     public const int HoursInDay = 24;
@@ -357,6 +373,115 @@ public static partial class GlobalVar
     #endregion
 
     #region Networking Functions
+    public static bool TryGetTcpServerCertificate(out X509Certificate2? certificate)
+    {
+        certificate = tcpServerCertificate;
+        if (certificate != null)
+        {
+            return true;
+        }
+
+        if (!TcpTlsEnabled)
+        {
+            return false;
+        }
+
+        if (string.IsNullOrWhiteSpace(TcpTlsPfxPath))
+        {
+            Log("### TCP TLS enabled but DESKTOPSHELL_TCP_TLS_PFX not set");
+            return false;
+        }
+
+        try
+        {
+            certificate = new X509Certificate2(TcpTlsPfxPath, TcpTlsPfxPassword);
+            tcpServerCertificate = certificate;
+            return true;
+        }
+        catch (Exception e)
+        {
+            Log($"### Failed to load TCP TLS certificate: {e.GetType()}: {e.Message}");
+            return false;
+        }
+    }
+
+    public static string EnsureMessageTerminator(string command)
+    {
+        if (string.IsNullOrEmpty(command))
+        {
+            return TcpMessageTerminator;
+        }
+
+        if (command.EndsWith("\n", StringComparison.Ordinal))
+        {
+            return command;
+        }
+
+        return command + TcpMessageTerminator;
+    }
+
+    public static Stream CreateInboundCommandStream(TcpClient tcpClient)
+    {
+        NetworkStream networkStream = tcpClient.GetStream();
+        networkStream.ReadTimeout = TcpReadTimeoutMs;
+        networkStream.WriteTimeout = TcpReadTimeoutMs;
+
+        if (!TcpTlsEnabled)
+        {
+            return networkStream;
+        }
+
+        if (!TryGetTcpServerCertificate(out var certificate) || certificate == null)
+        {
+            throw new InvalidOperationException("TCP TLS is enabled but server certificate is unavailable");
+        }
+
+        var sslStream = new SslStream(networkStream, leaveInnerStreamOpen: false);
+        sslStream.AuthenticateAsServer(
+            certificate,
+            clientCertificateRequired: false,
+            enabledSslProtocols: System.Security.Authentication.SslProtocols.Tls12 | System.Security.Authentication.SslProtocols.Tls13,
+            checkCertificateRevocation: false);
+        return sslStream;
+    }
+
+    public static Stream CreateOutboundCommandStream(Socket connectedSocket, string serverHost)
+    {
+        var networkStream = new NetworkStream(connectedSocket, ownsSocket: false)
+        {
+            ReadTimeout = TcpReadTimeoutMs,
+            WriteTimeout = TcpReadTimeoutMs
+        };
+
+        if (!TcpTlsEnabled)
+        {
+            return networkStream;
+        }
+
+        string? pinnedThumbprint = TcpTlsPinnedThumbprint;
+        RemoteCertificateValidationCallback validator = (sender, cert, chain, sslPolicyErrors) =>
+        {
+            if (cert == null)
+            {
+                return false;
+            }
+
+            if (!string.IsNullOrWhiteSpace(pinnedThumbprint))
+            {
+                var presented = new X509Certificate2(cert);
+                string presentedThumbprint = presented.Thumbprint?.Replace(" ", "", StringComparison.OrdinalIgnoreCase) ?? "";
+                string expected = pinnedThumbprint.Replace(" ", "", StringComparison.OrdinalIgnoreCase);
+                return string.Equals(presentedThumbprint, expected, StringComparison.OrdinalIgnoreCase);
+            }
+
+            return sslPolicyErrors == SslPolicyErrors.None;
+        };
+
+        var sslStream = new SslStream(networkStream, leaveInnerStreamOpen: false, validator);
+        sslStream.AuthenticateAsClient(serverHost);
+        return sslStream;
+    }
+
     public static void ScanHosts()
     {
         try
@@ -396,9 +521,8 @@ public static partial class GlobalVar
                 return;
             }
 
-            ASCIIEncoding encoder = new();
-            byte[] buffer = encoder.GetBytes(PassPhrase + command);
-            clientSocket.Send(buffer);
+            using Stream stream = CreateOutboundCommandStream(clientSocket, serverHost);
+            WriteRemoteCommand(stream, command, includePassPhrase: true);
 
             try
             {
@@ -415,6 +539,28 @@ public static partial class GlobalVar
         }
     }
 
+    public static void WriteRemoteCommand(Stream stream, string command, bool includePassPhrase)
+    {
+        try
+        {
+            if (!stream.CanWrite)
+            {
+                Log("### GlobalVar::WriteRemoteCommand: stream not writable");
+                return;
+            }
+
+            string terminated = EnsureMessageTerminator(command);
+            string payload = includePassPhrase ? PassPhrase + terminated : terminated;
+            byte[] buffer = Encoding.ASCII.GetBytes(payload);
+            stream.Write(buffer, 0, buffer.Length);
+            stream.Flush();
+        }
+        catch (Exception e)
+        {
+            Log($"### GlobalVar::WriteRemoteCommand() - {e.GetType()}: {e.Message}");
+        }
+    }
+
     public static void SendRemoteCommand(TcpClient client, string command)
     {
         try
@@ -422,9 +568,8 @@ public static partial class GlobalVar
             NetworkStream stream = client.GetStream();
             if (stream.CanWrite)
             {
-                ASCIIEncoding encoder = new();
-                byte[] buffer = command.Equals("lol\r\n") ? encoder.GetBytes(command) : encoder.GetBytes(PassPhrase + command);
-                stream.Write(buffer, 0, buffer.Length);
+                bool includePassPhrase = !command.Equals("lol\r\n");
+                WriteRemoteCommand(stream, command, includePassPhrase);
                 if (client.Client.RemoteEndPoint is IPEndPoint endPoint)
                 {
                     Log($"!!! Sent command: '{command.Trim()}' to: {endPoint.Address}:{endPoint.Port}");
