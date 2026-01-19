@@ -10,10 +10,7 @@ namespace DesktopShell;
 public class TCPServer
 {
     private readonly TcpListener? tcplistener;
-    private readonly Thread? listenThread;
     private readonly int portNum;
-    private TcpClient tcpClient;
-    private NetworkStream clientStream;
     private readonly CancellationTokenSource cts = new();
     private readonly CancellationToken token;
 
@@ -21,6 +18,8 @@ public class TCPServer
     {
         string hostName = Dns.GetHostName().Trim().ToLower();
         token = cts.Token;
+
+        bool foundHostPort = false;
 
         foreach (KeyValuePair<string, string> hostPair in GlobalVar.HostList)
         {
@@ -33,16 +32,24 @@ public class TCPServer
                     GlobalVar.Log($"### Error trying to parse port number as int: {hostPair.Value}");
                     return;
                 }
+
+                foundHostPort = true;
+                break;
             }
+        }
+
+        if (!foundHostPort || portNum <= 0)
+        {
+            GlobalVar.Log($"### TCPServer not started: host '{hostName}' missing/invalid port in hostlist.txt");
+            return;
         }
 
         try
         {
             tcplistener = new TcpListener(IPAddress.Any, portNum);
-            listenThread = new Thread(new ThreadStart(ListenForClients));
-            {
-                listenThread.Start();
-            }
+            var listenThread = new Thread(ListenForClients);
+            listenThread.IsBackground = true;
+            listenThread.Start();
         }
         catch (Exception e)
         {
@@ -52,43 +59,71 @@ public class TCPServer
 
     private void ListenForClients()
     {
-        if (tcplistener != null)
+        if (tcplistener == null)
+        {
+            return;
+        }
+
+        try
         {
             tcplistener.Start();
-            Task task = Task.Run(async () =>
+
+            while (!token.IsCancellationRequested)
             {
-                while (!token.IsCancellationRequested)
+                TcpClient? acceptedClient = null;
+                try
                 {
+                    acceptedClient = tcplistener.AcceptTcpClient();
+                    var clientThread = new Thread(HandleClientComm);
+                    clientThread.IsBackground = true;
+                    clientThread.Start(acceptedClient);
+                }
+                catch (SocketException) when (token.IsCancellationRequested)
+                {
+                    // Listener was stopped during shutdown.
+                    return;
+                }
+                catch (ObjectDisposedException) when (token.IsCancellationRequested)
+                {
+                    return;
+                }
+                catch (Exception e)
+                {
+                    GlobalVar.Log($"### TCPServer::ListenForClients() - {e.Message}");
                     try
                     {
-                        tcpClient = await tcplistener.AcceptTcpClientAsync().ConfigureAwait(false);
-                        Thread clientThread = new(new ParameterizedThreadStart(HandleClientComm));
-                        clientThread.Start(tcpClient);
-                        await Task.Delay(GlobalVar.TcpConnectionRetryDelayMs);
+                        acceptedClient?.Close();
                     }
-                    catch (Exception e)
+                    catch
                     {
-                        GlobalVar.Log($"### TCPServer::ListenForClients() - {e.Message}");
+                        // ignore
                     }
                 }
-            }, token);
+            }
+        }
+        catch (Exception e)
+        {
+            GlobalVar.Log($"### TCPServer::ListenForClients() fatal - {e.Message}");
         }
     }
 
     private static string TrimPassPhrase(string inString)
     {
-        if (inString.Contains(GlobalVar.PassPhrase))
+        if (string.IsNullOrWhiteSpace(inString))
         {
-            int startIndex = inString.IndexOf(GlobalVar.PassPhrase) + GlobalVar.PassPhrase.Length;
-            return inString[startIndex..];
+            return "";
         }
-        else
+
+        // Require the passphrase at the start of the message (prevents embedding it later in the payload).
+        if (inString.StartsWith(GlobalVar.PassPhrase, StringComparison.Ordinal))
         {
-            return $"spike{inString}";
+            return inString[GlobalVar.PassPhrase.Length..];
         }
+
+        return $"spike{inString}";
     }
 
-    private string ReadStream()
+    private static string ReadStream(TcpClient tcpClient, NetworkStream clientStream)
     {
         int bytesRead;
         byte[] message = new byte[GlobalVar.TcpBufferSize];
@@ -102,6 +137,10 @@ public class TCPServer
                 if (clientStream.CanRead && clientStream.DataAvailable)
                 {
                     bytesRead = clientStream.Read(message, 0, GlobalVar.TcpBufferSize);
+                    if (bytesRead <= 0)
+                    {
+                        return "";
+                    }
                     ASCIIEncoding encoder = new();
                     receivedString = TrimPassPhrase(encoder.GetString(message, 0, bytesRead).Trim());
                     GlobalVar.Log($"$$$ TCPServer::ReadStream() - {receivedString}");
@@ -123,13 +162,14 @@ public class TCPServer
     {
         SoundPlayer myPlayer = new();
         string soundLocation = $"{GlobalVar.GetSoundFolderLocation()}\\remote.wav";
-        tcpClient = (TcpClient)client;
-        clientStream = tcpClient.GetStream();
+        var tcpClient = (TcpClient)client;
+
+        using NetworkStream clientStream = tcpClient.GetStream();
         bool isCommunicationOver = false;
 
         do
         {
-            string receivedString = ReadStream();
+            string receivedString = ReadStream(tcpClient, clientStream);
             GlobalVar.Log($"@@@ HandleClientComm()");
             if (receivedString.Equals(""))
             {
@@ -182,7 +222,7 @@ public class TCPServer
                         break;
                 }
             }
-        } while (!isCommunicationOver || !tcpClient.Connected);
+        } while (!isCommunicationOver && tcpClient.Connected);
 
         if (tcpClient != null)
         {

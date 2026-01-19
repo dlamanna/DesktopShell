@@ -386,35 +386,33 @@ public static partial class GlobalVar
     }
     public static void SendRemoteCommand(int port, string command, string serverHost)
     {
-        Socket? clientSocket;
         try
         {
-            clientSocket = new(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-            IPAddress serverAddress = Dns.GetHostEntry(serverHost).AddressList[0];
-            IPEndPoint ipEndPoint = new(serverAddress, port);
+            using Socket clientSocket = new(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
             clientSocket.Connect(serverHost, port, TimeSpan.FromSeconds(TcpConnectionTimeoutSeconds));
-            if (clientSocket.Connected)
-            {
-                ASCIIEncoding encoder = new();
-                byte[] buffer = encoder.GetBytes(PassPhrase + command);
-                clientSocket.Send(buffer);
-            }
-            else
+            if (!clientSocket.Connected)
             {
                 Log($"### Socket not connected when trying to send '{command}', closing connection");
+                return;
+            }
+
+            ASCIIEncoding encoder = new();
+            byte[] buffer = encoder.GetBytes(PassPhrase + command);
+            clientSocket.Send(buffer);
+
+            try
+            {
+                clientSocket.Shutdown(SocketShutdown.Both);
+            }
+            catch
+            {
+                // ignore
             }
         }
         catch (Exception e)
         {
             Log($"### GlobalVar::SendRemoteCommand() - {e.GetType()}: {e.Message}");
         }
-        /*finally
-        {
-            if (clientSocket != null)
-            {
-                clientSocket.Close();
-            }             
-        }*/
     }
 
     public static void SendRemoteCommand(TcpClient client, string command)
@@ -429,7 +427,7 @@ public static partial class GlobalVar
                 stream.Write(buffer, 0, buffer.Length);
                 if (client.Client.RemoteEndPoint is IPEndPoint endPoint)
                 {
-                    Log($"!!! Sent command: '{command.Trim()}' to: {IPAddress.Parse(endPoint.Port.ToString())}");
+                    Log($"!!! Sent command: '{command.Trim()}' to: {endPoint.Address}:{endPoint.Port}");
                 }
                 else
                 {
