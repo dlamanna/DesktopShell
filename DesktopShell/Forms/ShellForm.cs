@@ -508,7 +508,7 @@ public partial class Shell : Form
         }
     }
 
-    public static void SendRemoteCommand(string port, string command, string host = "phuze.is-leet.com")
+    public static void SendRemoteCommand(string port, string command, string host = "msg.dlamanna.com")
     {
         if (!int.TryParse(port, out int portNum))
         {
