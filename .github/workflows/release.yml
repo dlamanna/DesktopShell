@@ -14,6 +14,7 @@ jobs:
 
     env:
       SUBMODULE_PAT: ${{ secrets.SUBMODULE_PAT }}
+      SUBMODULE_PATH: ${{ secrets.SUBMODULE_PATH }}
 
     steps:
       - name: Checkout
@@ -22,17 +23,28 @@ jobs:
           submodules: false
 
       - name: Fail if SUBMODULE_PAT missing
-        if: ${{ env.SUBMODULE_PAT == '' }}
+        if: ${{ env.SUBMODULE_PAT == '' && env.SUBMODULE_PATH == '' }}
         shell: pwsh
         run: |
-          Write-Error "SUBMODULE_PAT secret is not set. Configure it in repo settings (Actions secrets) with a PAT that can read the submodule repo: https://github.com/dlamanna/DesktopShellSuiteAutoUpdate.git"
+          Write-Error "Submodule token secret is not set. Configure SUBMODULE_PAT (preferred) or SUBMODULE_PATH (legacy) in repo settings (Actions secrets) with a PAT that can read: https://github.com/dlamanna/DesktopShellSuiteAutoUpdate"
 
       - name: Checkout submodules (requires SUBMODULE_PAT)
-        if: ${{ env.SUBMODULE_PAT != '' }}
+        if: ${{ env.SUBMODULE_PAT != '' || env.SUBMODULE_PATH != '' }}
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
-          git config --global url."https://x-access-token:$env:SUBMODULE_PAT@github.com/".insteadOf "https://github.com/"
+          $token = $env:SUBMODULE_PAT
+          if ([string]::IsNullOrWhiteSpace($token)) {
+            $token = $env:SUBMODULE_PATH
+          }
+
+          if ([string]::IsNullOrWhiteSpace($token)) {
+            throw "Submodule token was expected but was empty. Ensure SUBMODULE_PAT or SUBMODULE_PATH is set in Actions secrets."
+          }
+
+          Write-Output "Submodule token present: True"
+
+          git config --global url."https://x-access-token:$token@github.com/".insteadOf "https://github.com/"
           git submodule sync --recursive
           git submodule update --init --recursive
 
