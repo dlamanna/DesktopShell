@@ -12,6 +12,9 @@ jobs:
   build-and-release:
     runs-on: windows-latest
 
+    env:
+      SUBMODULE_PAT: ${{ secrets.SUBMODULE_PAT }}
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -19,16 +22,14 @@ jobs:
           submodules: false
 
       - name: Fail if SUBMODULE_PAT missing
-        if: ${{ secrets.SUBMODULE_PAT == '' }}
+        if: ${{ env.SUBMODULE_PAT == '' }}
         shell: pwsh
         run: |
           Write-Error "SUBMODULE_PAT secret is not set. Configure it in repo settings (Actions secrets) with a PAT that can read the submodule repo: https://github.com/dlamanna/DesktopShellSuiteAutoUpdate.git"
 
       - name: Checkout submodules (requires SUBMODULE_PAT)
-        if: ${{ secrets.SUBMODULE_PAT != '' }}
+        if: ${{ env.SUBMODULE_PAT != '' }}
         shell: pwsh
-        env:
-          SUBMODULE_PAT: ${{ secrets.SUBMODULE_PAT }}
         run: |
           $ErrorActionPreference = 'Stop'
           git config --global url."https://x-access-token:$env:SUBMODULE_PAT@github.com/".insteadOf "https://github.com/"
