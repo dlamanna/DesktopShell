@@ -227,8 +227,8 @@ internal static class MessageQueueClient
 
     private static void AddAuthHeaders(HttpRequestMessage request)
     {
-        request.Headers.TryAddWithoutValidation("CF-Access-Client-Id", GlobalVar.CfAccessClientId);
-        request.Headers.TryAddWithoutValidation("CF-Access-Client-Secret", GlobalVar.CfAccessClientSecret);
+        request.Headers.TryAddWithoutValidation(GlobalVar.HeaderCfAccessClientId, GlobalVar.CfAccessClientId);
+        request.Headers.TryAddWithoutValidation(GlobalVar.HeaderCfAccessClientSecret, GlobalVar.CfAccessClientSecret);
     }
 
     private static string? DecodeCommand(PulledMessage msg)

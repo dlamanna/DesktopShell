@@ -48,11 +48,38 @@ public static partial class GlobalVar
     public static string? TcpTlsPinnedThumbprint => Environment.GetEnvironmentVariable("DESKTOPSHELL_TCP_TLS_THUMBPRINT");
 
     // HTTPS message queue fallback (Cloudflare Worker + Durable Objects)
-    public static bool QueueEnabled => string.Equals(Environment.GetEnvironmentVariable("DESKTOPSHELL_QUEUE_ENABLED"), "1", StringComparison.OrdinalIgnoreCase);
-    public static string QueueBaseUrl => (Environment.GetEnvironmentVariable("DESKTOPSHELL_QUEUE_BASEURL") ?? "https://queue.dlamanna.com").TrimEnd('/');
-    public static string? QueueKeyBase64 => Environment.GetEnvironmentVariable("DESKTOPSHELL_QUEUE_KEY_B64");
-    public static string? CfAccessClientId => Environment.GetEnvironmentVariable("DESKTOPSHELL_CF_ACCESS_CLIENT_ID");
-    public static string? CfAccessClientSecret => Environment.GetEnvironmentVariable("DESKTOPSHELL_CF_ACCESS_CLIENT_SECRET");
+    public const string EnvQueueEnabled = "DESKTOPSHELL_QUEUE_ENABLED";
+    public const string EnvQueueBaseUrl = "DESKTOPSHELL_QUEUE_BASEURL";
+    public const string EnvQueueKeyBase64 = "DESKTOPSHELL_QUEUE_KEY_B64";
+    public const string EnvCfAccessClientId = "DESKTOPSHELL_CF_ACCESS_CLIENT_ID";
+    public const string EnvCfAccessClientSecret = "DESKTOPSHELL_CF_ACCESS_CLIENT_SECRET";
+
+    public const string HeaderCfAccessClientId = "CF-Access-Client-Id";
+    public const string HeaderCfAccessClientSecret = "CF-Access-Client-Secret";
+
+    public static bool QueueEnabled => string.Equals(Environment.GetEnvironmentVariable(EnvQueueEnabled), "1", StringComparison.OrdinalIgnoreCase);
+    public static string QueueBaseUrl => (Environment.GetEnvironmentVariable(EnvQueueBaseUrl) ?? "https://queue.dlamanna.com").TrimEnd('/');
+    public static string? QueueKeyBase64 => Environment.GetEnvironmentVariable(EnvQueueKeyBase64);
+    public static string? CfAccessClientId => Environment.GetEnvironmentVariable(EnvCfAccessClientId);
+    public static string? CfAccessClientSecret => Environment.GetEnvironmentVariable(EnvCfAccessClientSecret);
+
+    public static bool IsQueueConfiguredForAccess(out string? reason)
+    {
+        if (!QueueEnabled)
+        {
+            reason = $"{EnvQueueEnabled} is not enabled";
+            return false;
+        }
+
+        if (string.IsNullOrWhiteSpace(CfAccessClientId) || string.IsNullOrWhiteSpace(CfAccessClientSecret))
+        {
+            reason = $"Missing {EnvCfAccessClientId} and/or {EnvCfAccessClientSecret}";
+            return false;
+        }
+
+        reason = null;
+        return true;
+    }
 
     private static X509Certificate2? tcpServerCertificate;
 
