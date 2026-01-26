@@ -132,6 +132,9 @@ public partial class Shell : Form
         GlobalVar.ResetLog();
         Settings.ScanSettings();
 
+        // Needed for both the local TCP server port selection and remote command routing.
+        GlobalVar.ScanHosts();
+
         InitializeComponent();
 
         // Initialize DropDown Rects
@@ -158,12 +161,24 @@ public partial class Shell : Form
 
         if (Settings.EnableTCPServer)
         {
-            GlobalVar.ScanHosts();
             GlobalVar.ServerInstance = new TCPServer();
         }
 
         PopulateCombos();
         PopulateWebSites();
+
+        // Store-and-forward: pull pending queued messages once at startup.
+        this.Shown += async (_, _) =>
+        {
+            try
+            {
+                await MessageQueueClient.ProcessPendingOnceOnStartupAsync(this, CancellationToken.None);
+            }
+            catch (Exception e)
+            {
+                GlobalVar.Log($"### Startup queue processing failed: {e.GetType()}: {e.Message}");
+            }
+        };
     }
 
     [LibraryImport("user32.dll")]
@@ -474,7 +489,7 @@ public partial class Shell : Form
                     {
                         foundHost = true;
                         GlobalVar.Log($"!!! ShellForm::hardCodedCombos() Sending command: {remoteCommand} // to: {hostPair.Value}");
-                        SendRemoteCommand(hostPair.Value, remoteCommand, hostPair.Key);
+                        SendRemoteCommand(hostName, hostPair.Value, remoteCommand);
                     }
                 }
                 if (!foundHost)
@@ -508,7 +523,7 @@ public partial class Shell : Form
         }
     }
 
-    public static void SendRemoteCommand(string port, string command, string host = "msg.dlamanna.com")
+    public static void SendRemoteCommand(string targetName, string port, string command)
     {
         if (!int.TryParse(port, out int portNum))
         {
@@ -516,7 +531,7 @@ public partial class Shell : Form
             return;
         }
 
-        GlobalVar.SendRemoteCommand(portNum, command, host);
+        GlobalVar.SendRemoteCommandWithQueueFallback(targetName, portNum, command);
     }
 
     private static void TimedShutdown(string[] splitWords)

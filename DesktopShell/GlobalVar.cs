@@ -8,6 +8,8 @@ using System.Runtime.InteropServices;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Threading;
+using System.Text.Json;
+using System.Security.Cryptography;
 
 namespace DesktopShell;
 
@@ -44,6 +46,13 @@ public static partial class GlobalVar
     public static string? TcpTlsPfxPath => Environment.GetEnvironmentVariable("DESKTOPSHELL_TCP_TLS_PFX");
     public static string? TcpTlsPfxPassword => Environment.GetEnvironmentVariable("DESKTOPSHELL_TCP_TLS_PFX_PASSWORD");
     public static string? TcpTlsPinnedThumbprint => Environment.GetEnvironmentVariable("DESKTOPSHELL_TCP_TLS_THUMBPRINT");
+
+    // HTTPS message queue fallback (Cloudflare Worker + Durable Objects)
+    public static bool QueueEnabled => string.Equals(Environment.GetEnvironmentVariable("DESKTOPSHELL_QUEUE_ENABLED"), "1", StringComparison.OrdinalIgnoreCase);
+    public static string QueueBaseUrl => (Environment.GetEnvironmentVariable("DESKTOPSHELL_QUEUE_BASEURL") ?? "https://queue.dlamanna.com").TrimEnd('/');
+    public static string? QueueKeyBase64 => Environment.GetEnvironmentVariable("DESKTOPSHELL_QUEUE_KEY_B64");
+    public static string? CfAccessClientId => Environment.GetEnvironmentVariable("DESKTOPSHELL_CF_ACCESS_CLIENT_ID");
+    public static string? CfAccessClientSecret => Environment.GetEnvironmentVariable("DESKTOPSHELL_CF_ACCESS_CLIENT_SECRET");
 
     private static X509Certificate2? tcpServerCertificate;
 
@@ -509,7 +518,75 @@ public static partial class GlobalVar
             Log($"### GlobalVar::ScanHosts() - {e.Message}");
         }
     }
-    public static void SendRemoteCommand(int port, string command, string serverHost)
+
+    private static string TrimPassPhrasePrefix(string text)
+    {
+        if (string.IsNullOrEmpty(text)) return "";
+        if (text.StartsWith(PassPhrase, StringComparison.Ordinal))
+        {
+            return text[PassPhrase.Length..];
+        }
+        return text;
+    }
+
+    private static string? ReadSingleLineResponse(Stream stream)
+    {
+        if (!stream.CanRead)
+        {
+            return null;
+        }
+
+        var buffer = new byte[1024];
+        var collected = new List<byte>(256);
+        var idle = Stopwatch.StartNew();
+
+        while (idle.ElapsedMilliseconds < TcpMessageIdleTimeoutMs)
+        {
+            try
+            {
+                int bytesRead = stream.Read(buffer, 0, buffer.Length);
+                if (bytesRead <= 0)
+                {
+                    break;
+                }
+
+                idle.Restart();
+
+                for (int i = 0; i < bytesRead; i++)
+                {
+                    byte b = buffer[i];
+                    if (b == (byte)'\n')
+                    {
+                        string raw = Encoding.ASCII.GetString(collected.ToArray());
+                        return raw.TrimEnd('\r');
+                    }
+                    collected.Add(b);
+
+                    if (collected.Count >= TcpBufferSize)
+                    {
+                        return Encoding.ASCII.GetString(collected.ToArray());
+                    }
+                }
+            }
+            catch (IOException)
+            {
+                if (collected.Count > 0 && idle.ElapsedMilliseconds >= TcpMessageIdleTimeoutMs)
+                {
+                    return Encoding.ASCII.GetString(collected.ToArray());
+                }
+
+                Thread.Sleep(TcpReadDelayMs);
+            }
+            catch
+            {
+                break;
+            }
+        }
+
+        return collected.Count > 0 ? Encoding.ASCII.GetString(collected.ToArray()) : null;
+    }
+
+    public static bool TrySendRemoteCommandTcpWithAck(int port, string command, string serverHost)
     {
         try
         {
@@ -518,11 +595,28 @@ public static partial class GlobalVar
             if (!clientSocket.Connected)
             {
                 Log($"### Socket not connected when trying to send '{command}', closing connection");
-                return;
+                return false;
             }
 
             using Stream stream = CreateOutboundCommandStream(clientSocket, serverHost);
             WriteRemoteCommand(stream, command, includePassPhrase: true);
+
+            // Wait for server ACK to confirm delivery.
+            string? responseRaw = ReadSingleLineResponse(stream);
+            string response = TrimPassPhrasePrefix((responseRaw ?? "").Trim());
+            if (string.Equals(response, "ack", StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+
+            if (string.Equals(response, "lol", StringComparison.OrdinalIgnoreCase))
+            {
+                Log("### Remote returned 'lol' (likely bad passphrase)");
+            }
+            else
+            {
+                Log($"### No ACK received (response='{responseRaw ?? ""}')");
+            }
 
             try
             {
@@ -532,10 +626,41 @@ public static partial class GlobalVar
             {
                 // ignore
             }
+
+            return false;
         }
         catch (Exception e)
         {
             Log($"### GlobalVar::SendRemoteCommand() - {e.GetType()}: {e.Message}");
+            return false;
+        }
+    }
+
+    public static void SendRemoteCommandWithQueueFallback(string targetName, int port, string command)
+    {
+        const string tcpHost = "msg.dlamanna.com";
+
+        bool delivered = TrySendRemoteCommandTcpWithAck(port, command, tcpHost);
+        if (delivered)
+        {
+            Log($"!!! Delivered command to {targetName} via TCP");
+            return;
+        }
+
+        if (!QueueEnabled)
+        {
+            Log($"### TCP delivery failed and queue disabled. target={targetName}");
+            return;
+        }
+
+        bool queued = MessageQueueClient.TryEnqueue(targetName, command);
+        if (queued)
+        {
+            ToolTip("TCP", $"Message queued for {targetName}:\n{command}");
+        }
+        else
+        {
+            Log($"### Failed to queue message for {targetName}");
         }
     }
 

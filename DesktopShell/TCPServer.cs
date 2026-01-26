@@ -260,6 +260,7 @@ public class TCPServer
                     default:
                         //GlobalVar.SendRemoteCommand(tcpClient, "ack\r\n");
                         GlobalVar.ShellInstance?.ProcessCommand(receivedString);
+                        GlobalVar.WriteRemoteCommand(clientStream, "ack", includePassPhrase: true);
                         isCommunicationOver = true;
                         break;
                 }
