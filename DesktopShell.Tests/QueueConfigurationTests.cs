@@ -57,7 +57,9 @@ public class QueueConfigurationTests
     {
         Environment.SetEnvironmentVariable(GlobalVar.EnvQueueEnabled, "1");
         Environment.SetEnvironmentVariable(GlobalVar.EnvCfAccessClientId, "id");
-        Environment.SetEnvironmentVariable(GlobalVar.EnvCfAccessClientSecret, null);
+        // Set to empty string (not null) so the process-scope value wins even if
+        // the machine/user scopes have a configured secret on the dev box.
+        Environment.SetEnvironmentVariable(GlobalVar.EnvCfAccessClientSecret, "");
 
         GlobalVar.IsQueueConfiguredForAccess(out var reason).Should().BeFalse();
         reason.Should().Contain(GlobalVar.EnvCfAccessClientSecret);

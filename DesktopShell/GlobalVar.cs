@@ -57,11 +57,82 @@ public static partial class GlobalVar
     public const string HeaderCfAccessClientId = "CF-Access-Client-Id";
     public const string HeaderCfAccessClientSecret = "CF-Access-Client-Secret";
 
-    public static bool QueueEnabled => string.Equals(Environment.GetEnvironmentVariable(EnvQueueEnabled), "1", StringComparison.OrdinalIgnoreCase);
-    public static string QueueBaseUrl => (Environment.GetEnvironmentVariable(EnvQueueBaseUrl) ?? "https://queue.dlamanna.com").TrimEnd('/');
-    public static string? QueueKeyBase64 => Environment.GetEnvironmentVariable(EnvQueueKeyBase64);
-    public static string? CfAccessClientId => Environment.GetEnvironmentVariable(EnvCfAccessClientId);
-    public static string? CfAccessClientSecret => Environment.GetEnvironmentVariable(EnvCfAccessClientSecret);
+    private static string? GetEnvValue(string name)
+    {
+        // IMPORTANT: Environment.GetEnvironmentVariable(name) reads only the *process* environment.
+        // If variables were set via registry (setx / System Properties), Explorer may not have picked
+        // them up yet, and new processes can inherit stale values. Falling back to User/Machine makes
+        // DesktopShell resilient without requiring logoff/rebootestart.
+
+        string? processValue = Environment.GetEnvironmentVariable(name);
+        if (processValue != null)
+        {
+            return processValue.Trim();
+        }
+
+        try
+        {
+            string? userValue = Environment.GetEnvironmentVariable(name, EnvironmentVariableTarget.User);
+            if (userValue != null)
+            {
+                return userValue.Trim();
+            }
+        }
+        catch
+        {
+            // ignore
+        }
+
+        try
+        {
+            string? machineValue = Environment.GetEnvironmentVariable(name, EnvironmentVariableTarget.Machine);
+            if (machineValue != null)
+            {
+                return machineValue.Trim();
+            }
+        }
+        catch
+        {
+            // ignore
+        }
+
+        return null;
+    }
+
+    private static string GetEnvSource(string name)
+    {
+        // Returns the first scope where the variable exists (even if empty string).
+        if (Environment.GetEnvironmentVariable(name) != null) return "process";
+        try
+        {
+            if (Environment.GetEnvironmentVariable(name, EnvironmentVariableTarget.User) != null) return "user";
+        }
+        catch { }
+        try
+        {
+            if (Environment.GetEnvironmentVariable(name, EnvironmentVariableTarget.Machine) != null) return "machine";
+        }
+        catch { }
+        return "missing";
+    }
+
+    public static void LogQueueEnvSummary()
+    {
+        // Safe logging: no secret values, only presence/length and source.
+        string enabledRaw = GetEnvValue(EnvQueueEnabled) ?? "";
+        string? id = GetEnvValue(EnvCfAccessClientId);
+        string? secret = GetEnvValue(EnvCfAccessClientSecret);
+
+        Log($"^^^ Queue env: {EnvQueueEnabled}='{enabledRaw}' (source={GetEnvSource(EnvQueueEnabled)}), " +
+            $"{EnvCfAccessClientId}={(string.IsNullOrWhiteSpace(id) ? "missing" : "set")} (len={(id ?? "").Length}, source={GetEnvSource(EnvCfAccessClientId)}), " +
+            $"{EnvCfAccessClientSecret}={(string.IsNullOrWhiteSpace(secret) ? "missing" : "set")} (len={(secret ?? "").Length}, source={GetEnvSource(EnvCfAccessClientSecret)})");
+    }
+
+    public static bool QueueEnabled => string.Equals(GetEnvValue(EnvQueueEnabled), "1", StringComparison.OrdinalIgnoreCase);
+    public static string QueueBaseUrl => (GetEnvValue(EnvQueueBaseUrl) ?? "https://queue.dlamanna.com").TrimEnd('/');
+    public static string? QueueKeyBase64 => GetEnvValue(EnvQueueKeyBase64);
+    public static string? CfAccessClientId => GetEnvValue(EnvCfAccessClientId);
+    public static string? CfAccessClientSecret => GetEnvValue(EnvCfAccessClientSecret);
 
     public static string NormalizeHostName(string? hostName)
     {
