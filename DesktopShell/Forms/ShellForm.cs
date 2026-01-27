@@ -1,5 +1,6 @@
 ﻿using DesktopShell.Properties;
 using System.Runtime.InteropServices;
+using System.Text.RegularExpressions;
 using System.Threading;
 
 namespace DesktopShell;
@@ -114,14 +115,14 @@ public partial class Shell : Form
     [GeneratedRegex("(^[a-zA-Z]+:){1}")]
     private static partial Regex RemoteCommand();
 
-    [GeneratedRegex("DesktopShell")]
-    private static partial Regex DesktopShellVersionRegex();
-
     [GeneratedRegex("^([0-9]){4}$")]
     private static partial Regex FourDigitRegex();
 
     [GeneratedRegex("^([0-9]){3}$")]
     private static partial Regex ThreeDigitRegex();
+
+    [GeneratedRegex("^(tooltip|note|tip)$")]
+    private static partial Regex Tooltip();
 
     #endregion Hardcoded regex section
 
@@ -397,6 +398,12 @@ public partial class Shell : Form
             }
 
             PopulateWebSites();
+        }
+        else if (Tooltip().IsMatch(splitWords[0]))
+        {
+            string? title = "ToolTip";
+            string? message = splitWords[^1];
+            GlobalVar.ToolTip(title, message);
         }
         //RandomGame function
         else if (RandomGame().IsMatch(splitWords[0]))
