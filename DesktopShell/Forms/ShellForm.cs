@@ -486,13 +486,13 @@ public partial class Shell : Form
             string[] splitString = originalCMD.Split(':');
             if (splitString is { Length: 2 })
             {
-                string? remoteName = splitString[0];
-                string? remoteCommand = splitString[^1];       //^1 = Length-1
+                string remoteName = GlobalVar.NormalizeHostName(splitString[0]);
+                string remoteCommand = splitString[^1].Trim();       //^1 = Length-1
                 bool foundHost = false;
                 foreach (var hostPair in GlobalVar.HostList)
                 {
-                    string? hostName = hostPair.Key.Trim().ToLower();
-                    if (hostName.Equals(remoteName))
+                    string hostName = GlobalVar.NormalizeHostName(hostPair.Key);
+                    if (string.Equals(hostName, remoteName, StringComparison.OrdinalIgnoreCase))
                     {
                         foundHost = true;
                         GlobalVar.Log($"!!! ShellForm::hardCodedCombos() Sending command: {remoteCommand} // to: {hostPair.Value}");

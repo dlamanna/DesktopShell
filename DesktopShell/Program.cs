@@ -18,6 +18,10 @@ static class Program
     {
         try
         {
+            // Ensure relative file loads (hostlist.txt, settings.ini, shortcuts.txt, etc.)
+            // resolve next to the installed executable, even when launched from Task Scheduler.
+            Directory.SetCurrentDirectory(AppContext.BaseDirectory);
+
             // Set DPI awareness before enabling visual styles
             if (Environment.OSVersion.Version.Major >= 6)
             {

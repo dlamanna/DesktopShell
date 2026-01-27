@@ -63,6 +63,22 @@ public static partial class GlobalVar
     public static string? CfAccessClientId => Environment.GetEnvironmentVariable(EnvCfAccessClientId);
     public static string? CfAccessClientSecret => Environment.GetEnvironmentVariable(EnvCfAccessClientSecret);
 
+    public static string NormalizeHostName(string? hostName)
+    {
+        if (string.IsNullOrWhiteSpace(hostName))
+        {
+            return "";
+        }
+
+        // Be defensive about invisible leading characters (e.g., BOM / zero-width spaces)
+        // that can sneak into text files and break equality checks.
+        return hostName
+            .Trim()
+            .Trim('\uFEFF', '\u200B', '\u00A0')
+            .Trim()
+            .ToLowerInvariant();
+    }
+
     public static bool IsQueueConfiguredForAccess(out string? reason)
     {
         if (!QueueEnabled)
@@ -520,25 +536,56 @@ public static partial class GlobalVar
 
     public static void ScanHosts()
     {
+        HostList.Clear();
+
         try
         {
-            using StreamReader? sr = new("hostlist.txt");
+            string hostListPath = Path.Combine(AppContext.BaseDirectory, "hostlist.txt");
+            if (!File.Exists(hostListPath))
+            {
+                // Fallback to working directory for dev scenarios.
+                hostListPath = Path.GetFullPath("hostlist.txt");
+            }
+
+            Log($"^^^ GlobalVar::ScanHosts() - Loading hostlist from: {hostListPath}");
+
+            using StreamReader? sr = new(hostListPath);
             while (!sr.EndOfStream)
             {
                 var hostPort = sr.ReadLine();
                 if (hostPort == null) return;
 
-                if (hostPort.Contains(':'))
+                hostPort = hostPort.Trim();
+                if (string.IsNullOrWhiteSpace(hostPort) || hostPort.StartsWith('#'))
                 {
-                    string[] splitHostPort = hostPort.Split(':');
-                    KeyValuePair<string, string> hostPortPair = new(splitHostPort[0], splitHostPort[1]);
+                    continue;
+                }
+
+                int colonIdx = hostPort.IndexOf(':');
+                if (colonIdx > 0)
+                {
+                    string rawHost = hostPort[..colonIdx];
+                    string rawPort = hostPort[(colonIdx + 1)..];
+
+                    string host = NormalizeHostName(rawHost);
+                    string port = rawPort.Trim();
+
+                    if (string.IsNullOrWhiteSpace(host) || string.IsNullOrWhiteSpace(port))
+                    {
+                        Log($"### GlobalVar::ScanHosts() - Bad line (empty host/port): '{hostPort}'");
+                        continue;
+                    }
+
+                    KeyValuePair<string, string> hostPortPair = new(host, port);
                     HostList.Add(hostPortPair);
                 }
                 else
                 {
-                    Log($"### GlobalVar::ScanHosts() - Bad format found in hostlist.txt, no colon");
+                    Log($"### GlobalVar::ScanHosts() - Bad format found in hostlist.txt: '{hostPort}'");
                 }
             }
+
+            Log($"^^^ GlobalVar::ScanHosts() - Loaded {HostList.Count} host entries");
         }
         catch (IOException e)
         {
@@ -765,10 +812,11 @@ public static partial class GlobalVar
 
     public static int WhichPort(string hostName)
     {
+        hostName = NormalizeHostName(hostName);
         Log($"^^^ HostName: {hostName}");
         foreach (KeyValuePair<string, string> hostPair in HostList)
         {
-            string tempHostName = hostPair.Key.Trim().ToLower();
+            string tempHostName = NormalizeHostName(hostPair.Key);
             if (tempHostName.Equals(hostName))
             {
                 Log($"^^^ Starting server on port: {hostPair.Value}");
