@@ -667,6 +667,8 @@ public static partial class GlobalVar
     {
         const string tcpHost = "msg.dlamanna.com";
 
+        Log($"^^^ Remote send requested. target='{targetName}', port={port}, tcpHost='{tcpHost}', queueEnabled={QueueEnabled}, queueBaseUrl='{QueueBaseUrl}'");
+
         bool delivered = TrySendRemoteCommandTcpWithAck(port, command, tcpHost);
         if (delivered)
         {
@@ -677,6 +679,14 @@ public static partial class GlobalVar
         if (!QueueEnabled)
         {
             Log($"### TCP delivery failed and queue disabled. target={targetName}");
+            ToolTip("Remote", $"TCP failed and queue disabled for {targetName}.\nSet {EnvQueueEnabled}=1 to enable queue fallback.");
+            return;
+        }
+
+        if (!IsQueueConfiguredForAccess(out var queueReason))
+        {
+            Log($"### TCP delivery failed and queue is enabled but not configured: {queueReason}");
+            ToolTip("Remote", $"TCP failed; queue misconfigured:\n{queueReason}\nSee DesktopShell.log");
             return;
         }
 
@@ -688,6 +698,7 @@ public static partial class GlobalVar
         else
         {
             Log($"### Failed to queue message for {targetName}");
+            ToolTip("Remote", $"TCP failed and queue enqueue failed for {targetName}.\nSee DesktopShell.log");
         }
     }
 

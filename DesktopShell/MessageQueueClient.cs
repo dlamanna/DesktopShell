@@ -26,6 +26,18 @@ internal static class MessageQueueClient
         !string.IsNullOrWhiteSpace(GlobalVar.CfAccessClientId) &&
         !string.IsNullOrWhiteSpace(GlobalVar.CfAccessClientSecret);
 
+    private static string NormalizeTargetName(string name)
+    {
+        return (name ?? "").Trim().ToLowerInvariant();
+    }
+
+    private static string DescribeAuthConfig()
+    {
+        bool hasId = !string.IsNullOrWhiteSpace(GlobalVar.CfAccessClientId);
+        bool hasSecret = !string.IsNullOrWhiteSpace(GlobalVar.CfAccessClientSecret);
+        return $"cfAccessClientId={(hasId ? "set" : "missing")}, cfAccessClientSecret={(hasSecret ? "set" : "missing")}";
+    }
+
     internal static bool TryEnqueue(string targetName, string command)
     {
         try
@@ -35,7 +47,7 @@ internal static class MessageQueueClient
         }
         catch (Exception e)
         {
-            GlobalVar.Log($"### MessageQueueClient::TryEnqueue - {e.GetType()}: {e.Message}");
+            GlobalVar.Log($"### MessageQueueClient::TryEnqueue - target='{targetName}' - {e}");
             return false;
         }
     }
@@ -44,15 +56,18 @@ internal static class MessageQueueClient
     {
         if (!IsEnabled)
         {
+            GlobalVar.Log($"### MessageQueueClient: queue disabled for pull. queueEnabled={GlobalVar.QueueEnabled}, {DescribeAuthConfig()}");
             return;
         }
 
-        string me = (System.Net.Dns.GetHostName() ?? "").Trim().ToLowerInvariant();
+        string me = NormalizeTargetName(System.Net.Dns.GetHostName());
         if (string.IsNullOrWhiteSpace(me))
         {
             GlobalVar.Log("### MessageQueueClient: hostname empty, skipping pull");
             return;
         }
+
+        GlobalVar.Log($"^^^ MessageQueueClient: startup pull begin. me='{me}', baseUrl='{GlobalVar.QueueBaseUrl}'");
 
         IReadOnlyList<PulledMessage> messages;
         try
@@ -61,14 +76,17 @@ internal static class MessageQueueClient
         }
         catch (Exception e)
         {
-            GlobalVar.Log($"### MessageQueueClient::ProcessPendingOnceOnStartup - pull failed: {e.GetType()}: {e.Message}");
+            GlobalVar.Log($"### MessageQueueClient::ProcessPendingOnceOnStartup - pull failed: {e}");
             return;
         }
 
         if (messages.Count == 0)
         {
+            GlobalVar.Log($"^^^ MessageQueueClient: startup pull returned 0 messages. me='{me}'");
             return;
         }
+
+        GlobalVar.Log($"^^^ MessageQueueClient: startup pull returned {messages.Count} messages. me='{me}'");
 
         var acks = new List<AckItem>(messages.Count);
 
@@ -89,7 +107,7 @@ internal static class MessageQueueClient
             }
             catch (Exception e)
             {
-                GlobalVar.Log($"### MessageQueueClient: failed to process message {msg.Id}: {e.GetType()}: {e.Message}");
+                GlobalVar.Log($"### MessageQueueClient: failed to process message {msg.Id}: {e}");
                 // Don't ack if we didn't successfully execute.
             }
         }
@@ -102,10 +120,11 @@ internal static class MessageQueueClient
         try
         {
             await AckAsync(me, acks, cancellationToken).ConfigureAwait(false);
+            GlobalVar.Log($"^^^ MessageQueueClient: acked {acks.Count} messages. me='{me}'");
         }
         catch (Exception e)
         {
-            GlobalVar.Log($"### MessageQueueClient::ProcessPendingOnceOnStartup - ack failed: {e.GetType()}: {e.Message}");
+            GlobalVar.Log($"### MessageQueueClient::ProcessPendingOnceOnStartup - ack failed: {e}");
         }
     }
 
@@ -145,16 +164,24 @@ internal static class MessageQueueClient
             throw new InvalidOperationException("Queue is not enabled");
         }
 
-        var id = Guid.NewGuid().ToString("N");
-        var envelope = BuildEnvelope(targetName, command, id);
+        string normalizedTarget = NormalizeTargetName(targetName);
+        if (string.IsNullOrWhiteSpace(normalizedTarget))
+        {
+            throw new ArgumentException("targetName is empty", nameof(targetName));
+        }
 
-        using var req = new HttpRequestMessage(HttpMethod.Post, $"{GlobalVar.QueueBaseUrl}/v1/send/{Uri.EscapeDataString(targetName)}")
+        var id = Guid.NewGuid().ToString("N");
+        var envelope = BuildEnvelope(normalizedTarget, command, id);
+
+        var url = $"{GlobalVar.QueueBaseUrl}/v1/send/{Uri.EscapeDataString(normalizedTarget)}";
+        using var req = new HttpRequestMessage(HttpMethod.Post, url)
         {
             Content = new StringContent(JsonSerializer.Serialize(envelope, jsonOptions), Encoding.UTF8, "application/json"),
         };
         AddAuthHeaders(req);
         req.Headers.Add("Idempotency-Key", id);
 
+        GlobalVar.Log($"^^^ MessageQueueClient: enqueue begin. to='{normalizedTarget}', id='{id}', url='{url}'");
         using var resp = await httpClient.SendAsync(req, cancellationToken).ConfigureAwait(false);
         if (!resp.IsSuccessStatusCode)
         {
@@ -162,13 +189,18 @@ internal static class MessageQueueClient
             try { body = await resp.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false); } catch { }
             throw new HttpRequestException($"Queue send failed: {(int)resp.StatusCode} {resp.ReasonPhrase} {body}");
         }
+
+        GlobalVar.Log($"^^^ MessageQueueClient: enqueue ok. to='{normalizedTarget}', id='{id}', status={(int)resp.StatusCode}");
     }
 
     private static async Task<IReadOnlyList<PulledMessage>> PullAsync(string targetName, int max, CancellationToken cancellationToken)
     {
-        using var req = new HttpRequestMessage(HttpMethod.Get, $"{GlobalVar.QueueBaseUrl}/v1/pull/{Uri.EscapeDataString(targetName)}?max={max}");
+        string normalizedTarget = NormalizeTargetName(targetName);
+        var url = $"{GlobalVar.QueueBaseUrl}/v1/pull/{Uri.EscapeDataString(normalizedTarget)}?max={max}";
+        using var req = new HttpRequestMessage(HttpMethod.Get, url);
         AddAuthHeaders(req);
 
+        GlobalVar.Log($"^^^ MessageQueueClient: pull begin. target='{normalizedTarget}', url='{url}'");
         using var resp = await httpClient.SendAsync(req, cancellationToken).ConfigureAwait(false);
         if (!resp.IsSuccessStatusCode)
         {
@@ -179,17 +211,22 @@ internal static class MessageQueueClient
 
         await using var stream = await resp.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false);
         var payload = await JsonSerializer.DeserializeAsync<PullResponse>(stream, jsonOptions, cancellationToken).ConfigureAwait(false);
-        return payload?.Messages ?? Array.Empty<PulledMessage>();
+        var messages = payload?.Messages ?? Array.Empty<PulledMessage>();
+        GlobalVar.Log($"^^^ MessageQueueClient: pull ok. target='{normalizedTarget}', status={(int)resp.StatusCode}, messages={messages.Count}");
+        return messages;
     }
 
     private static async Task AckAsync(string targetName, IReadOnlyList<AckItem> acks, CancellationToken cancellationToken)
     {
-        using var req = new HttpRequestMessage(HttpMethod.Post, $"{GlobalVar.QueueBaseUrl}/v1/ack/{Uri.EscapeDataString(targetName)}")
+        string normalizedTarget = NormalizeTargetName(targetName);
+        var url = $"{GlobalVar.QueueBaseUrl}/v1/ack/{Uri.EscapeDataString(normalizedTarget)}";
+        using var req = new HttpRequestMessage(HttpMethod.Post, url)
         {
             Content = new StringContent(JsonSerializer.Serialize(new AckRequest(acks), jsonOptions), Encoding.UTF8, "application/json"),
         };
         AddAuthHeaders(req);
 
+        GlobalVar.Log($"^^^ MessageQueueClient: ack begin. target='{normalizedTarget}', count={acks.Count}, url='{url}'");
         using var resp = await httpClient.SendAsync(req, cancellationToken).ConfigureAwait(false);
         if (!resp.IsSuccessStatusCode)
         {
@@ -197,11 +234,13 @@ internal static class MessageQueueClient
             try { body = await resp.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false); } catch { }
             throw new HttpRequestException($"Queue ack failed: {(int)resp.StatusCode} {resp.ReasonPhrase} {body}");
         }
+
+        GlobalVar.Log($"^^^ MessageQueueClient: ack ok. target='{normalizedTarget}', status={(int)resp.StatusCode}, count={acks.Count}");
     }
 
     private static object BuildEnvelope(string targetName, string command, string id)
     {
-        string from = (System.Net.Dns.GetHostName() ?? "").Trim().ToLowerInvariant();
+        string from = NormalizeTargetName(System.Net.Dns.GetHostName());
         if (TryGetQueueKey(out var key))
         {
             var enc = Encrypt(command, key);
