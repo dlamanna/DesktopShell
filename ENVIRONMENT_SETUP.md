@@ -99,6 +99,45 @@ env:
   DESKTOPSHELL_PASSPHRASE: ${{ secrets.DESKTOPSHELL_PASSPHRASE }}
 ```
 
+---
+
+## Optional TLS for TCP remote commands
+
+Enable TLS for the TCP server by setting:
+
+- `DESKTOPSHELL_TCP_TLS` = `1`
+- `DESKTOPSHELL_TCP_TLS_PFX` = full path to a PFX file containing the server certificate + private key
+- `DESKTOPSHELL_TCP_TLS_PFX_PASSWORD` = password for the PFX file
+
+Optional client pinning (for self-signed certs):
+
+- `DESKTOPSHELL_TCP_TLS_THUMBPRINT` = certificate thumbprint (no spaces)
+
+**How to get these:**
+- If you already have a certificate, export it to a PFX and note the password.
+- For self-signed certs, use the certificate thumbprint shown in the certificate details.
+
+---
+
+## HTTPS queue fallback (Cloudflare Access)
+
+Enable queueing (used when direct TCP is unavailable):
+
+- `DESKTOPSHELL_QUEUE_ENABLED` = `1`
+- `DESKTOPSHELL_QUEUE_BASEURL` = queue API base URL (defaults to `https://queue.dlamanna.com`)
+- `DESKTOPSHELL_CF_ACCESS_CLIENT_ID`
+- `DESKTOPSHELL_CF_ACCESS_CLIENT_SECRET`
+
+Optional encryption for queue payloads:
+
+- `DESKTOPSHELL_QUEUE_KEY_B64` = Base64-encoded AES key (16/24/32 bytes)
+
+**How to get the Access tokens:**
+- Cloudflare Zero Trust dashboard → Access → Service Tokens → Create token. Use the Client ID and Client Secret.
+
+**How to generate a queue key (optional):**
+- Create a 32-byte random value and Base64-encode it. (Any 16/24/32-byte key is accepted.)
+
 ## Troubleshooting
 
 **Problem**: Application logs show "### Socket not connected" or authentication failures
