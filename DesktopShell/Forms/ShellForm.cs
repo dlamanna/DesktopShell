@@ -165,6 +165,10 @@ public partial class Shell : Form
         {
             GlobalVar.ServerInstance = new TCPServer();
         }
+        else
+        {
+            GlobalVar.Log("^^^ TCP server disabled by settings (enableTCPServer=false)");
+        }
 
         PopulateCombos();
         PopulateWebSites();
@@ -403,7 +407,8 @@ public partial class Shell : Form
         else if (Tooltip().IsMatch(splitWords[0]))
         {
             string? title = "ToolTip";
-            string? message = splitWords[^1];
+            // message = everything except the first word
+            string? message = string.Join(" ", splitWords.Skip(1));
             GlobalVar.ToolTip(title, message);
         }
         //RandomGame function

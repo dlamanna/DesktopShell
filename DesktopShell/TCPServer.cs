@@ -17,14 +17,15 @@ public class TCPServer
 
     public TCPServer()
     {
-        string hostName = Dns.GetHostName().Trim().ToLower();
+        string rawHostName = Dns.GetHostName();
+        string hostName = GlobalVar.NormalizeHostName(rawHostName);
         token = cts.Token;
 
         bool foundHostPort = false;
 
         foreach (KeyValuePair<string, string> hostPair in GlobalVar.HostList)
         {
-            string tempHostName = hostPair.Key.Trim().ToLower();
+            string tempHostName = GlobalVar.NormalizeHostName(hostPair.Key);
             if (tempHostName.Equals(hostName))
             {
                 GlobalVar.Log($"^^^ Starting server on port: {hostPair.Value}");
@@ -41,7 +42,7 @@ public class TCPServer
 
         if (!foundHostPort || portNum <= 0)
         {
-            GlobalVar.Log($"### TCPServer not started: host '{hostName}' missing/invalid port in hostlist.txt");
+            GlobalVar.Log($"### TCPServer not started: host '{hostName}' (raw='{rawHostName}') missing/invalid port in hostlist.txt");
             return;
         }
 

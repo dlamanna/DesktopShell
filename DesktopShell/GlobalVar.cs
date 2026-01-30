@@ -143,11 +143,20 @@ public static partial class GlobalVar
 
         // Be defensive about invisible leading characters (e.g., BOM / zero-width spaces)
         // that can sneak into text files and break equality checks.
-        return hostName
+        string normalized = hostName
             .Trim()
             .Trim('\uFEFF', '\u200B', '\u00A0')
             .Trim()
             .ToLowerInvariant();
+
+        // Normalize away DNS suffixes (e.g., "host.local" -> "host")
+        int dotIndex = normalized.IndexOf('.');
+        if (dotIndex > 0)
+        {
+            normalized = normalized[..dotIndex];
+        }
+
+        return normalized;
     }
 
     public static bool IsQueueConfiguredForAccess(out string? reason)
@@ -735,6 +744,7 @@ public static partial class GlobalVar
     {
         try
         {
+            Log($"^^^ TrySendRemoteCommandTcpWithAck: Attempting TCP to {serverHost}:{port} with command='{command.Replace("\r\n", "\\r\\n")}'");
             using Socket clientSocket = new(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
             clientSocket.Connect(serverHost, port, TimeSpan.FromSeconds(TcpConnectionTimeoutSeconds));
             if (!clientSocket.Connected)
@@ -749,8 +759,10 @@ public static partial class GlobalVar
             // Wait for server ACK to confirm delivery.
             string? responseRaw = ReadSingleLineResponse(stream);
             string response = TrimPassPhrasePrefix((responseRaw ?? "").Trim());
+            Log($"^^^ TCP responseRaw='{responseRaw}', response(after trim)='{response}'");
             if (string.Equals(response, "ack", StringComparison.OrdinalIgnoreCase))
             {
+                Log($"^^^ TCP ACK received from {serverHost}:{port}");
                 return true;
             }
 
@@ -783,41 +795,47 @@ public static partial class GlobalVar
 
     public static void SendRemoteCommandWithQueueFallback(string targetName, int port, string command)
     {
-        const string tcpHost = "msg.dlamanna.com";
-
-        Log($"^^^ Remote send requested. target='{targetName}', port={port}, tcpHost='{tcpHost}', queueEnabled={QueueEnabled}, queueBaseUrl='{QueueBaseUrl}'");
-
-        bool delivered = TrySendRemoteCommandTcpWithAck(port, command, tcpHost);
-        if (delivered)
+        // Fire-and-forget: run the delivery logic on a background thread to avoid blocking the UI.
+        ThreadPool.QueueUserWorkItem(_ =>
         {
-            Log($"!!! Delivered command to {targetName} via TCP");
-            return;
-        }
+            const string tcpHost = "msg.dlamanna.com";
 
-        if (!QueueEnabled)
-        {
-            Log($"### TCP delivery failed and queue disabled. target={targetName}");
-            ToolTip("Remote", $"TCP failed and queue disabled for {targetName}.\nSet {EnvQueueEnabled}=1 to enable queue fallback.");
-            return;
-        }
+            Log($"^^^ Remote send requested. target='{targetName}', port={port}, tcpHost='{tcpHost}', queueEnabled={QueueEnabled}, queueBaseUrl='{QueueBaseUrl}'");
 
-        if (!IsQueueConfiguredForAccess(out var queueReason))
-        {
-            Log($"### TCP delivery failed and queue is enabled but not configured: {queueReason}");
-            ToolTip("Remote", $"TCP failed; queue misconfigured:\n{queueReason}\nSee DesktopShell.log");
-            return;
-        }
+            bool delivered = TrySendRemoteCommandTcpWithAck(port, command, tcpHost);
+            if (delivered)
+            {
+                Log($"!!! Delivered command to {targetName} via TCP");
+                return;
+            }
 
-        bool queued = MessageQueueClient.TryEnqueue(targetName, command);
-        if (queued)
-        {
-            ToolTip("TCP", $"Message queued for {targetName}:\n{command}");
-        }
-        else
-        {
-            Log($"### Failed to queue message for {targetName}");
-            ToolTip("Remote", $"TCP failed and queue enqueue failed for {targetName}.\nSee DesktopShell.log");
-        }
+            Log($"### TCP delivery to {tcpHost}:{port} failed for target '{targetName}'. Falling back to queue.");
+
+            if (!QueueEnabled)
+            {
+                Log($"### TCP delivery failed and queue disabled. target={targetName}");
+                ToolTip("Remote", $"TCP failed and queue disabled for {targetName}.\nSet {EnvQueueEnabled}=1 to enable queue fallback.");
+                return;
+            }
+
+            if (!IsQueueConfiguredForAccess(out var queueReason))
+            {
+                Log($"### TCP delivery failed and queue is enabled but not configured: {queueReason}");
+                ToolTip("Remote", $"TCP failed; queue misconfigured:\n{queueReason}\nSee DesktopShell.log");
+                return;
+            }
+
+            bool queued = MessageQueueClient.TryEnqueue(targetName, command);
+            if (queued)
+            {
+                ToolTip("TCP", $"Message queued for {targetName}:\n{command}");
+            }
+            else
+            {
+                Log($"### Failed to queue message for {targetName}");
+                ToolTip("Remote", $"TCP failed and queue enqueue failed for {targetName}.\nSee DesktopShell.log");
+            }
+        });
     }
 
     public static void WriteRemoteCommand(Stream stream, string command, bool includePassPhrase)

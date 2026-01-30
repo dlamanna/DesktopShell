@@ -95,6 +95,7 @@ internal sealed partial class Settings
     public static void ScanSettings()
     {
         MultiscreenEnabled = [];
+        bool sawEnableTcpServer = false;
         //change stuff here to read settings into program
         try
         {
@@ -127,6 +128,7 @@ internal sealed partial class Settings
                 else if (EnableTCPServerRegex.IsMatch(rawLine))
                 {
                     EnableTCPServer = Convert.ToBoolean(curLine);
+                    sawEnableTcpServer = true;
                 }
                 else if (MusicRegex.IsMatch(rawLine))
                 {
@@ -158,6 +160,12 @@ internal sealed partial class Settings
                     var g = Regex.Replace(positionString, @"[\{\}a-zA-Z=]", "").Split(',');
                     PositionSave = new Point(int.Parse(g[0]), int.Parse(g[1]));
                 }
+            }
+
+            if (!sawEnableTcpServer)
+            {
+                EnableTCPServer = true;
+                GlobalVar.Log("^^^ Settings::ScanSettings() - enableTCPServer missing; defaulting to true");
             }
             WriteSettings(false);
         }
