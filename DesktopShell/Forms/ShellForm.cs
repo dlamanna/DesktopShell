@@ -1,4 +1,5 @@
 ﻿using DesktopShell.Properties;
+using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
 using System.Threading;
