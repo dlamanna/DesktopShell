@@ -2,6 +2,7 @@
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Net;
+using System.Net.NetworkInformation;
 using System.Net.Security;
 using System.Net.Sockets;
 using System.Runtime.InteropServices;
@@ -46,6 +47,10 @@ public static partial class GlobalVar
     public static string? TcpTlsPfxPath => Environment.GetEnvironmentVariable("DESKTOPSHELL_TCP_TLS_PFX");
     public static string? TcpTlsPfxPassword => Environment.GetEnvironmentVariable("DESKTOPSHELL_TCP_TLS_PFX_PASSWORD");
     public static string? TcpTlsPinnedThumbprint => Environment.GetEnvironmentVariable("DESKTOPSHELL_TCP_TLS_THUMBPRINT");
+
+    // Home network detection (default gateway) for TCP routing.
+    public const string EnvHomeGateway = "DESKTOPSHELL_HOME_GATEWAY";
+    public static string HomeGatewayIp => (GetEnvValue(EnvHomeGateway) ?? "10.0.0.1").Trim();
 
     // HTTPS message queue fallback (Cloudflare Worker + Durable Objects)
     public const string EnvQueueEnabled = "DESKTOPSHELL_QUEUE_ENABLED";
@@ -740,6 +745,54 @@ public static partial class GlobalVar
         return collected.Count > 0 ? Encoding.ASCII.GetString(collected.ToArray()) : null;
     }
 
+    private static IPAddress? GetDefaultGatewayIpv4()
+    {
+        try
+        {
+            foreach (var nic in NetworkInterface.GetAllNetworkInterfaces())
+            {
+                if (nic.OperationalStatus != OperationalStatus.Up)
+                {
+                    continue;
+                }
+
+                if (nic.NetworkInterfaceType == NetworkInterfaceType.Loopback ||
+                    nic.NetworkInterfaceType == NetworkInterfaceType.Tunnel)
+                {
+                    continue;
+                }
+
+                var properties = nic.GetIPProperties();
+                foreach (var gateway in properties.GatewayAddresses)
+                {
+                    var address = gateway?.Address;
+                    if (address == null)
+                    {
+                        continue;
+                    }
+
+                    if (address.AddressFamily != AddressFamily.InterNetwork)
+                    {
+                        continue;
+                    }
+
+                    if (IPAddress.Any.Equals(address))
+                    {
+                        continue;
+                    }
+
+                    return address;
+                }
+            }
+        }
+        catch (Exception e)
+        {
+            Log($"### GlobalVar::GetDefaultGatewayIpv4() - {e.GetType()}: {e.Message}");
+        }
+
+        return null;
+    }
+
     public static bool TrySendRemoteCommandTcpWithAck(int port, string command, string serverHost)
     {
         try
@@ -798,9 +851,18 @@ public static partial class GlobalVar
         // Fire-and-forget: run the delivery logic on a background thread to avoid blocking the UI.
         ThreadPool.QueueUserWorkItem(_ =>
         {
-            const string tcpHost = "msg.dlamanna.com";
+            const string publicTcpHost = "msg.dlamanna.com";
+            string? defaultGateway = GetDefaultGatewayIpv4()?.ToString();
+            string expectedHomeGateway = HomeGatewayIp;
 
-            Log($"^^^ Remote send requested. target='{targetName}', port={port}, tcpHost='{tcpHost}', queueEnabled={QueueEnabled}, queueBaseUrl='{QueueBaseUrl}'");
+            bool onHomeNetwork = !string.IsNullOrWhiteSpace(defaultGateway)
+                && !string.IsNullOrWhiteSpace(expectedHomeGateway)
+                && string.Equals(defaultGateway, expectedHomeGateway, StringComparison.OrdinalIgnoreCase);
+
+            string tcpHost = onHomeNetwork ? defaultGateway! : publicTcpHost;
+            string route = onHomeNetwork ? "home-gateway" : "public";
+
+            Log($"^^^ Remote send requested. target='{targetName}', port={port}, tcpHost='{tcpHost}', route='{route}', defaultGateway='{defaultGateway ?? "none"}', homeGateway='{expectedHomeGateway}', queueEnabled={QueueEnabled}, queueBaseUrl='{QueueBaseUrl}'");
 
             bool delivered = TrySendRemoteCommandTcpWithAck(port, command, tcpHost);
             if (delivered)
@@ -809,7 +871,7 @@ public static partial class GlobalVar
                 return;
             }
 
-            Log($"### TCP delivery to {tcpHost}:{port} failed for target '{targetName}'. Falling back to queue.");
+            Log($"### TCP delivery to {tcpHost}:{port} failed for target '{targetName}' (route={route}). Falling back to queue.");
 
             if (!QueueEnabled)
             {
