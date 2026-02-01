@@ -133,6 +133,19 @@ public static partial class GlobalVar
             $"{EnvCfAccessClientSecret}={(string.IsNullOrWhiteSpace(secret) ? "missing" : "set")} (len={(secret ?? "").Length}, source={GetEnvSource(EnvCfAccessClientSecret)})");
     }
 
+    public static void LogTcpEnvSummary()
+    {
+        string tlsRaw = GetEnvValue("DESKTOPSHELL_TCP_TLS") ?? "";
+        string? pfx = GetEnvValue("DESKTOPSHELL_TCP_TLS_PFX");
+        string? pfxPassword = GetEnvValue("DESKTOPSHELL_TCP_TLS_PFX_PASSWORD");
+        string? thumbprint = GetEnvValue("DESKTOPSHELL_TCP_TLS_THUMBPRINT");
+
+        Log($"^^^ TCP TLS env: DESKTOPSHELL_TCP_TLS='{tlsRaw}' (source={GetEnvSource("DESKTOPSHELL_TCP_TLS")}), " +
+            $"DESKTOPSHELL_TCP_TLS_PFX={(string.IsNullOrWhiteSpace(pfx) ? "missing" : "set")} (source={GetEnvSource("DESKTOPSHELL_TCP_TLS_PFX")}), " +
+            $"DESKTOPSHELL_TCP_TLS_PFX_PASSWORD={(string.IsNullOrWhiteSpace(pfxPassword) ? "missing" : "set")} (len={(pfxPassword ?? "").Length}, source={GetEnvSource("DESKTOPSHELL_TCP_TLS_PFX_PASSWORD")}), " +
+            $"DESKTOPSHELL_TCP_TLS_THUMBPRINT={(string.IsNullOrWhiteSpace(thumbprint) ? "missing" : "set")} (source={GetEnvSource("DESKTOPSHELL_TCP_TLS_THUMBPRINT")})");
+    }
+
     public static bool QueueEnabled => string.Equals(GetEnvValue(EnvQueueEnabled), "1", StringComparison.OrdinalIgnoreCase);
     public static string QueueBaseUrl => (GetEnvValue(EnvQueueBaseUrl) ?? "https://queue.dlamanna.com").TrimEnd('/');
     public static string? QueueKeyBase64 => GetEnvValue(EnvQueueKeyBase64);
