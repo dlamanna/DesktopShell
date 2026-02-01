@@ -872,19 +872,33 @@ public static partial class GlobalVar
                 && !string.IsNullOrWhiteSpace(expectedHomeGateway)
                 && string.Equals(defaultGateway, expectedHomeGateway, StringComparison.OrdinalIgnoreCase);
 
-            string tcpHost = onHomeNetwork ? defaultGateway! : publicTcpHost;
-            string route = onHomeNetwork ? "home-gateway" : "public";
+            var candidates = new List<(string Host, string Route)>();
 
-            Log($"^^^ Remote send requested. target='{targetName}', port={port}, tcpHost='{tcpHost}', route='{route}', defaultGateway='{defaultGateway ?? "none"}', homeGateway='{expectedHomeGateway}', queueEnabled={QueueEnabled}, queueBaseUrl='{QueueBaseUrl}'");
-
-            bool delivered = TrySendRemoteCommandTcpWithAck(port, command, tcpHost);
-            if (delivered)
+            if (onHomeNetwork)
             {
-                Log($"!!! Delivered command to {targetName} via TCP");
-                return;
+                candidates.Add((targetName, "home-target"));
+            }
+            else
+            {
+                candidates.Add((publicTcpHost, "public"));
             }
 
-            Log($"### TCP delivery to {tcpHost}:{port} failed for target '{targetName}' (route={route}). Falling back to queue.");
+            bool delivered = false;
+            foreach (var candidate in candidates)
+            {
+                Log($"^^^ Remote send requested. target='{targetName}', port={port}, tcpHost='{candidate.Host}', route='{candidate.Route}', defaultGateway='{defaultGateway ?? "none"}', homeGateway='{expectedHomeGateway}', queueEnabled={QueueEnabled}, queueBaseUrl='{QueueBaseUrl}'");
+
+                delivered = TrySendRemoteCommandTcpWithAck(port, command, candidate.Host);
+                if (delivered)
+                {
+                    Log($"!!! Delivered command to {targetName} via TCP (route={candidate.Route})");
+                    return;
+                }
+
+                Log($"### TCP delivery to {candidate.Host}:{port} failed for target '{targetName}' (route={candidate.Route}).");
+            }
+
+            Log($"### TCP delivery failed for target '{targetName}' on all routes. Falling back to queue.");
 
             if (!QueueEnabled)
             {
