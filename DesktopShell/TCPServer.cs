@@ -214,7 +214,6 @@ public class TCPServer
             do
             {
                 string receivedString = ReadStream(tcpClient, clientStream, token);
-                GlobalVar.Log($"@@@ HandleClientComm()");
                 if (receivedString.Equals(""))
                 {
                     Thread.Sleep(GlobalVar.WebBrowserLaunchDelayMs);

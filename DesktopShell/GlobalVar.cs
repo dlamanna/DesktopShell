@@ -613,22 +613,37 @@ public static partial class GlobalVar
         {
             if (cert == null)
             {
+                Log("### TLS validation: No certificate presented");
                 return false;
             }
 
+            var presented = new X509Certificate2(cert);
+            string presentedThumbprint = presented.Thumbprint?.Replace(" ", "", StringComparison.OrdinalIgnoreCase) ?? "";
+            
             if (!string.IsNullOrWhiteSpace(pinnedThumbprint))
             {
-                var presented = new X509Certificate2(cert);
-                string presentedThumbprint = presented.Thumbprint?.Replace(" ", "", StringComparison.OrdinalIgnoreCase) ?? "";
                 string expected = pinnedThumbprint.Replace(" ", "", StringComparison.OrdinalIgnoreCase);
-                return string.Equals(presentedThumbprint, expected, StringComparison.OrdinalIgnoreCase);
+                bool matches = string.Equals(presentedThumbprint, expected, StringComparison.OrdinalIgnoreCase);
+                Log($"^^^ TLS pinned validation: expected={expected}, presented={presentedThumbprint}, match={matches}");
+                return matches;
             }
 
+            Log($"^^^ TLS validation: sslPolicyErrors={sslPolicyErrors}, subject={presented.Subject}, thumbprint={presentedThumbprint}");
             return sslPolicyErrors == SslPolicyErrors.None;
         };
 
         var sslStream = new SslStream(networkStream, leaveInnerStreamOpen: false, validator);
-        sslStream.AuthenticateAsClient(serverHost);
+        try
+        {
+            Log($"^^^ TLS handshake starting with serverHost='{serverHost}'");
+            sslStream.AuthenticateAsClient(serverHost);
+            Log($"^^^ TLS handshake completed successfully");
+        }
+        catch (Exception e)
+        {
+            Log($"### TLS handshake failed: {e.GetType()}: {e.Message}");
+            throw;
+        }
         return sslStream;
     }
 
@@ -815,32 +830,44 @@ public static partial class GlobalVar
             clientSocket.Connect(serverHost, port, TimeSpan.FromSeconds(TcpConnectionTimeoutSeconds));
             if (!clientSocket.Connected)
             {
-                Log($"### Socket not connected when trying to send '{command}', closing connection");
+                Log($"### Socket not connected after Connect() when trying to send '{command}', closing connection");
                 return false;
             }
 
-            using Stream stream = CreateOutboundCommandStream(clientSocket, serverHost);
-            WriteRemoteCommand(stream, command, includePassPhrase: true);
-
-            // Wait for server ACK to confirm delivery.
-            string? responseRaw = ReadSingleLineResponse(stream);
-            string response = TrimPassPhrasePrefix((responseRaw ?? "").Trim());
-            Log($"^^^ TCP responseRaw='{responseRaw}', response(after trim)='{response}'");
-            if (string.Equals(response, "ack", StringComparison.OrdinalIgnoreCase))
+            Stream stream;
+            try
             {
-                Log($"^^^ TCP ACK received from {serverHost}:{port}");
-                return true;
+                stream = CreateOutboundCommandStream(clientSocket, serverHost);
+            }
+            catch (Exception tlsEx)
+            {
+                Log($"### Failed to create outbound stream (likely TLS issue): {tlsEx.GetType()}: {tlsEx.Message}");
+                return false;
             }
 
-            if (string.Equals(response, "lol", StringComparison.OrdinalIgnoreCase))
+            using (stream)
             {
-                Log("### Remote returned 'lol' (likely bad passphrase)");
-            }
-            else
-            {
-                Log($"### No ACK received (response='{responseRaw ?? ""}')");
-            }
+                WriteRemoteCommand(stream, command, includePassPhrase: true);
 
+                // Wait for server ACK to confirm delivery.
+                string? responseRaw = ReadSingleLineResponse(stream);
+                string response = TrimPassPhrasePrefix((responseRaw ?? "").Trim());
+                Log($"^^^ TCP responseRaw='{responseRaw}', response(after trim)='{response}'");
+                if (string.Equals(response, "ack", StringComparison.OrdinalIgnoreCase))
+                {
+                    Log($"^^^ TCP ACK received from {serverHost}:{port}");
+                    return true;
+                }
+
+                if (string.Equals(response, "lol", StringComparison.OrdinalIgnoreCase))
+                {
+                    Log("### Remote returned 'lol' (likely bad passphrase)");
+                }
+                else
+                {
+                    Log($"### No ACK received (response='{responseRaw ?? ""}')");
+                }
+            }
             try
             {
                 clientSocket.Shutdown(SocketShutdown.Both);
