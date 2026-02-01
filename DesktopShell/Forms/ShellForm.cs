@@ -133,6 +133,7 @@ public partial class Shell : Form
     {
         GlobalVar.ResetLog();
         GlobalVar.LogQueueEnvSummary();
+        GlobalVar.LogTcpEnvSummary();
         Settings.ScanSettings();
 
         // Needed for both the local TCP server port selection and remote command routing.
