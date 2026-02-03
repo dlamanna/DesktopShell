@@ -48,6 +48,14 @@ build/
 
 # Visual C++ cache files
 ipch/
+
+# Local diagnostic scripts (not for version control)
+check-all-env-vars.ps1
+check-mohm-setup.ps1
+check-mohm-network.ps1
+fix-mohm-config.ps1
+set-missing-env-vars.ps1
+set-queue-url.ps1
 *.aps
 *.ncb
 *.opensdf
