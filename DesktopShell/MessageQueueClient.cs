@@ -268,6 +268,11 @@ internal static class MessageQueueClient
     {
         request.Headers.TryAddWithoutValidation(GlobalVar.HeaderCfAccessClientId, GlobalVar.CfAccessClientId);
         request.Headers.TryAddWithoutValidation(GlobalVar.HeaderCfAccessClientSecret, GlobalVar.CfAccessClientSecret);
+
+        if (!string.IsNullOrWhiteSpace(GlobalVar.QueueSharedSecret))
+        {
+            request.Headers.TryAddWithoutValidation("X-Queue-Token", GlobalVar.QueueSharedSecret);
+        }
     }
 
     private static string? DecodeCommand(PulledMessage msg)

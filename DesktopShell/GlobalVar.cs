@@ -38,7 +38,9 @@ public static partial class GlobalVar
 
     // Security: PassPhrase is loaded from environment variable DESKTOPSHELL_PASSPHRASE
     // Fallback to "default" if not set (should be changed in production)
-    public static readonly string PassPhrase = Environment.GetEnvironmentVariable("DESKTOPSHELL_PASSPHRASE") ?? "default";
+    public static string PassPhrase => GetEnvValue("DESKTOPSHELL_PASSPHRASE") ?? "default";
+    public static bool IsDefaultPassPhrase =>
+        string.Equals(PassPhrase, "default", StringComparison.Ordinal);
 
     // Optional TLS for TCP remote commands.
     // Enable with DESKTOPSHELL_TCP_TLS=1 and provide server cert via DESKTOPSHELL_TCP_TLS_PFX + DESKTOPSHELL_TCP_TLS_PFX_PASSWORD.
@@ -56,6 +58,7 @@ public static partial class GlobalVar
     public const string EnvQueueEnabled = "DESKTOPSHELL_QUEUE_ENABLED";
     public const string EnvQueueBaseUrl = "DESKTOPSHELL_QUEUE_BASEURL";
     public const string EnvQueueKeyBase64 = "DESKTOPSHELL_QUEUE_KEY_B64";
+    public const string EnvQueueSharedSecret = "DESKTOPSHELL_QUEUE_SHARED_SECRET";
     public const string EnvCfAccessClientId = "DESKTOPSHELL_CF_ACCESS_CLIENT_ID";
     public const string EnvCfAccessClientSecret = "DESKTOPSHELL_CF_ACCESS_CLIENT_SECRET";
 
@@ -127,10 +130,14 @@ public static partial class GlobalVar
         string enabledRaw = GetEnvValue(EnvQueueEnabled) ?? "";
         string? id = GetEnvValue(EnvCfAccessClientId);
         string? secret = GetEnvValue(EnvCfAccessClientSecret);
+        string? sharedEnv = GetEnvValue(EnvQueueSharedSecret);
+        string? shared = sharedEnv ?? "TUF@D^w3:xYsm,aLtY@ySCCo]%";
+        string sharedSource = sharedEnv != null ? GetEnvSource(EnvQueueSharedSecret) : "code";
 
         Log($"^^^ Queue env: {EnvQueueEnabled}='{enabledRaw}' (source={GetEnvSource(EnvQueueEnabled)}), " +
             $"{EnvCfAccessClientId}={(string.IsNullOrWhiteSpace(id) ? "missing" : "set")} (len={(id ?? "").Length}, source={GetEnvSource(EnvCfAccessClientId)}), " +
-            $"{EnvCfAccessClientSecret}={(string.IsNullOrWhiteSpace(secret) ? "missing" : "set")} (len={(secret ?? "").Length}, source={GetEnvSource(EnvCfAccessClientSecret)})");
+            $"{EnvCfAccessClientSecret}={(string.IsNullOrWhiteSpace(secret) ? "missing" : "set")} (len={(secret ?? "").Length}, source={GetEnvSource(EnvCfAccessClientSecret)}), " +
+            $"{EnvQueueSharedSecret}={(string.IsNullOrWhiteSpace(shared) ? "missing" : "set")} (len={(shared ?? "").Length}, source={sharedSource})");
     }
 
     public static void LogTcpEnvSummary()
@@ -149,6 +156,7 @@ public static partial class GlobalVar
     public static bool QueueEnabled => string.Equals(GetEnvValue(EnvQueueEnabled), "1", StringComparison.OrdinalIgnoreCase);
     public static string QueueBaseUrl => (GetEnvValue(EnvQueueBaseUrl) ?? "https://queue.dlamanna.com").TrimEnd('/');
     public static string? QueueKeyBase64 => GetEnvValue(EnvQueueKeyBase64);
+    public static string? QueueSharedSecret => GetEnvValue(EnvQueueSharedSecret) ?? "TUF@D^w3:xYsm,aLtY@ySCCo]%";
     public static string? CfAccessClientId => GetEnvValue(EnvCfAccessClientId);
     public static string? CfAccessClientSecret => GetEnvValue(EnvCfAccessClientSecret);
 

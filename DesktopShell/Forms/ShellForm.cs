@@ -165,6 +165,11 @@ public partial class Shell : Form
 
         if (Settings.EnableTCPServer)
         {
+            if (GlobalVar.IsDefaultPassPhrase)
+            {
+                GlobalVar.Log("### TCP server enabled but DESKTOPSHELL_PASSPHRASE is missing/using default. Remote commands are insecure.");
+                GlobalVar.ToolTip("Security", "DESKTOPSHELL_PASSPHRASE is missing or default. Remote commands are insecure.");
+            }
             GlobalVar.ServerInstance = new TCPServer();
         }
         else
@@ -203,6 +208,11 @@ public partial class Shell : Form
         browserList.Clear();
 
         //Populate Combinations
+        if (!File.Exists("shortcuts.txt"))
+        {
+            GlobalVar.Log("### shortcuts.txt not found. No shortcut combos loaded.");
+            return false;
+        }
         using (StreamReader? sr = new("shortcuts.txt"))
         {
             while (!sr.EndOfStream)
@@ -233,6 +243,11 @@ public partial class Shell : Form
         }
 
         //Populate WebBrowsers
+        if (!File.Exists("webbrowsers.txt"))
+        {
+            GlobalVar.Log("### webbrowsers.txt not found. No browser mappings loaded.");
+            return false;
+        }
         using (StreamReader? sr = new("webbrowsers.txt"))
         {
             bool isDefault = true;
@@ -252,6 +267,11 @@ public partial class Shell : Form
     private void PopulateWebSites()
     {
         webSiteList.Clear();
+        if (!File.Exists("websites.txt"))
+        {
+            GlobalVar.Log("### websites.txt not found. No website mappings loaded.");
+            return;
+        }
         using var sr = new StreamReader("websites.txt");
         while (!sr.EndOfStream)
         {
@@ -311,6 +331,10 @@ public partial class Shell : Form
         //Command Formatting
         string? originalCMD = command;
         lastCMD.Add(originalCMD);
+        if (string.IsNullOrWhiteSpace(originalCMD))
+        {
+            return;
+        }
         string[] splitWords = SplitWords(originalCMD);
         GlobalVar.Log($"!!! Processing Command: {originalCMD}");
 
@@ -633,6 +657,7 @@ public partial class Shell : Form
 
     private void MovieSearcher(string originalCMD)
     {
+        // TODO: Rework movie search now that the server drive is no longer mapped.
         string? rawSearch = MovieSearch().Replace(originalCMD, "");
         GlobalVar.FileChoices.Clear();
         List<FileInfo> tempList2 = [];
