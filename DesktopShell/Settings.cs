@@ -12,10 +12,6 @@ internal sealed partial class Settings
     public static Color BackgroundColor;
     public static Color ForegroundColor;
     public static string GamesDirectory = "";
-    public static string ShowsDirectory = "";
-    public static string MoviesDirectory = "";
-    public static string MusicDirectory = "";
-    public static string VideoPlayer = "";
     public static string TextEditor = "";
     public static bool HourlyChimeChecked = false;
     public static List<bool> MultiscreenEnabled;
@@ -26,11 +22,7 @@ internal sealed partial class Settings
     public static Regex ScreensRegex => ScreensEnabledRegex();
     public static Regex UpdateRegex => UpdateCheckRegex();
     public static Regex EnableTCPServerRegex => EnableTCPServerSettingRegex();
-    public static Regex MusicRegex => MusicDirectoryRegex();
     public static Regex GamesRegex => GamesDirectoryRegex();
-    public static Regex MoviesRegex => MoviesDirectoryRegex();
-    public static Regex ShowsRegex => ShowsDirectoryRegex();
-    public static Regex VideoPlayerRegex => VideoPlayerSettingRegex();
     public static Regex TextEditorRegex => TextEditorSettingRegex();
     public static Regex PositionRegex => PositionSaveRegex();
     public static Point PositionSave;
@@ -53,20 +45,8 @@ internal sealed partial class Settings
     [GeneratedRegex("enableTCPServer")]
     private static partial Regex EnableTCPServerSettingRegex();
 
-    [GeneratedRegex("musicDirectory")]
-    private static partial Regex MusicDirectoryRegex();
-
     [GeneratedRegex("gamesDirectory")]
     private static partial Regex GamesDirectoryRegex();
-
-    [GeneratedRegex("moviesDirectory")]
-    private static partial Regex MoviesDirectoryRegex();
-
-    [GeneratedRegex("showsDirectory")]
-    private static partial Regex ShowsDirectoryRegex();
-
-    [GeneratedRegex("videoPlayer")]
-    private static partial Regex VideoPlayerSettingRegex();
 
     [GeneratedRegex("textEditor")]
     private static partial Regex TextEditorSettingRegex();
@@ -130,25 +110,9 @@ internal sealed partial class Settings
                     EnableTCPServer = Convert.ToBoolean(curLine);
                     sawEnableTcpServer = true;
                 }
-                else if (MusicRegex.IsMatch(rawLine))
-                {
-                    MusicDirectory = curLine;
-                }
                 else if (GamesRegex.IsMatch(rawLine))
                 {
                     GamesDirectory = curLine;
-                }
-                else if (MoviesRegex.IsMatch(rawLine))
-                {
-                    MoviesDirectory = curLine;
-                }
-                else if (ShowsRegex.IsMatch(rawLine))
-                {
-                    ShowsDirectory = curLine;
-                }
-                else if (VideoPlayerRegex.IsMatch(rawLine))
-                {
-                    VideoPlayer = curLine;
                 }
                 else if (TextEditorRegex.IsMatch(rawLine))
                 {
@@ -175,23 +139,11 @@ internal sealed partial class Settings
         }
     }
 
-    public static string? ScanLine(StreamReader sr)
-    {
-        if (sr != null)
-        {
-            string? tempLine = sr.ReadLine();
-            if (tempLine == null) return null;
-
-            int i = tempLine.IndexOf('=') + 1;
-            return tempLine[i..];
-        }
-        return null;
-    }
     public static string ScanLine(string line)
     {
-        string tempLine;
-        int i = (tempLine = line).IndexOf('=') + 1;
-        return tempLine[i..];
+        int eqIndex = line.IndexOf('=');
+        if (eqIndex < 0) return "";
+        return line[(eqIndex + 1)..];
     }
 
     public static void WriteSettings()
@@ -207,11 +159,7 @@ internal sealed partial class Settings
             $"hourlyChime={HourlyChimeChecked}",
             $"screensEnabled={string.Join(",", MultiscreenEnabled)}",
             $"enableTCPServer={EnableTCPServer}",
-            $"musicDirectory={MusicDirectory}",
             $"gamesDirectory={GamesDirectory}",
-            $"moviesDirectory={MoviesDirectory}",
-            $"showsDirectory={ShowsDirectory}",
-            $"videoPlayer={VideoPlayer}",
             $"textEditor={TextEditor}",
             $"positionSave={PositionSave.X},{PositionSave.Y}",
         ];

@@ -664,7 +664,7 @@ public class ColorWheel : Form
     protected void OnColorChanged(ColorHandler.RGB rgb, ColorHandler.HSV hsv)
     {
         ColorChangedEventArgs e = new() { RGB = rgb, HSV = hsv };
-        ColorChanged(this, e);
+        ColorChanged?.Invoke(this, e);
     }
 
     public void Draw(Graphics g, ColorHandler.HSV hsv)

@@ -191,8 +191,7 @@ public class TCPServer
 
     private void HandleClientComm(object client)
     {
-        SoundPlayer myPlayer = new();
-        string soundLocation = $"{GlobalVar.GetSoundFolderLocation()}\\remote.wav";
+        string soundLocation = Path.Combine(GlobalVar.GetSoundFolderLocation(), "remote.wav");
         var tcpClient = (TcpClient)client;
 
         Stream? clientStream = null;
@@ -227,22 +226,13 @@ public class TCPServer
                         {
                             if (GlobalVar.IsWindows)
                             {
-                                using (myPlayer = new SoundPlayer(soundLocation))
-                                {
-                                    myPlayer.PlaySync();
-                                }
+                                using var player = new SoundPlayer(soundLocation);
+                                player.PlaySync();
                             }
                         }
                         catch (Exception e)
                         {
-                            if (e.GetType() == typeof(FileNotFoundException))
-                            {
-                                GlobalVar.Log($"### Error playing sound at location: {myPlayer.SoundLocation}");
-                            }
-                            else
-                            {
-                                GlobalVar.Log($"### Error playing sound: {e.Message}");
-                            }
+                            GlobalVar.Log($"### Error playing sound at location '{soundLocation}': {e.Message}");
                         }
                         GlobalVar.Log("$$$ Ack received, closing connection");
                         isCommunicationOver = true;
@@ -258,8 +248,10 @@ public class TCPServer
                         GlobalVar.WriteRemoteCommand(clientStream, "lol", includePassPhrase: false);
                         break;
                     default:
-                        //GlobalVar.SendRemoteCommand(tcpClient, "ack\r\n");
-                        GlobalVar.ShellInstance?.ProcessCommand(receivedString);
+                        if (GlobalVar.ShellInstance is { } shell)
+                        {
+                            shell.BeginInvoke(() => shell.ProcessCommand(receivedString));
+                        }
                         GlobalVar.WriteRemoteCommand(clientStream, "ack", includePassPhrase: true);
                         isCommunicationOver = true;
                         break;

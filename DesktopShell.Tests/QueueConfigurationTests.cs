@@ -57,9 +57,10 @@ public class QueueConfigurationTests
     {
         Environment.SetEnvironmentVariable(GlobalVar.EnvQueueEnabled, "1");
         Environment.SetEnvironmentVariable(GlobalVar.EnvCfAccessClientId, "id");
-        // Set to empty string (not null) so the process-scope value wins even if
-        // the machine/user scopes have a configured secret on the dev box.
-        Environment.SetEnvironmentVariable(GlobalVar.EnvCfAccessClientSecret, "");
+        // Use a single space instead of "" because on Windows SetEnvironmentVariable(name, "")
+        // removes the variable entirely, allowing User/Machine scopes to leak through.
+        // A whitespace-only value is still treated as missing by IsNullOrWhiteSpace.
+        Environment.SetEnvironmentVariable(GlobalVar.EnvCfAccessClientSecret, " ");
 
         GlobalVar.IsQueueConfiguredForAccess(out var reason).Should().BeFalse();
         reason.Should().Contain(GlobalVar.EnvCfAccessClientSecret);

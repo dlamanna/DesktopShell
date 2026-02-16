@@ -33,16 +33,16 @@ static class Program
             Application.SetCompatibleTextRenderingDefault(false);
 
             //Scan through running processes to see if there's already an instance
-            Boolean isRunning = false;
+            bool isRunning = false;
             Process[] processList = Process.GetProcessesByName("DesktopShell");
             if (processList.Length > 1)
             {
-                foreach (Process p in processList)
-                {
-                    Console.WriteLine($"Process Found: {p.ProcessName}\t{p.Id}");
-                }
                 GlobalVar.ToolTip("Error", "DesktopShell already running!");
                 isRunning = true;
+            }
+            foreach (Process p in processList)
+            {
+                p.Dispose();
             }
 
             if (!isRunning)

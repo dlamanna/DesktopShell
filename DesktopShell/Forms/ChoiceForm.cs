@@ -38,15 +38,7 @@ public partial class ChoiceForm : Form
         {
             if (((Label)sender).Text.Contains(extension.Replace(f.Name, ""), StringComparison.CurrentCulture))
             {
-                if (GlobalVar.SearchType == "Movie")
-                {
-                    GlobalVar.Run(@"D:\Program Files (x86)\VLC Media Player\vlc.exe", f.FullName);
-                }
-                else
-                {
-                    GlobalVar.Run(f.FullName);
-                }
-
+                GlobalVar.Run(f.FullName);
                 Close();
             }
         }
@@ -66,15 +58,7 @@ public partial class ChoiceForm : Form
         {
             if (GlobalVar.FileChoices[randNum] is FileInfo fileInfo)
             {
-                string fileName = fileInfo.FullName;
-                if (GlobalVar.SearchType == "Movie")
-                {
-                    GlobalVar.Run(@"D:\Program Files (x86)\VLC Media Player\vlc.exe", fileName);
-                }
-                else
-                {
-                    GlobalVar.Run(fileName);
-                }
+                GlobalVar.Run(fileInfo.FullName);
                 Close();
             }
         }

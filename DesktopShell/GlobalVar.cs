@@ -131,8 +131,8 @@ public static partial class GlobalVar
         string? id = GetEnvValue(EnvCfAccessClientId);
         string? secret = GetEnvValue(EnvCfAccessClientSecret);
         string? sharedEnv = GetEnvValue(EnvQueueSharedSecret);
-        string? shared = sharedEnv ?? "TUF@D^w3:xYsm,aLtY@ySCCo]%";
-        string sharedSource = sharedEnv != null ? GetEnvSource(EnvQueueSharedSecret) : "code";
+        string? shared = sharedEnv;
+        string sharedSource = sharedEnv != null ? GetEnvSource(EnvQueueSharedSecret) : "missing";
 
         Log($"^^^ Queue env: {EnvQueueEnabled}='{enabledRaw}' (source={GetEnvSource(EnvQueueEnabled)}), " +
             $"{EnvCfAccessClientId}={(string.IsNullOrWhiteSpace(id) ? "missing" : "set")} (len={(id ?? "").Length}, source={GetEnvSource(EnvCfAccessClientId)}), " +
@@ -156,7 +156,7 @@ public static partial class GlobalVar
     public static bool QueueEnabled => string.Equals(GetEnvValue(EnvQueueEnabled), "1", StringComparison.OrdinalIgnoreCase);
     public static string QueueBaseUrl => (GetEnvValue(EnvQueueBaseUrl) ?? "https://queue.dlamanna.com").TrimEnd('/');
     public static string? QueueKeyBase64 => GetEnvValue(EnvQueueKeyBase64);
-    public static string? QueueSharedSecret => GetEnvValue(EnvQueueSharedSecret) ?? "TUF@D^w3:xYsm,aLtY@ySCCo]%";
+    public static string? QueueSharedSecret => GetEnvValue(EnvQueueSharedSecret);
     public static string? CfAccessClientId => GetEnvValue(EnvCfAccessClientId);
     public static string? CfAccessClientSecret => GetEnvValue(EnvCfAccessClientSecret);
 
@@ -287,7 +287,7 @@ public static partial class GlobalVar
         {
             var line = sr.ReadLine();
             if (line == null) return null;
-            string[] tempSettingLine = line.Split('=');
+            string[] tempSettingLine = line.Split('=', 2);
             if (tempSettingLine.Length == 2)
             {
                 string tempSetting = tempSettingLine[0].Trim().ToLower();
@@ -422,14 +422,7 @@ public static partial class GlobalVar
             FileInfo tempFileInfo = FileChoices[i];
             if (tempFileInfo != null)
             {
-                if (SearchType == "Movie")
-                {
-                    tempLabel.Text = "• " + tempFileInfo.Name;
-                }
-                else
-                {
-                    tempLabel.Text = $"• {FileExtension().Replace(tempFileInfo.Name, "")}";
-                }
+                tempLabel.Text = $"• {FileExtension().Replace(tempFileInfo.Name, "")}";
             }
             tempArray.Add(tempLabel);
         }
@@ -625,9 +618,9 @@ public static partial class GlobalVar
                 return false;
             }
 
-            var presented = new X509Certificate2(cert);
+            using var presented = new X509Certificate2(cert);
             string presentedThumbprint = presented.Thumbprint?.Replace(" ", "", StringComparison.OrdinalIgnoreCase) ?? "";
-            
+
             if (!string.IsNullOrWhiteSpace(pinnedThumbprint))
             {
                 string expected = pinnedThumbprint.Replace(" ", "", StringComparison.OrdinalIgnoreCase);
@@ -927,6 +920,7 @@ public static partial class GlobalVar
                 if (delivered)
                 {
                     Log($"!!! Delivered command to {targetName} via TCP (route={candidate.Route})");
+                    ToolTip("TCP", $"Sent to {targetName}:\n{command}");
                     return;
                 }
 
@@ -1011,16 +1005,6 @@ public static partial class GlobalVar
         {
             Log($"### GlobalVar::SendRemoteCommand() - {e.GetType()}: {e.Message}");
         }
-        /*finally
-        {
-            if (command.Equals($"{passPhrase}ack"))
-            {
-                if (stream != null)
-                {
-                    stream.Close();
-                }
-            }
-        }*/
     }
 
     public static int WhichPort(string hostName)
@@ -1036,6 +1020,7 @@ public static partial class GlobalVar
                 if (!int.TryParse(hostPair.Value, out int serverPort))
                 {
                     Log($"### GlobalVar::whichPort - Error trying to parse port number as int: {hostPair.Value}");
+                    return -1;
                 }
                 return serverPort;
             }
@@ -1048,7 +1033,7 @@ public static partial class GlobalVar
     #region Utility Functions
     public static string GetSoundFolderLocation()
     {
-        return $"{Path.GetDirectoryName(AppContext.BaseDirectory)}\\Sounds";
+        return Path.Combine(AppContext.BaseDirectory, "Sounds");
     }
     public static bool KillProcess(string processName)
     {
@@ -1062,6 +1047,7 @@ public static partial class GlobalVar
                 {
                     Console.WriteLine($"Process Found: {p.ProcessName}\t{p.Id}");
                     p.Kill();
+                    p.Dispose();
                 }
                 isRunning = true;
             }

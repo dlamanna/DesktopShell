@@ -49,10 +49,12 @@ public static class SocketExtensions
             {
                 socket.EndConnect(asyncResult);
             }
-            catch (SocketException)
-            { }
-            catch (ObjectDisposedException)
-            { }
+            catch (SocketException) { }
+            catch (ObjectDisposedException) { }
+
+            throw new SocketException((int)SocketError.TimedOut);
         }
+
+        socket.EndConnect(asyncResult);
     }
 }

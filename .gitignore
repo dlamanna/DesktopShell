@@ -162,3 +162,6 @@ $RECYCLE.BIN/
 __Release
 clear_icon_cache_comprehensive.bat
 clear_icon_cache.bat
+
+# Claude Code project docs
+CLAUDE.md

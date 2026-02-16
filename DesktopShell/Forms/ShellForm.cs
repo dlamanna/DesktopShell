@@ -15,19 +15,14 @@ public partial class Shell : Form
     private System.Windows.Forms.Timer? fadeTimer;
     private Thread? t = null;
     private readonly List<Combination> shortcutList = [];
-    private readonly List<WwwBrowser> browserList = [];
-    private readonly List<WebCombo> webSiteList = [];
     private readonly bool[] hourSounded = new bool[GlobalVar.HoursInDay];
-    private bool webSiteHit = false;
     private bool isHidden = true;
     private bool hasFaded = false;
     private bool isFading = false;
     // fadeDirection: 0 = idle, 1 = fading in (show), -1 = fading out (hide)
     private int fadeDirection = 0;
     private bool regexHit = false;
-    private bool fadeBool = false;
-    private float? shellVersionF;
-    private float? shellVersionW;
+    private bool fadeLocked = false;
     private int onHour;
     private int fadeTickAmount = 0;
     private int upCounter = 0;
@@ -107,12 +102,6 @@ public partial class Shell : Form
     [GeneratedRegex("(^show){1}(s)?( ){1}(raw )?")]
     private static partial Regex ShowsRaw();
 
-    [GeneratedRegex("(^music ){1}")]
-    private static partial Regex MusicSearch();
-
-    [GeneratedRegex("(^movie(s)? ){1}")]
-    private static partial Regex MovieSearch();
-
     [GeneratedRegex("(^[a-zA-Z]+:){1}")]
     private static partial Regex RemoteCommand();
 
@@ -178,7 +167,6 @@ public partial class Shell : Form
         }
 
         PopulateCombos();
-        PopulateWebSites();
 
         // Store-and-forward: pull pending queued messages once at startup.
         this.Shown += async (_, _) =>
@@ -205,7 +193,6 @@ public partial class Shell : Form
     private bool PopulateCombos()
     {
         shortcutList.Clear();
-        browserList.Clear();
 
         //Populate Combinations
         if (!File.Exists("shortcuts.txt"))
@@ -221,13 +208,9 @@ public partial class Shell : Form
                 List<string> tempArguments = [];
                 string? tempKeyword = sr.ReadLine();
                 string? tempLine;
-                while (((tempLine = sr.ReadLine())
-                    != "") && (!sr.EndOfStream))
+                while ((tempLine = sr.ReadLine()) != null && tempLine != "")
                 {
-                    if (tempLine != null)
-                    {
-                        tempFilePaths.Add(tempLine);
-                    }
+                    tempFilePaths.Add(tempLine);
                     tempLine = sr.ReadLine();
                     if (tempLine == "-")
                     {
@@ -241,56 +224,7 @@ public partial class Shell : Form
                 shortcutList.Add(new Combination(tempKeyword, tempFilePaths, tempArguments));
             }
         }
-
-        //Populate WebBrowsers
-        if (!File.Exists("webbrowsers.txt"))
-        {
-            GlobalVar.Log("### webbrowsers.txt not found. No browser mappings loaded.");
-            return false;
-        }
-        using (StreamReader? sr = new("webbrowsers.txt"))
-        {
-            bool isDefault = true;
-            while (!sr.EndOfStream)
-            {
-                string? tempRegex = sr.ReadLine();
-                string? tempFilePath = sr.ReadLine();
-                sr.ReadLine();
-
-                browserList.Add(new WwwBrowser(tempRegex, tempFilePath, isDefault));
-                isDefault = false;
-            }
-        }
         return true;
-    }
-
-    private void PopulateWebSites()
-    {
-        webSiteList.Clear();
-        if (!File.Exists("websites.txt"))
-        {
-            GlobalVar.Log("### websites.txt not found. No website mappings loaded.");
-            return;
-        }
-        using var sr = new StreamReader("websites.txt");
-        while (!sr.EndOfStream)
-        {
-            List<string> tempWebsiteBase = [];
-            string? tempLine;
-            string? tempKeyword = sr.ReadLine();
-            string? tempSearchableString = sr.ReadLine();
-            bool? tempSearchable = Convert.ToBoolean(tempSearchableString);
-            while (((tempLine = sr.ReadLine())
-                    != "") && (!sr.EndOfStream))
-            {
-                if (tempLine != null)
-                {
-                    tempWebsiteBase.Add(tempLine);
-                }
-            }
-
-            webSiteList.Add(new WebCombo(tempKeyword, tempWebsiteBase, tempSearchable));
-        }
     }
 
     #endregion Populating combos and websites
@@ -342,7 +276,6 @@ public partial class Shell : Form
         textBox1.Text = "";
         upCounter = 0;
         regexHit = false;
-        webSiteHit = false;
 
         //Generic combo running (shortcuts.txt)
         foreach (Combination combo in shortcutList)
@@ -428,7 +361,6 @@ public partial class Shell : Form
                 GlobalVar.ToolTip("Rescan", "Regex Rescan Failure");
             }
 
-            PopulateWebSites();
         }
         else if (Tooltip().IsMatch(splitWords[0]))
         {
@@ -502,16 +434,6 @@ public partial class Shell : Form
         {
             OpenRandomGame(originalCMD);
         }
-        //Music Searcher
-        else if (MusicSearch().IsMatch(originalCMD))
-        {
-            MusicSearcher(originalCMD);
-        }
-        //Movie Searcher
-        else if (MovieSearch().IsMatch(originalCMD))
-        {
-            MovieSearcher(originalCMD);
-        }
         //Sending Remote Command
         else if (RemoteCommand().IsMatch(originalCMD))
         {
@@ -539,25 +461,6 @@ public partial class Shell : Form
             else
             {
                 GlobalVar.Log($"### ShellForm::hardCodedCombos() Invalid remote command, needs to have exactly 1 ':', command has {splitString.Length - 1}");
-            }
-        }
-        //Website section
-        foreach (var combo in webSiteList)
-        {
-            WebSiteOpener(combo, originalCMD);
-        }
-        //WWW Browser Section
-        if (!webSiteHit)
-        {
-            foreach (var browser in browserList)
-            {
-                if (browser is not { keyword: not null, filePath: not null }) continue;
-
-                Match match = Regex.Match(originalCMD, browser.keyword, RegexOptions.IgnoreCase);
-                if (match.Success)
-                {
-                    GlobalVar.Run(browser.filePath);
-                }
             }
         }
     }
@@ -626,135 +529,14 @@ public partial class Shell : Form
         }
     }
 
-    private static void MusicSearcher(string originalCMD)
-    {
-        string? rawSearch = MusicSearch().Replace(originalCMD, "");
-        GlobalVar.FileChoices.Clear();
-        DirectoryInfo dir = new(Settings.MusicDirectory);
-        foreach (var f in dir.GetFiles())
-        {
-            if (f.Name.Contains(".mp3", StringComparison.CurrentCulture) || f.Name.Contains(".wav", StringComparison.CurrentCulture) ||
-            f.Name.Contains(".mp4", StringComparison.CurrentCulture) || f.Name.Contains(".flac", StringComparison.CurrentCulture))
-            {
-                if (f.Name.Contains(rawSearch, StringComparison.CurrentCultureIgnoreCase))
-                {
-                    GlobalVar.FileChoices.Add(f);
-                }
-            }
-        }
-
-        if (GlobalVar.FileChoices.Count > 0)
-        {
-            Thread t = new(new ThreadStart(ChoiceProc));
-            t.Start();
-            GlobalVar.SearchType = "Music";
-        }
-        else
-        {
-            GlobalVar.ToolTip("Search", $"Error Couldn't find music: {rawSearch}");
-        }
-    }
-
-    private void MovieSearcher(string originalCMD)
-    {
-        // TODO: Rework movie search now that the server drive is no longer mapped.
-        string? rawSearch = MovieSearch().Replace(originalCMD, "");
-        GlobalVar.FileChoices.Clear();
-        List<FileInfo> tempList2 = [];
-        foreach (string s in Directory.GetFiles(Settings.MoviesDirectory, "*.*", SearchOption.AllDirectories))
-        {
-            tempList2.Add(new FileInfo(s));
-        }
-
-        foreach (var f in tempList2)
-        {
-            if ((f.Name.Contains(".avi") || f.Name.Contains(".mkv") || f.Name.Contains(".rar")) && f.Name.Contains("sample") && f.Name.Contains(rawSearch, StringComparison.CurrentCultureIgnoreCase))
-            {
-                GlobalVar.FileChoices.Add(f);
-            }
-        }
-
-        if (GlobalVar.FileChoices.Count > 0)
-        {
-            Thread t = new(new ThreadStart(ChoiceProc));
-            t.Start();
-            GlobalVar.SearchType = "Movie";
-        }
-        else
-        {
-            GlobalVar.ToolTip("Search", $"Error Couldn't find movie: {rawSearch}");
-        }
-    }
-
-    private void WebSiteOpener(WebCombo combo, string originalCMD)
-    {
-        string? browserPath = null;
-        var searchTerms = originalCMD;
-        webSiteHit = true;
-
-        if (combo is not { Keyword: not null })
-        {
-            GlobalVar.Log($"### ShellForm::WebSiteOpener() - combo.Keyword = null\ncombo:{combo}");
-            return;
-        }
-
-        if (Regex.IsMatch(originalCMD, combo.Keyword, RegexOptions.IgnoreCase))
-        {
-            //Choose browser
-            foreach (var b in browserList)
-            {
-                if (b is not { keyword: not null, filePath: not null })
-                {
-                    GlobalVar.Log($"### ShellForm::WebSiteOpener() - browser.keyword or filePath is null\ncombo:{b}");
-                    continue;
-                }
-
-                if (Regex.IsMatch(originalCMD, b.keyword, RegexOptions.IgnoreCase))
-                {
-                    browserPath = b.filePath;
-                    searchTerms = b.keyword.Replace(originalCMD, "");                                   //Remove browser terms from search
-                }
-                else if (b.defaultBrowser)
-                {
-                    browserPath = b.filePath;
-                }
-            }
-            //Searching here
-            if (string.IsNullOrEmpty(browserPath))
-            {
-                GlobalVar.Log("No browser path found for website opening");
-                return;
-            }
-
-            if (combo.Searchable != null)
-            {
-                //Remove keyword terms, turn spaces into +
-                searchTerms = Regex.Replace(searchTerms, combo.Keyword, "");
-                searchTerms = Regex.Replace(searchTerms, @"\s+", "+");
-                foreach (var s in combo.WebsiteBase)
-                {
-                    GlobalVar.Run(path: browserPath, arguments: $"{s}{searchTerms}");
-                    Thread.Sleep(GlobalVar.WebBrowserLaunchDelayMs);
-                }
-            }
-            else
-            {
-                foreach (var s in combo.WebsiteBase)
-                {
-                    GlobalVar.Run(path: browserPath, arguments: s);
-                    Thread.Sleep(GlobalVar.WebBrowserLaunchDelayMs);
-                }
-            }
-        }
-    }
-
     #endregion KeyPressed Handler
 
     #region MouseClicked Handlers
 
     private void Button1_Click(object sender, EventArgs e)
     {
-        fadeBool = !fadeBool;
+        fadeLocked = !fadeLocked;
+        GlobalVar.Log($"^^^ Fade lock toggled: {fadeLocked}");
     }
 
     private void TextBox1_DoubleClick(object sender, EventArgs e)
@@ -881,7 +663,7 @@ public partial class Shell : Form
                 myPlayer.SoundLocation = $"Sounds\\{splitTime[2]}.wav";
                 myPlayer.PlaySync();
                 hourSounded[onHour] = true;
-                hourSounded[onHour - 1] = false;
+                hourSounded[(onHour + GlobalVar.HoursInDay - 1) % GlobalVar.HoursInDay] = false;
             }
         }
     }
@@ -940,6 +722,8 @@ public partial class Shell : Form
 
     public void DecideToHide()
     {
+        if (fadeLocked) return;
+
         // Check if mouse is within the form's actual bounds OR the trigger area
         // Form bounds after animation
         Rectangle formBounds = new(
