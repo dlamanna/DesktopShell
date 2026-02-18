@@ -171,7 +171,7 @@
             this.ShowInTaskbar = false;
             this.Text = "Options";
             this.Load += new System.EventHandler(this.ConfigForm_Load);
-            this.Closed += new System.EventHandler(this.ConfigForm_FormClosed);
+            this.FormClosed += new System.Windows.Forms.FormClosedEventHandler(this.ConfigForm_FormClosed);
             this.interfaceBox.ResumeLayout(false);
             this.interfaceBox.PerformLayout();
             this.functionalityBox.ResumeLayout(false);

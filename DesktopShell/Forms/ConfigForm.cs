@@ -82,7 +82,7 @@ public partial class ConfigForm : Form
         }
     }
 
-    private void ConfigForm_FormClosed(object sender, EventArgs e)
+    private void ConfigForm_FormClosed(object sender, FormClosedEventArgs e)
     {
         //t.Join();
         //GlobalVar.ColorWheelInstance.Close();

@@ -1,3 +1,4 @@
+using System.ComponentModel;
 using System.Drawing.Drawing2D;
 using System.Drawing.Imaging;
 
@@ -569,6 +570,7 @@ public class ColorWheel : Form
         }
     }
 
+    [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
     public Color Color
     {
         // Get or set the color to be displayed in the color wheel.

@@ -545,7 +545,7 @@ public static partial class GlobalVar
 
         try
         {
-            certificate = new X509Certificate2(TcpTlsPfxPath, TcpTlsPfxPassword);
+            certificate = X509CertificateLoader.LoadPkcs12FromFile(TcpTlsPfxPath!, TcpTlsPfxPassword);
             tcpServerCertificate = certificate;
             return true;
         }
