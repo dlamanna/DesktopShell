@@ -155,5 +155,6 @@ public class FakeFileReader : IFileReader
     public bool FileExists(string path) =>
         _files.Keys.Any(k => path.Contains(k, StringComparison.OrdinalIgnoreCase));
 
-    public string[] GetDirectories(string path) => [];
+    public string[] GetDirectories(string path) =>
+        _files.ContainsKey("cloudstorage") ? [Path.Combine(path, "12345")] : [];
 }
