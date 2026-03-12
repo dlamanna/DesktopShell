@@ -92,6 +92,7 @@ public static partial class SteamConfigParser
                 if (entry.GetArrayLength() < 2) continue;
 
                 var valueObj = entry[1];
+                if (valueObj.ValueKind != JsonValueKind.Object) continue;
                 if (!valueObj.TryGetProperty("value", out var valueStr))
                     continue;
 
@@ -99,6 +100,7 @@ public static partial class SteamConfigParser
                 if (innerJson == null) continue;
 
                 using var inner = JsonDocument.Parse(innerJson);
+                if (inner.RootElement.ValueKind != JsonValueKind.Object) continue;
                 if (!inner.RootElement.TryGetProperty("name", out var nameEl))
                     continue;
 
@@ -119,9 +121,9 @@ public static partial class SteamConfigParser
                 return new VrCollection(added, removed);
             }
         }
-        catch (JsonException)
+        catch (Exception)
         {
-            // Corrupt config — return null
+            // Corrupt or unexpected config — return null
         }
 
         return null;
