@@ -5,6 +5,7 @@ using System.Diagnostics;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using DesktopShell.VR;
 
 namespace DesktopShell;
 
@@ -13,6 +14,15 @@ public class TCPServer
     private readonly TcpListener? tcplistener;
     private readonly int portNum;
     private readonly CancellationTokenSource cts = new();
+
+    private static readonly Lazy<VRCommandHandler> VrHandler = new(() =>
+    {
+        var fileReader = new DiskFileReader();
+        var gameListService = new VRGameListService(fileReader);
+        var processManager = new ProcessManager();
+        var orchestrator = new VROrchestrator(processManager);
+        return new VRCommandHandler(gameListService, orchestrator);
+    });
     private readonly CancellationToken token;
 
     public TCPServer()
@@ -246,6 +256,21 @@ public class TCPServer
                         int idx = receivedString.IndexOf("spike", StringComparison.OrdinalIgnoreCase) + "spike".Length;
                         GlobalVar.Log($"$$$ Got fake command: {receivedString[idx..]}");
                         GlobalVar.WriteRemoteCommand(clientStream, "lol", includePassPhrase: false);
+                        break;
+                    case string cmd when cmd.StartsWith("vr-"):
+                        GlobalVar.Log($"$$$ VR command: {cmd}");
+                        Task.Run(async () =>
+                        {
+                            try
+                            {
+                                await VrHandler.Value.HandleAsync(cmd, clientStream);
+                            }
+                            catch (Exception e)
+                            {
+                                GlobalVar.Log($"### VR command error: {e.Message}");
+                            }
+                        }).Wait(); // Block this client thread until VR command completes
+                        isCommunicationOver = true;
                         break;
                     default:
                         if (GlobalVar.ShellInstance is { } shell)
