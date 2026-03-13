@@ -130,12 +130,15 @@ public class VRCommandHandler
         GlobalVar.WriteRemoteCommand(stream, step.ToJson(), includePassPhrase: false);
     }
 
+    private const string WindowsTerminalPreview =
+        @"C:\Users\phuze\AppData\Local\Microsoft\WindowsApps\Microsoft.WindowsTerminalPreview_8wekyb3d8bbwe\wt.exe";
+
     private static void OpenDungeonMasterTerminal()
     {
         // Opens wsl_claude_dungeonmaster profile in Windows Terminal Preview.
         // With windowingBehavior=useAnyExisting, wt -w 0 adds a tab if Terminal
         // is already open, or creates a new window if not.
-        Process.Start(new ProcessStartInfo("wt.exe", "-w 0 new-tab -p \"wsl_claude_dungeonmaster\"")
+        Process.Start(new ProcessStartInfo(WindowsTerminalPreview, "-w 0 new-tab -p \"wsl_claude_dungeonmaster\"")
         {
             UseShellExecute = true,
             CreateNoWindow = true
