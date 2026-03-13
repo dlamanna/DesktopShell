@@ -49,10 +49,14 @@ public class ProcessManager : IProcessManager
 {
     private const string VrCmdPath = @"C:\Program Files (x86)\Steam\steamapps\common\SteamVR\bin\win64\vrcmd.exe";
 
+    private const int HmdCheckTimeoutMs = 5_000;
+
     public async Task<bool> IsHmdPresentAsync()
     {
         try
         {
+            if (!File.Exists(VrCmdPath)) return false;
+
             var psi = new ProcessStartInfo(VrCmdPath, "--pollhmdpresent")
             {
                 CreateNoWindow = true,
@@ -60,7 +64,19 @@ public class ProcessManager : IProcessManager
             };
             var proc = System.Diagnostics.Process.Start(psi);
             if (proc == null) return false;
-            await proc.WaitForExitAsync();
+
+            using var cts = new CancellationTokenSource(HmdCheckTimeoutMs);
+            try
+            {
+                await proc.WaitForExitAsync(cts.Token);
+            }
+            catch (OperationCanceledException)
+            {
+                try { proc.Kill(); } catch { }
+                GlobalVar.Log("### VR: vrcmd.exe timed out checking HMD presence");
+                return false;
+            }
+
             return proc.ExitCode == 0;
         }
         catch
@@ -232,9 +248,6 @@ public class VROrchestrator
 
     public VrLaunchStep GetStatus()
     {
-        bool headset = false;
-        try { headset = _process.IsHmdPresentAsync().GetAwaiter().GetResult(); } catch { }
-
         return new VrLaunchStep
         {
             Status = "ok",

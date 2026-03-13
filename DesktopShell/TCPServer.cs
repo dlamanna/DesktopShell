@@ -259,7 +259,7 @@ public class TCPServer
                         break;
                     case string cmd when cmd.StartsWith("vr-"):
                         GlobalVar.Log($"$$$ VR command: {cmd}");
-                        Task.Run(async () =>
+                        bool finished = Task.Run(async () =>
                         {
                             try
                             {
@@ -269,7 +269,9 @@ public class TCPServer
                             {
                                 GlobalVar.Log($"### VR command error: {e.Message}");
                             }
-                        }).Wait(); // Block this client thread until VR command completes
+                        }).Wait(TimeSpan.FromSeconds(90));
+                        if (!finished)
+                            GlobalVar.Log("### VR command timed out after 90s");
                         isCommunicationOver = true;
                         break;
                     default:
