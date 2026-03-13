@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Linq;
 using System.Text.Json;
 using System.Threading.Tasks;
@@ -8,6 +9,12 @@ public class VRCommandHandler
 {
     private readonly VRGameListService _gameListService;
     private readonly VROrchestrator _orchestrator;
+
+    // Post-launch hooks: appId → action to run after the game_launch step
+    private static readonly Dictionary<int, Action> PostLaunchHooks = new()
+    {
+        [1086940] = OpenDungeonMasterTerminal, // Baldur's Gate 3
+    };
 
     public VRCommandHandler(VRGameListService gameListService, VROrchestrator orchestrator)
     {
@@ -73,6 +80,20 @@ public class VRCommandHandler
         await foreach (var step in _orchestrator.LaunchAsync(appId, fullInstallPath))
         {
             WriteJsonLine(clientStream, step);
+
+            // Fire post-launch hook after the game has been sent to Steam
+            if (step.Step == "game_launch" && step.Status == "ok" && PostLaunchHooks.TryGetValue(appId, out var hook))
+            {
+                try
+                {
+                    hook();
+                    GlobalVar.Log($"$$$ VR post-launch hook fired for appId {appId}");
+                }
+                catch (Exception e)
+                {
+                    GlobalVar.Log($"### VR post-launch hook failed for appId {appId}: {e.Message}");
+                }
+            }
         }
     }
 
@@ -107,5 +128,17 @@ public class VRCommandHandler
     private static void WriteJsonLine(Stream stream, VrLaunchStep step)
     {
         GlobalVar.WriteRemoteCommand(stream, step.ToJson(), includePassPhrase: false);
+    }
+
+    private static void OpenDungeonMasterTerminal()
+    {
+        // Opens wsl_claude_dungeonmaster profile in Windows Terminal Preview.
+        // With windowingBehavior=useAnyExisting, wt -w 0 adds a tab if Terminal
+        // is already open, or creates a new window if not.
+        Process.Start(new ProcessStartInfo("wt.exe", "-w 0 new-tab -p \"wsl_claude_dungeonmaster\"")
+        {
+            UseShellExecute = true,
+            CreateNoWindow = true
+        });
     }
 }
