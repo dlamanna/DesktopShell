@@ -289,21 +289,26 @@ public class VROrchestrator
         };
     }
 
-    public async Task<Dictionary<string, object?>> GetDeviceStatusAsync()
+    public async Task<Dictionary<string, object?>> GetDeviceStatusAsync(bool detailed = false)
     {
-        bool hmdPresent = await _process.IsHmdPresentAsync();
         bool steamVrRunning = _process.IsProcessRunning("vrserver");
         bool compositorRunning = _process.IsProcessRunning("vrcompositor");
 
         var result = new Dictionary<string, object?>
         {
-            ["hmdPresent"] = hmdPresent,
             ["steamVrRunning"] = steamVrRunning,
             ["compositorRunning"] = compositorRunning
         };
 
-        // Only query detailed status if SteamVR is actually running
-        if (steamVrRunning)
+        // Only run vrcmd (which can flash the screen) on detailed/manual queries
+        if (detailed)
+        {
+            bool hmdPresent = await _process.IsHmdPresentAsync();
+            result["hmdPresent"] = hmdPresent;
+        }
+
+        // Only run vrcmd queries on detailed/manual refresh to avoid screen flashing
+        if (detailed && steamVrRunning)
         {
             string? statusOutput = await _process.RunVrCmdAsync("--status");
             if (statusOutput != null)
