@@ -38,9 +38,9 @@ public class VRCommandHandler
                 else
                     WriteJsonLine(clientStream, new VrLaunchStep { Status = "failed", Error = $"Invalid app ID: {appIdStr}" });
             }
-            else if (command == "vr-devices" || command == "vr-devices-detailed")
+            else if (command == "vr-devices")
             {
-                await HandleVrDevicesAsync(clientStream, detailed: command.Contains("detailed"));
+                await HandleVrDevicesAsync(clientStream);
             }
             else if (command == "vr-status")
             {
@@ -109,9 +109,9 @@ public class VRCommandHandler
         }
     }
 
-    private async Task HandleVrDevicesAsync(Stream clientStream, bool detailed = false)
+    private async Task HandleVrDevicesAsync(Stream clientStream)
     {
-        var status = await _orchestrator.GetDeviceStatusAsync(detailed);
+        var status = await _orchestrator.GetDeviceStatusAsync();
         string json = JsonSerializer.Serialize(status);
         GlobalVar.WriteRemoteCommand(clientStream, json, includePassPhrase: true);
     }

@@ -289,36 +289,31 @@ public class VROrchestrator
         };
     }
 
-    public async Task<Dictionary<string, object?>> GetDeviceStatusAsync(bool detailed = false)
+    public Task<VrDeviceStatusResult> GetDeviceStatusAsync()
     {
-        bool steamVrRunning = _process.IsProcessRunning("vrserver");
-        bool compositorRunning = _process.IsProcessRunning("vrcompositor");
-
-        var result = new Dictionary<string, object?>
+        var result = new VrDeviceStatusResult
         {
-            ["steamVrRunning"] = steamVrRunning,
-            ["compositorRunning"] = compositorRunning
+            SteamVrRunning = _process.IsProcessRunning("vrserver"),
+            CompositorRunning = _process.IsProcessRunning("vrcompositor"),
+            MonitorRunning = _process.IsProcessRunning("vrmonitor"),
+            DashboardRunning = _process.IsProcessRunning("vrdashboard"),
         };
 
-        // Only run vrcmd (which can flash the screen) on detailed/manual queries
-        if (detailed)
-        {
-            bool hmdPresent = await _process.IsHmdPresentAsync();
-            result["hmdPresent"] = hmdPresent;
-        }
-
-        // Only run vrcmd queries on detailed/manual refresh to avoid screen flashing
-        if (detailed && steamVrRunning)
-        {
-            string? statusOutput = await _process.RunVrCmdAsync("--status");
-            if (statusOutput != null)
-                result["vrStatus"] = statusOutput.Trim();
-
-            string? lighthouseOutput = await _process.RunVrCmdAsync("--lighthousedebugstring");
-            if (lighthouseOutput != null)
-                result["lighthouseDebug"] = lighthouseOutput.Trim();
-        }
-
-        return result;
+        return Task.FromResult(result);
     }
+}
+
+public class VrDeviceStatusResult
+{
+    [System.Text.Json.Serialization.JsonPropertyName("steamVrRunning")]
+    public bool SteamVrRunning { get; set; }
+
+    [System.Text.Json.Serialization.JsonPropertyName("compositorRunning")]
+    public bool CompositorRunning { get; set; }
+
+    [System.Text.Json.Serialization.JsonPropertyName("monitorRunning")]
+    public bool MonitorRunning { get; set; }
+
+    [System.Text.Json.Serialization.JsonPropertyName("dashboardRunning")]
+    public bool DashboardRunning { get; set; }
 }
