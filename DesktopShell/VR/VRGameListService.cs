@@ -1,6 +1,15 @@
+using System.Linq;
+
 namespace DesktopShell.VR;
 
-public record VrGame(int AppId, string Name, string InstallDir);
+public record VrGame(
+    int AppId,
+    string Name,
+    string InstallDir,
+    string? InstallPath = null,
+    string? InstallDrive = null,
+    long InstallSizeBytes = 0
+);
 
 public interface IFileReader
 {
@@ -82,17 +91,32 @@ public class VRGameListService
         candidateIds.ExceptWith(removedIds);
         candidateIds.IntersectWith(installedApps);
 
-        // 6. Look up names from app manifests
+        // 6. Look up names from app manifests and resolve storage info
         var games = new List<VrGame>();
         foreach (int appId in candidateIds)
         {
             var appInfo = FindAppInfo(appId, libraries);
-            if (appInfo != null)
-                games.Add(new VrGame(appInfo.AppId, appInfo.Name, appInfo.InstallDir));
+            if (appInfo == null) continue;
+
+            string? fullPath = ResolveInstallPath(appInfo.InstallDir, libraries);
+            string? drive = fullPath != null && fullPath.Length >= 2 ? fullPath[..2] : null;
+            long sizeBytes = fullPath != null ? GetDirectorySizeBytes(fullPath) : 0;
+
+            games.Add(new VrGame(appInfo.AppId, appInfo.Name, appInfo.InstallDir, fullPath, drive, sizeBytes));
         }
 
         games.Sort((a, b) => string.Compare(a.Name, b.Name, StringComparison.OrdinalIgnoreCase));
         return games;
+    }
+
+    public static long GetCDriveFreeSpace()
+    {
+        try
+        {
+            var drive = new DriveInfo("C");
+            return drive.AvailableFreeSpace;
+        }
+        catch { return 0; }
     }
 
     private VrCollection? FindVrCollection()
@@ -112,6 +136,32 @@ public class VRGameListService
         }
 
         return null;
+    }
+
+    private static string? ResolveInstallPath(string installDir, List<SteamLibrary> libraries)
+    {
+        if (string.IsNullOrEmpty(installDir)) return null;
+
+        foreach (var lib in libraries)
+        {
+            string fullPath = Path.Combine(lib.Path, "steamapps", "common", installDir);
+            if (Directory.Exists(fullPath))
+                return fullPath;
+        }
+
+        return null;
+    }
+
+    private static long GetDirectorySizeBytes(string path)
+    {
+        try
+        {
+            if (!Directory.Exists(path)) return 0;
+            return new DirectoryInfo(path)
+                .EnumerateFiles("*", SearchOption.AllDirectories)
+                .Sum(f => f.Length);
+        }
+        catch { return 0; }
     }
 
     private SteamAppInfo? FindAppInfo(int appId, List<SteamLibrary> libraries)

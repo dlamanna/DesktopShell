@@ -43,6 +43,7 @@ public interface IProcessManager
     void LaunchSteamVr();
     Task LaunchSteamGameAsync(int appId);
     Task<string?> WaitForGameProcessAsync(int appId, string installDir, int timeoutMs, CancellationToken ct);
+    Task<string?> RunVrCmdAsync(string args, int timeoutMs = 5_000);
 }
 
 public class ProcessManager : IProcessManager
@@ -141,6 +142,38 @@ public class ProcessManager : IProcessManager
         }
 
         return null;
+    }
+
+    public async Task<string?> RunVrCmdAsync(string args, int timeoutMs = 5_000)
+    {
+        try
+        {
+            if (!File.Exists(VrCmdPath)) return null;
+
+            var psi = new ProcessStartInfo(VrCmdPath, args)
+            {
+                CreateNoWindow = true,
+                UseShellExecute = false,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true
+            };
+            var proc = System.Diagnostics.Process.Start(psi);
+            if (proc == null) return null;
+
+            using var cts = new CancellationTokenSource(timeoutMs);
+            try
+            {
+                string output = await proc.StandardOutput.ReadToEndAsync(cts.Token);
+                await proc.WaitForExitAsync(cts.Token);
+                return output;
+            }
+            catch (OperationCanceledException)
+            {
+                try { proc.Kill(); } catch { }
+                return null;
+            }
+        }
+        catch { return null; }
     }
 
     private static List<string> FindCandidateExes(string installDir)
@@ -254,5 +287,33 @@ public class VROrchestrator
             Step = "status",
             Process = _launching == 1 ? "launching" : null
         };
+    }
+
+    public async Task<Dictionary<string, object?>> GetDeviceStatusAsync()
+    {
+        bool hmdPresent = await _process.IsHmdPresentAsync();
+        bool steamVrRunning = _process.IsProcessRunning("vrserver");
+        bool compositorRunning = _process.IsProcessRunning("vrcompositor");
+
+        var result = new Dictionary<string, object?>
+        {
+            ["hmdPresent"] = hmdPresent,
+            ["steamVrRunning"] = steamVrRunning,
+            ["compositorRunning"] = compositorRunning
+        };
+
+        // Only query detailed status if SteamVR is actually running
+        if (steamVrRunning)
+        {
+            string? statusOutput = await _process.RunVrCmdAsync("--status");
+            if (statusOutput != null)
+                result["vrStatus"] = statusOutput.Trim();
+
+            string? lighthouseOutput = await _process.RunVrCmdAsync("--lighthousedebugstring");
+            if (lighthouseOutput != null)
+                result["lighthouseDebug"] = lighthouseOutput.Trim();
+        }
+
+        return result;
     }
 }
