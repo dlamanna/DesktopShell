@@ -289,15 +289,105 @@ public class VROrchestrator
         };
     }
 
+    private const string SteamVrSettingsPath = @"C:\Program Files (x86)\Steam\config\steamvr.vrsettings";
+    private const string LighthouseDbPath = @"C:\Program Files (x86)\Steam\config\lighthouse\lighthousedb.json";
+
     public Task<VrDeviceStatusResult> GetDeviceStatusAsync()
     {
         var result = new VrDeviceStatusResult
         {
             SteamVrRunning = _process.IsProcessRunning("vrserver"),
-            CompositorRunning = _process.IsProcessRunning("vrcompositor"),
-            MonitorRunning = _process.IsProcessRunning("vrmonitor"),
-            DashboardRunning = _process.IsProcessRunning("vrdashboard"),
         };
+
+        try
+        {
+            if (File.Exists(SteamVrSettingsPath))
+            {
+                var settings = JsonDocument.Parse(File.ReadAllText(SteamVrSettingsPath));
+                if (settings.RootElement.TryGetProperty("LastKnown", out var lastKnown))
+                {
+                    result.Headset = new VrHeadsetInfo
+                    {
+                        Model = lastKnown.TryGetProperty("HMDModel", out var m) ? m.GetString() : null,
+                        Manufacturer = lastKnown.TryGetProperty("HMDManufacturer", out var mfr) ? mfr.GetString() : null,
+                        Serial = lastKnown.TryGetProperty("HMDSerialNumber", out var s) ? s.GetString() : null,
+                    };
+                }
+            }
+        }
+        catch (Exception e)
+        {
+            GlobalVar.Log($"### VR: Failed to read steamvr.vrsettings: {e.Message}");
+        }
+
+        try
+        {
+            if (File.Exists(LighthouseDbPath))
+            {
+                var db = JsonDocument.Parse(File.ReadAllText(LighthouseDbPath));
+
+                // Base stations
+                if (db.RootElement.TryGetProperty("base_stations", out var stations))
+                {
+                    foreach (var station in stations.EnumerateArray())
+                    {
+                        long serialNum = 0;
+                        if (station.TryGetProperty("config", out var config) &&
+                            config.TryGetProperty("serialNumber", out var sn))
+                        {
+                            serialNum = sn.GetInt64();
+                        }
+
+                        // Get the most recent dynamic state (last entry in the array)
+                        int mode = 0;
+                        int faults = 0;
+                        long lastSeen = 0;
+                        if (station.TryGetProperty("dynamic_states", out var states))
+                        {
+                            JsonElement? latest = null;
+                            foreach (var ds in states.EnumerateArray())
+                                latest = ds;
+
+                            if (latest.HasValue)
+                            {
+                                if (latest.Value.TryGetProperty("time_last_seen", out var tls))
+                                    long.TryParse(tls.GetString(), out lastSeen);
+
+                                if (latest.Value.TryGetProperty("dynamic_state", out var dynState))
+                                {
+                                    mode = dynState.TryGetProperty("basestation_mode", out var bm) ? bm.GetInt32() : 0;
+                                    faults = dynState.TryGetProperty("faults", out var f) ? f.GetInt32() : 0;
+                                }
+                            }
+                        }
+
+                        result.BaseStations.Add(new VrBaseStationInfo
+                        {
+                            Serial = $"LHB-{serialNum:X8}",
+                            LastSeen = lastSeen,
+                            Mode = mode,
+                            Faults = faults,
+                        });
+                    }
+                }
+
+                // Controllers from known_objects
+                if (db.RootElement.TryGetProperty("known_objects", out var objects))
+                {
+                    int controllerCount = 0;
+                    foreach (var obj in objects.EnumerateArray())
+                    {
+                        if (obj.TryGetProperty("deviceClass", out var dc) && dc.GetString() == "controller")
+                            controllerCount++;
+                    }
+                    result.Controllers = controllerCount;
+                }
+            }
+        }
+        catch (Exception e)
+        {
+            GlobalVar.Log($"### VR: Failed to read lighthousedb.json: {e.Message}");
+        }
 
         return Task.FromResult(result);
     }
@@ -305,15 +395,43 @@ public class VROrchestrator
 
 public class VrDeviceStatusResult
 {
-    [System.Text.Json.Serialization.JsonPropertyName("steamVrRunning")]
+    [JsonPropertyName("steamVrRunning")]
     public bool SteamVrRunning { get; set; }
 
-    [System.Text.Json.Serialization.JsonPropertyName("compositorRunning")]
-    public bool CompositorRunning { get; set; }
+    [JsonPropertyName("headset")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public VrHeadsetInfo? Headset { get; set; }
 
-    [System.Text.Json.Serialization.JsonPropertyName("monitorRunning")]
-    public bool MonitorRunning { get; set; }
+    [JsonPropertyName("baseStations")]
+    public List<VrBaseStationInfo> BaseStations { get; set; } = new();
 
-    [System.Text.Json.Serialization.JsonPropertyName("dashboardRunning")]
-    public bool DashboardRunning { get; set; }
+    [JsonPropertyName("controllers")]
+    public int Controllers { get; set; }
+}
+
+public class VrHeadsetInfo
+{
+    [JsonPropertyName("model")]
+    public string? Model { get; set; }
+
+    [JsonPropertyName("manufacturer")]
+    public string? Manufacturer { get; set; }
+
+    [JsonPropertyName("serial")]
+    public string? Serial { get; set; }
+}
+
+public class VrBaseStationInfo
+{
+    [JsonPropertyName("serial")]
+    public string Serial { get; set; } = "";
+
+    [JsonPropertyName("lastSeen")]
+    public long LastSeen { get; set; }
+
+    [JsonPropertyName("mode")]
+    public int Mode { get; set; }
+
+    [JsonPropertyName("faults")]
+    public int Faults { get; set; }
 }

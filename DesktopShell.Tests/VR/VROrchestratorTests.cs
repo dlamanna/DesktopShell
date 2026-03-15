@@ -139,4 +139,7 @@ public class FakeProcessManager : IProcessManager
 
     public Task<string?> WaitForGameProcessAsync(int appId, string installDir, int timeoutMs, CancellationToken ct)
         => Task.FromResult(_gameProcessName);
+
+    public Task<string?> RunVrCmdAsync(string args, int timeoutMs = 5_000)
+        => Task.FromResult<string?>(null);
 }
