@@ -374,12 +374,12 @@ public static partial class GlobalVar
 
         if (numScreensDetected > numScreensEnteredInSettings)
         {
-            Console.WriteLine($"### GlobalVar::initDropDownRects: number of screens {{{numScreensDetected}}} exceeds number" +
-                              $" entered in settings file {{{numScreensEnteredInSettings}}}");
-            return;
+            Log($"^^^ GlobalVar::InitDropDownRects: detected {numScreensDetected} screens but settings has {numScreensEnteredInSettings}" +
+                $" entries — extra screens will be treated as disabled");
         }
 
-        for (int i = 0; i < numScreensDetected; i++)
+        int screenCount = Math.Min(numScreensDetected, numScreensEnteredInSettings);
+        for (int i = 0; i < screenCount; i++)
         {
             if (Properties.Settings.MultiscreenEnabled[i])
             {
