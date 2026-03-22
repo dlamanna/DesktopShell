@@ -27,6 +27,14 @@ internal sealed partial class Settings
     public static Regex PositionRegex => PositionSaveRegex();
     public static Point PositionSave;
 
+    // ToolTipper settings
+    public static Regex FadeInAnimationRegex => FadeInAnimationSettingRegex();
+    public static Regex FadeOutAnimationRegex => FadeOutAnimationSettingRegex();
+    public static Regex AlertColorRegex => AlertColorSettingRegex();
+    public static string FadeInAnimation = "none";
+    public static string FadeOutAnimation = "opacity";
+    public static Color AlertColor = Color.Red;
+
     [GeneratedRegex("fontColor")]
     private static partial Regex FontColorRegex();
 
@@ -53,6 +61,15 @@ internal sealed partial class Settings
 
     [GeneratedRegex("positionSave")]
     private static partial Regex PositionSaveRegex();
+
+    [GeneratedRegex("fadeInAnimation")]
+    private static partial Regex FadeInAnimationSettingRegex();
+
+    [GeneratedRegex("fadeOutAnimation")]
+    private static partial Regex FadeOutAnimationSettingRegex();
+
+    [GeneratedRegex("alertColor")]
+    private static partial Regex AlertColorSettingRegex();
 
     public Settings()
     {
@@ -124,6 +141,19 @@ internal sealed partial class Settings
                     var g = Regex.Replace(positionString, @"[\{\}a-zA-Z=]", "").Split(',');
                     PositionSave = new Point(int.Parse(g[0]), int.Parse(g[1]));
                 }
+                else if (FadeInAnimationRegex.IsMatch(rawLine))
+                {
+                    FadeInAnimation = curLine.Trim().ToLower();
+                }
+                else if (FadeOutAnimationRegex.IsMatch(rawLine))
+                {
+                    FadeOutAnimation = curLine.Trim().ToLower();
+                }
+                else if (AlertColorRegex.IsMatch(rawLine))
+                {
+                    try { AlertColor = ColorTranslator.FromHtml(curLine); }
+                    catch { GlobalVar.Log($"### Settings: invalid alertColor '{curLine}'"); }
+                }
             }
 
             if (!sawEnableTcpServer)
@@ -162,6 +192,9 @@ internal sealed partial class Settings
             $"gamesDirectory={GamesDirectory}",
             $"textEditor={TextEditor}",
             $"positionSave={PositionSave.X},{PositionSave.Y}",
+            $"fadeInAnimation={FadeInAnimation}",
+            $"fadeOutAnimation={FadeOutAnimation}",
+            $"alertColor={ColorTranslator.ToHtml(AlertColor)}",
         ];
         if (toFile)
         {

@@ -65,9 +65,29 @@ public partial class ConfigForm : Form
             hourlyChimeCheckbox.CheckState = CheckState.Unchecked;
         }
 
-        textColorInputBox.Text = ColorTranslator.ToHtml(Properties.Settings.ForegroundColor);           //foreground color initialization            
-        backgroundColorInputBox.Text = ColorTranslator.ToHtml(Properties.Settings.BackgroundColor);     //background color initialization           
+        textColorInputBox.Text = ColorTranslator.ToHtml(Properties.Settings.ForegroundColor);           //foreground color initialization
+        backgroundColorInputBox.Text = ColorTranslator.ToHtml(Properties.Settings.BackgroundColor);     //background color initialization
         Location = Cursor.Position;                                                                     //set initial position
+
+        // Show ToolTipper section only if ToolTipper.exe exists in Bin folder
+        string toolTipperPath = Path.Combine(GlobalVar.CurrentAssemblyDirectory, "Bin", "ToolTipper.exe");
+        if (File.Exists(toolTipperPath))
+        {
+            toolTipperBox.Visible = true;
+
+            // Set combo box selections from settings
+            int fadeInIdx = fadeInComboBox.Items.IndexOf(Properties.Settings.FadeInAnimation);
+            fadeInComboBox.SelectedIndex = fadeInIdx >= 0 ? fadeInIdx : 0;
+
+            int fadeOutIdx = fadeOutComboBox.Items.IndexOf(Properties.Settings.FadeOutAnimation);
+            fadeOutComboBox.SelectedIndex = fadeOutIdx >= 0 ? fadeOutIdx : 1; // default "opacity"
+
+            alertColorInputBox.Text = ColorTranslator.ToHtml(Properties.Settings.AlertColor);
+            AlertColorExample.BackColor = Properties.Settings.AlertColor;
+
+            // Resize form to fit the ToolTipper section
+            ClientSize = new Size(ClientSize.Width, toolTipperBox.Bottom + 12);
+        }
     }
 
     void TempBox_Click(object sender, EventArgs e)
@@ -105,6 +125,7 @@ public partial class ConfigForm : Form
             {
                 MessageBox.Show("Font Color Changed");
                 Properties.Settings.ForegroundColor = ColorTranslator.FromHtml(checkString);    //change setting
+                ForeColorExample.BackColor = Properties.Settings.ForegroundColor;               //update color icon
                 GlobalVar.ShellInstance?.ChangeFontColor();                                     //change in program
                 Properties.Settings.WriteSettings();
             }
@@ -124,7 +145,8 @@ public partial class ConfigForm : Form
             if (hexCheck.IsMatch(checkString))
             {
                 MessageBox.Show("Background Color Changed");
-                Properties.Settings.BackgroundColor = ColorTranslator.FromHtml(checkString);//Changing in settings                   
+                Properties.Settings.BackgroundColor = ColorTranslator.FromHtml(checkString);//Changing in settings
+                BackColorExample.BackColor = Properties.Settings.BackgroundColor;           //update color icon
                 GlobalVar.ShellInstance?.ChangeBackgroundColor();                           //Changing in program
                 Properties.Settings.WriteSettings();
             }
@@ -203,6 +225,15 @@ public partial class ConfigForm : Form
         SetControlPropertyThreadSafe(control: ForeColorExample,
                                      propertyName: "BackColor",
                                      propertyValue: GlobalVar.FontColor);
+        if (toolTipperBox.Visible)
+        {
+            SetControlPropertyThreadSafe(control: alertColorInputBox,
+                                         propertyName: "Text",
+                                         propertyValue: ColorTranslator.ToHtml(Properties.Settings.AlertColor));
+            SetControlPropertyThreadSafe(control: AlertColorExample,
+                                         propertyName: "BackColor",
+                                         propertyValue: Properties.Settings.AlertColor);
+        }
         Properties.Settings.WriteSettings();
     }
 
@@ -217,6 +248,50 @@ public partial class ConfigForm : Form
         GlobalVar.SettingFontColor = true;
         ColorWheel_Click();
         //ColorWheel_Click(sender, e, "FG");
+    }
+
+    private void FadeInComboBox_SelectedIndexChanged(object sender, EventArgs e)
+    {
+        if (fadeInComboBox.SelectedItem is string value)
+        {
+            Properties.Settings.FadeInAnimation = value;
+            Properties.Settings.WriteSettings();
+        }
+    }
+
+    private void FadeOutComboBox_SelectedIndexChanged(object sender, EventArgs e)
+    {
+        if (fadeOutComboBox.SelectedItem is string value)
+        {
+            Properties.Settings.FadeOutAnimation = value;
+            Properties.Settings.WriteSettings();
+        }
+    }
+
+    private void CheckKeys_alertColor(object sender, KeyEventArgs e)
+    {
+        if (e.KeyCode == Keys.Enter)
+        {
+            e.SuppressKeyPress = true;
+            checkString = alertColorInputBox.Text;
+            if (hexCheck.IsMatch(checkString))
+            {
+                Properties.Settings.AlertColor = ColorTranslator.FromHtml(checkString);
+                AlertColorExample.BackColor = Properties.Settings.AlertColor;
+                Properties.Settings.WriteSettings();
+                MessageBox.Show("Alert Color Changed");
+            }
+            else
+            {
+                MessageBox.Show(colorFormatErrorMessage);
+            }
+        }
+    }
+
+    private void AlertColorWheel_Click(object sender, EventArgs e)
+    {
+        GlobalVar.SettingAlertColor = true;
+        ColorWheel_Click();
     }
     #endregion
 

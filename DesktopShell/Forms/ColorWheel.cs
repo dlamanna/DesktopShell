@@ -920,17 +920,23 @@ public class ColorWheel : Form
 
     private void BtnOK_Click(object sender, EventArgs e)
     {
+        var picked = Color.FromArgb((int)NudRed.Value, (int)NudGreen.Value, (int)NudBlue.Value);
         if (GlobalVar.SettingBackColor)
         {
-            GlobalVar.BackColor = Color.FromArgb((int)NudRed.Value, (int)NudGreen.Value, (int)NudBlue.Value);
+            GlobalVar.BackColor = picked;
+        }
+        else if (GlobalVar.SettingAlertColor)
+        {
+            GlobalVar.AlertColor = picked;
         }
         else
         {
-            GlobalVar.FontColor = Color.FromArgb((int)NudRed.Value, (int)NudGreen.Value, (int)NudBlue.Value);
+            GlobalVar.FontColor = picked;
         }
+        GlobalVar.UpdateColors();
         GlobalVar.SettingFontColor = false;
         GlobalVar.SettingBackColor = false;
-        GlobalVar.UpdateColors();
+        GlobalVar.SettingAlertColor = false;
         Close();
     }
 
@@ -939,5 +945,6 @@ public class ColorWheel : Form
         Close();
         GlobalVar.SettingBackColor = false;
         GlobalVar.SettingFontColor = false;
+        GlobalVar.SettingAlertColor = false;
     }
 }

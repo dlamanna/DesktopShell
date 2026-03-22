@@ -33,6 +33,8 @@ public static partial class GlobalVar
     public static Color FontColor;
     public static bool SettingFontColor = false;
     public static bool SettingBackColor = false;
+    public static bool SettingAlertColor = false;
+    public static Color AlertColor;
     public static bool IsWindows = RuntimeInformation.IsOSPlatform(OSPlatform.Windows);
     public static string SearchType = "";
 
@@ -313,46 +315,51 @@ public static partial class GlobalVar
 
     public static void MoveToCurrentScreen(Process p)
     {
+        // Capture cursor position on the calling thread (may be the UI thread)
+        // before dispatching to the background so we get the correct screen.
         Point curPos = Cursor.Position;
         Screen curScreen = Screen.FromPoint(curPos);
 
-        // temp hack for now, fix later
         if (curScreen.Bounds.Width <= MinimumScreenWidth)
         {
-            int numIncrements = 0;
-            const int numSecondsUntilTimeout = 10;
-            const int increment = 50;
-            const int numMaxIncrements = ((numSecondsUntilTimeout * 1000) / increment);
-            bool timeout = false;
-            do
+            // Run the blocking poll on a background thread so the UI thread is never blocked.
+            ThreadPool.QueueUserWorkItem(_ =>
             {
-                p.Refresh();
-                Thread.Sleep(increment);
-                numIncrements++;
+                int numIncrements = 0;
+                const int numSecondsUntilTimeout = 10;
+                const int increment = 50;
+                const int numMaxIncrements = ((numSecondsUntilTimeout * 1000) / increment);
+                bool timeout = false;
+                do
+                {
+                    p.Refresh();
+                    Thread.Sleep(increment);
+                    numIncrements++;
 
-                if (numIncrements == numMaxIncrements)
-                {
-                    Log("### Timeout getting process handle to move screens");
-                    timeout = true;
-                }
-                else if (p.MainWindowHandle != (IntPtr)0)
-                {
-                    Log($"&&& Moved process in: {increment * numIncrements} ms");
-                }
-            } while (numIncrements < numMaxIncrements && p.MainWindowHandle == (IntPtr)0);
-
-            if (!timeout)
-            {
-                try
-                {
-                    IntPtr hWnd = p.MainWindowHandle;
-                    if (!SetWindowPos(hWnd, (IntPtr)null, curScreen.WorkingArea.Left, curScreen.WorkingArea.Top, 0, 0, SWP_NOSIZE | SWP_NOZORDER))
+                    if (numIncrements == numMaxIncrements)
                     {
-                        throw new Win32Exception();
+                        Log("### Timeout getting process handle to move screens");
+                        timeout = true;
                     }
+                    else if (p.MainWindowHandle != (IntPtr)0)
+                    {
+                        Log($"&&& Moved process in: {increment * numIncrements} ms");
+                    }
+                } while (numIncrements < numMaxIncrements && p.MainWindowHandle == (IntPtr)0);
+
+                if (!timeout)
+                {
+                    try
+                    {
+                        IntPtr hWnd = p.MainWindowHandle;
+                        if (!SetWindowPos(hWnd, (IntPtr)null, curScreen.WorkingArea.Left, curScreen.WorkingArea.Top, 0, 0, SWP_NOSIZE | SWP_NOZORDER))
+                        {
+                            throw new Win32Exception();
+                        }
+                    }
+                    catch { /*Process.Start("Bin\\ToolTipper.exe", "Error " + path);*/ }
                 }
-                catch { /*Process.Start("Bin\\ToolTipper.exe", "Error " + path);*/ }
-            }
+            });
         }
     }
 
@@ -514,6 +521,10 @@ public static partial class GlobalVar
     {
         Properties.Settings.BackgroundColor = BackColor;
         Properties.Settings.ForegroundColor = FontColor;
+        if (SettingAlertColor)
+        {
+            Properties.Settings.AlertColor = AlertColor;
+        }
         if (ShellInstance != null)
         {
             ShellInstance.ChangeBackgroundColor();
