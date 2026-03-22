@@ -1,4 +1,5 @@
-﻿using DesktopShell.Properties;
+﻿using DesktopShell.AI;
+using DesktopShell.Properties;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
@@ -26,6 +27,7 @@ public partial class Shell : Form
     private int onHour;
     private int fadeTickAmount = 0;
     private int upCounter = 0;
+    private readonly AICommandHandler _aiHandler = new(new CliRunner(), new ResponsePresenter());
 
     #endregion Declarations
 
@@ -42,10 +44,8 @@ public partial class Shell : Form
         switch (m.Msg)
         {
             case WM_DISPLAYCHANGE:
-                // reset position
-                GlobalVar.Log("WM_DISPLAYCHANGE Detected: Position resetting currently disabled");
-                //InitializeComponent();
-                //GlobalVar.initDropDownRects(this);
+                GlobalVar.Log("^^^ WM_DISPLAYCHANGE Detected: Reinitializing drop-down trigger rects");
+                GlobalVar.InitDropDownRects(this);
                 break;
             case WM_DPICHANGED:
                 // Handle DPI changes
@@ -113,6 +113,15 @@ public partial class Shell : Form
 
     [GeneratedRegex("^(tooltip|note|tip)$")]
     private static partial Regex Tooltip();
+
+    [GeneratedRegex("^claudex ")]
+    private static partial Regex ClaudexCommand();
+
+    [GeneratedRegex("^codex ")]
+    private static partial Regex CodexCommand();
+
+    [GeneratedRegex("^claude ")]
+    private static partial Regex ClaudeCommand();
 
     #endregion Hardcoded regex section
 
@@ -256,11 +265,12 @@ public partial class Shell : Form
         else if (e.KeyCode == Keys.Enter)
         {
             e.SuppressKeyPress = true;                  //Prevents Beep
-            ProcessCommand(textBox1.Text.ToLower());
+            string raw = textBox1.Text;
+            ProcessCommand(raw.ToLower(), raw);
         }
     }
 
-    public void ProcessCommand(string command)
+    public void ProcessCommand(string command, string? rawInput = null)
     {
         //Command Formatting
         string? originalCMD = command;
@@ -309,11 +319,11 @@ public partial class Shell : Form
         //Hardcoded Functions
         if (!regexHit)
         {
-            HardCodedCombos(originalCMD, splitWords);
+            HardCodedCombos(originalCMD, splitWords, rawInput);
         }
     }
 
-    private void HardCodedCombos(string originalCMD, string[] splitWords)
+    private void HardCodedCombos(string originalCMD, string[] splitWords, string? rawInput = null)
     {
         //Crosshair
         if (Crosshair().IsMatch(splitWords[0]))
@@ -433,6 +443,25 @@ public partial class Shell : Form
         else if (Games().IsMatch(originalCMD))
         {
             OpenRandomGame(originalCMD);
+        }
+        // AI Commands
+        else if (ClaudexCommand().Match(originalCMD) is { Success: true } claudexMatch)
+        {
+            string prompt = (rawInput ?? originalCMD)[claudexMatch.Length..];
+            if (!string.IsNullOrWhiteSpace(prompt))
+                _ = _aiHandler.HandleClaudexAsync(prompt);
+        }
+        else if (CodexCommand().Match(originalCMD) is { Success: true } codexMatch)
+        {
+            string prompt = (rawInput ?? originalCMD)[codexMatch.Length..];
+            if (!string.IsNullOrWhiteSpace(prompt))
+                _ = _aiHandler.HandleCodexAsync(prompt);
+        }
+        else if (ClaudeCommand().Match(originalCMD) is { Success: true } claudeMatch)
+        {
+            string prompt = (rawInput ?? originalCMD)[claudeMatch.Length..];
+            if (!string.IsNullOrWhiteSpace(prompt))
+                _ = _aiHandler.HandleClaudeAsync(prompt);
         }
         //Sending Remote Command
         else if (RemoteCommand().IsMatch(originalCMD))
