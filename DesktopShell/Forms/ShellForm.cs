@@ -139,8 +139,29 @@ public partial class Shell : Form
 
         InitializeComponent();
 
-        // Initialize DropDown Rects
+        // Initialize DropDown Rects — retry on a timer if no screens are
+        // available yet (common at boot when monitors are still powering on).
         GlobalVar.InitDropDownRects(this);
+        if (GlobalVar.DropDownRects.Count == 0)
+        {
+            var retryTimer = new System.Windows.Forms.Timer { Interval = 5000 };
+            int retryCount = 0;
+            const int maxRetries = 24; // up to 2 minutes
+            retryTimer.Tick += delegate
+            {
+                retryCount++;
+                GlobalVar.Log($"^^^ InitDropDownRects retry {retryCount}/{maxRetries}");
+                GlobalVar.InitDropDownRects(this);
+                if (GlobalVar.DropDownRects.Count > 0 || retryCount >= maxRetries)
+                {
+                    retryTimer.Stop();
+                    retryTimer.Dispose();
+                    if (GlobalVar.DropDownRects.Count == 0)
+                        GlobalVar.Log("### InitDropDownRects: gave up after max retries — shell will remain invisible until display change");
+                }
+            };
+            retryTimer.Start();
+        }
 
         // Timer Instantiations
         GlobalVar.HourlyChime = new System.Windows.Forms.Timer

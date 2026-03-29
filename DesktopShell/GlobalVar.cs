@@ -372,10 +372,11 @@ public static partial class GlobalVar
         int numScreensDetected = Screen.AllScreens.Length;
         int numScreensEnteredInSettings = Properties.Settings.MultiscreenEnabled.Count;
 
+        Log($"^^^ InitDropDownRects: detected={numScreensDetected}, settings={numScreensEnteredInSettings}, enabled=[{string.Join(",", Properties.Settings.MultiscreenEnabled)}]");
+
         if (numScreensDetected > numScreensEnteredInSettings)
         {
-            Log($"^^^ GlobalVar::InitDropDownRects: detected {numScreensDetected} screens but settings has {numScreensEnteredInSettings}" +
-                $" entries — extra screens will be treated as disabled");
+            Log($"^^^ InitDropDownRects: extra screens will be treated as disabled");
         }
 
         int screenCount = Math.Min(numScreensDetected, numScreensEnteredInSettings);
@@ -403,10 +404,11 @@ public static partial class GlobalVar
                 Log($"### InitDropDownRects: ShellSize: W={shellSize.Width}, H={shellSize.Height}");
                 Log($"### InitDropDownRects: BoundingRect: L={tempRect.Left}, T={tempRect.Top}, R={tempRect.Right}, B={tempRect.Bottom}");
             }
-            else
-            {
-                continue;
-            }
+        }
+
+        if (DropDownRects.Count == 0)
+        {
+            Log($"### InitDropDownRects: WARNING — no trigger rects created. Shell will be invisible until a display change event fires.");
         }
     }
 
