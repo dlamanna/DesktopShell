@@ -16,6 +16,13 @@ static class Program
     [STAThread]
     static void Main()
     {
+        AppDomain.CurrentDomain.UnhandledException += (_, args) =>
+        {
+            var ex = args.ExceptionObject as Exception;
+            string errorMsg = $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] Unhandled {ex?.GetType().Name}: {ex?.Message}\n{ex?.StackTrace}\n\n";
+            try { File.AppendAllText("DesktopShell_error.log", errorMsg); } catch { }
+        };
+
         try
         {
             // Ensure relative file loads (hostlist.txt, settings.ini, shortcuts.txt, etc.)

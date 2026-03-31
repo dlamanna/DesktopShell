@@ -5,7 +5,6 @@ using System.Diagnostics;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using DesktopShell.VR;
 
 namespace DesktopShell;
 
@@ -15,14 +14,6 @@ public class TCPServer
     private readonly int portNum;
     private readonly CancellationTokenSource cts = new();
 
-    private static readonly Lazy<VRCommandHandler> VrHandler = new(() =>
-    {
-        var fileReader = new DiskFileReader();
-        var gameListService = new VRGameListService(fileReader);
-        var processManager = new ProcessManager();
-        var orchestrator = new VROrchestrator(processManager);
-        return new VRCommandHandler(gameListService, orchestrator);
-    });
     private readonly CancellationToken token;
 
     public TCPServer()
@@ -216,81 +207,181 @@ public class TCPServer
             return;
         }
 
-        using (clientStream)
+        try
         {
-            bool isCommunicationOver = false;
-
-            do
+            using (clientStream)
             {
-                string receivedString = ReadStream(tcpClient, clientStream, token);
-                if (receivedString.Equals(""))
-                {
-                    Thread.Sleep(GlobalVar.WebBrowserLaunchDelayMs);
-                    continue;
-                }
+                bool isCommunicationOver = false;
 
-                switch (receivedString)
+                do
                 {
-                    case "ack":
-                        try
-                        {
-                            if (GlobalVar.IsWindows)
-                            {
-                                using var player = new SoundPlayer(soundLocation);
-                                player.PlaySync();
-                            }
-                        }
-                        catch (Exception e)
-                        {
-                            GlobalVar.Log($"### Error playing sound at location '{soundLocation}': {e.Message}");
-                        }
-                        GlobalVar.Log("$$$ Ack received, closing connection");
-                        isCommunicationOver = true;
-                        break;
-                    case "ringdoorbell":
-                        ///TODO: Add ring doorbell functionality here to pull up video stream or snapshot
-                        GlobalVar.ToolTip("Ring", "");
-                        GlobalVar.WriteRemoteCommand(clientStream, "ack", includePassPhrase: true);
-                        break;
-                    case string a when a.Contains("spike"):
-                        int idx = receivedString.IndexOf("spike", StringComparison.OrdinalIgnoreCase) + "spike".Length;
-                        GlobalVar.Log($"$$$ Got fake command: {receivedString[idx..]}");
-                        GlobalVar.WriteRemoteCommand(clientStream, "lol", includePassPhrase: false);
-                        break;
-                    case string cmd when cmd.StartsWith("vr-"):
-                        GlobalVar.Log($"$$$ VR command: {cmd}");
-                        bool finished = Task.Run(async () =>
-                        {
+                    string receivedString = ReadStream(tcpClient, clientStream, token);
+                    if (receivedString.Equals(""))
+                    {
+                        Thread.Sleep(GlobalVar.WebBrowserLaunchDelayMs);
+                        continue;
+                    }
+
+                    switch (receivedString)
+                    {
+                        case "ack":
                             try
                             {
-                                await VrHandler.Value.HandleAsync(cmd, clientStream);
+                                if (GlobalVar.IsWindows)
+                                {
+                                    using var player = new SoundPlayer(soundLocation);
+                                    player.PlaySync();
+                                }
                             }
                             catch (Exception e)
                             {
-                                GlobalVar.Log($"### VR command error: {e.Message}");
+                                GlobalVar.Log($"### Error playing sound at location '{soundLocation}': {e.Message}");
                             }
-                        }).Wait(TimeSpan.FromSeconds(90));
-                        if (!finished)
-                            GlobalVar.Log("### VR command timed out after 90s");
-                        isCommunicationOver = true;
-                        break;
-                    default:
-                        if (GlobalVar.ShellInstance is { } shell)
-                        {
-                            shell.BeginInvoke(() => shell.ProcessCommand(receivedString));
-                        }
-                        GlobalVar.WriteRemoteCommand(clientStream, "ack", includePassPhrase: true);
-                        isCommunicationOver = true;
-                        break;
-                }
-            } while (!isCommunicationOver && tcpClient.Connected);
+                            GlobalVar.Log("$$$ Ack received, closing connection");
+                            isCommunicationOver = true;
+                            break;
+                        case "ringdoorbell":
+                            ///TODO: Add ring doorbell functionality here to pull up video stream or snapshot
+                            GlobalVar.ToolTip("Ring", "");
+                            GlobalVar.WriteRemoteCommand(clientStream, "ack", includePassPhrase: true);
+                            break;
+                        case string a when a.Contains("spike"):
+                            int idx = receivedString.IndexOf("spike", StringComparison.OrdinalIgnoreCase) + "spike".Length;
+                            GlobalVar.Log($"$$$ Got fake command: {receivedString[idx..]}");
+                            GlobalVar.WriteRemoteCommand(clientStream, "lol", includePassPhrase: false);
+                            break;
+                        case string cmd when cmd.StartsWith("vr-"):
+                            GlobalVar.Log($"$$$ VR command: {cmd}");
+                            RelayVrService(cmd, clientStream);
+                            isCommunicationOver = true;
+                            break;
+                        default:
+                            if (GlobalVar.ShellInstance is { } shell)
+                            {
+                                shell.BeginInvoke(() => shell.ProcessCommand(receivedString));
+                            }
+                            GlobalVar.WriteRemoteCommand(clientStream, "ack", includePassPhrase: true);
+                            isCommunicationOver = true;
+                            break;
+                    }
+                } while (!isCommunicationOver && tcpClient.Connected);
+            }
+        }
+        catch (Exception e)
+        {
+            GlobalVar.Log($"### TCPServer::HandleClientComm - {e.GetType()}: {e.Message}");
+        }
+        finally
+        {
+            try { tcpClient.Close(); } catch { }
+            GlobalVar.Log("@@@ TCPServer::HandleClientComm - Connection closed");
+        }
+    }
+
+    private const string VrServicePath = @"Bin\VRService.exe";
+    private const int VrServiceTimeoutMs = 90_000;
+
+    private static void RelayVrService(string command, Stream clientStream)
+    {
+        string fullPath = Path.Combine(AppContext.BaseDirectory, VrServicePath);
+
+        if (!File.Exists(fullPath))
+        {
+            GlobalVar.ToolTip("VR", "VRService.exe not found in Bin folder");
+            GlobalVar.Log($"### VRService not found at: {fullPath}");
+            TryWriteErrorJson(clientStream, "VR service not available");
+            return;
         }
 
-        if (tcpClient != null)
+        Process? process = null;
+        int stdoutLines = 0;
+
+        try
         {
-            GlobalVar.Log("@@@ TCPServer::HandleClientComm - Closing tcpClient");
-            tcpClient.Close();
+            var psi = new ProcessStartInfo(fullPath, command)
+            {
+                UseShellExecute = false,
+                CreateNoWindow = true,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+            };
+
+            process = Process.Start(psi);
+            if (process == null)
+            {
+                GlobalVar.ToolTip("VR", "Failed to start VRService");
+                TryWriteErrorJson(clientStream, "VR service failed to start");
+                return;
+            }
+
+            // Stderr → DesktopShell log (background thread)
+            var stderrThread = new Thread(() =>
+            {
+                try
+                {
+                    while (process.StandardError.ReadLine() is { } line)
+                        GlobalVar.Log($"[VRService] {line}");
+                }
+                catch { /* process exited or stream closed */ }
+            })
+            { IsBackground = true };
+            stderrThread.Start();
+
+            // Stdout → TCP client (relay loop)
+            try
+            {
+                while (process.StandardOutput.ReadLine() is { } line)
+                {
+                    GlobalVar.WriteRemoteCommand(clientStream, line, includePassPhrase: true);
+                    stdoutLines++;
+                }
+            }
+            catch (IOException)
+            {
+                // TCP client disconnected — kill VRService
+                GlobalVar.Log("### VR relay: TCP client disconnected, killing VRService");
+                try { process.Kill(); } catch { }
+                return;
+            }
+
+            // Wait for process exit (respect timeout)
+            if (!process.WaitForExit(VrServiceTimeoutMs))
+            {
+                GlobalVar.Log("### VRService timed out after 90s, killing process");
+                try { process.Kill(); } catch { }
+                if (stdoutLines == 0)
+                    TryWriteErrorJson(clientStream, "VR service timed out");
+                return;
+            }
+
+            // Check exit code
+            if (process.ExitCode != 0 && stdoutLines == 0)
+            {
+                GlobalVar.Log($"### VRService exited with code {process.ExitCode}");
+                TryWriteErrorJson(clientStream, "VR service exited with error");
+            }
         }
+        catch (Exception e)
+        {
+            GlobalVar.ToolTip("VR", $"VRService error: {e.Message}");
+            GlobalVar.Log($"### VR relay error: {e.GetType()}: {e.Message}");
+            if (stdoutLines == 0)
+                TryWriteErrorJson(clientStream, "VR service error");
+        }
+        finally
+        {
+            process?.Dispose();
+        }
+    }
+
+    private static void TryWriteErrorJson(Stream stream, string error)
+    {
+        try
+        {
+            string json = $"{{\"status\":\"failed\",\"error\":\"{error}\"}}";
+            GlobalVar.WriteRemoteCommand(stream, json, includePassPhrase: true);
+        }
+        catch { /* stream may already be closed */ }
     }
 
     public void CloseServer()
