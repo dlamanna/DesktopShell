@@ -209,6 +209,10 @@ public class ProcessManager : IProcessManager
                     {
                         GlobalVar.Log($"### VR kill: failed to terminate {name}: {e.Message}");
                     }
+                    finally
+                    {
+                        proc.Dispose();
+                    }
                 }
             }
             catch { /* process enumeration failed */ }
@@ -253,7 +257,7 @@ public class VROrchestrator
 {
     private readonly IProcessManager _process;
     private int _launching; // 0 = idle, 1 = launching
-    private string? _lastGameProcess;
+    private volatile string? _lastGameProcess;
     public string? LastGameProcess => _lastGameProcess;
 
     // Configurable timeouts

@@ -140,7 +140,7 @@ public class VRCommandHandler
 
         var result = _orchestrator.KillVrSession(installDirs);
         GlobalVar.Log($"$$$ VR kill: {result.Killed.Count} processes terminated");
-        GlobalVar.WriteRemoteCommand(clientStream, result.ToJson(), includePassPhrase: false);
+        GlobalVar.WriteRemoteCommand(clientStream, result.ToJson(), includePassPhrase: true);
     }
 
     private static void WriteJsonLine(Stream stream, VrLaunchStep step)
