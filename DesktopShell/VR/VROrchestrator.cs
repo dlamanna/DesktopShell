@@ -44,6 +44,8 @@ public interface IProcessManager
     Task LaunchSteamGameAsync(int appId);
     Task<string?> WaitForGameProcessAsync(int appId, string installDir, int timeoutMs, CancellationToken ct);
     Task<string?> RunVrCmdAsync(string args, int timeoutMs = 5_000);
+    List<string> ForceKillByName(IEnumerable<string> processNames);
+    List<string> FindCandidateProcessNames(string installDir);
 }
 
 public class ProcessManager : IProcessManager
@@ -174,6 +176,42 @@ public class ProcessManager : IProcessManager
             }
         }
         catch { return null; }
+    }
+
+    public List<string> ForceKillByName(IEnumerable<string> processNames)
+    {
+        var killed = new List<string>();
+        foreach (var name in processNames)
+        {
+            try
+            {
+                var procs = System.Diagnostics.Process.GetProcessesByName(name);
+                foreach (var proc in procs)
+                {
+                    try
+                    {
+                        proc.Kill();
+                        killed.Add($"{proc.ProcessName}.exe");
+                        GlobalVar.Log($"$$$ VR kill: terminated {proc.ProcessName}.exe (PID {proc.Id})");
+                    }
+                    catch (Exception e)
+                    {
+                        GlobalVar.Log($"### VR kill: failed to terminate {name}: {e.Message}");
+                    }
+                }
+            }
+            catch { /* process enumeration failed */ }
+        }
+        return killed;
+    }
+
+    public List<string> FindCandidateProcessNames(string installDir)
+    {
+        return FindCandidateExes(installDir)
+            .Select(f => Path.GetFileNameWithoutExtension(f))
+            .Where(n => n != null)
+            .Cast<string>()
+            .ToList();
     }
 
     private static List<string> FindCandidateExes(string installDir)

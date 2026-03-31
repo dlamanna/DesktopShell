@@ -1,3 +1,4 @@
+using System.IO;
 using DesktopShell.VR;
 using FluentAssertions;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
@@ -108,6 +109,7 @@ public class FakeProcessManager : IProcessManager
     private readonly int _launchDelayMs;
 
     public bool SteamVrLaunched { get; private set; }
+    public List<string> KilledProcesses { get; } = new();
 
     public FakeProcessManager(
         bool hmdPresent = true,
@@ -142,4 +144,22 @@ public class FakeProcessManager : IProcessManager
 
     public Task<string?> RunVrCmdAsync(string args, int timeoutMs = 5_000)
         => Task.FromResult<string?>(null);
+
+    public List<string> ForceKillByName(IEnumerable<string> processNames)
+    {
+        var killed = new List<string>();
+        foreach (var name in processNames)
+        {
+            if (IsProcessRunning(name) ||
+                (_gameProcessName != null && name == Path.GetFileNameWithoutExtension(_gameProcessName)))
+            {
+                killed.Add($"{name}.exe");
+                KilledProcesses.Add(name);
+            }
+        }
+        return killed;
+    }
+
+    public List<string> FindCandidateProcessNames(string installDir)
+        => _gameProcessName != null ? [Path.GetFileNameWithoutExtension(_gameProcessName)!] : [];
 }
