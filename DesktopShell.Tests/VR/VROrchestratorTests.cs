@@ -98,6 +98,72 @@ public class VROrchestratorTests
 
         await firstLaunch;
     }
+
+    [TestMethod]
+    public async Task KillVrSession_AfterLaunch_KillsGameAndSteamVr()
+    {
+        var process = new FakeProcessManager(
+            hmdPresent: true,
+            vrServerRunning: true,
+            gameProcessName: "bg3_dx11.exe"
+        );
+
+        var orchestrator = new VROrchestrator(process);
+
+        // Launch first so the orchestrator tracks the game process
+        await foreach (var _ in orchestrator.LaunchAsync(1086940)) { }
+
+        orchestrator.LastGameProcess.Should().Be("bg3_dx11");
+
+        var result = orchestrator.KillVrSession([]);
+        result.Status.Should().Be("ok");
+        result.Killed.Should().Contain("bg3_dx11.exe");
+        result.Killed.Should().Contain("vrserver.exe");
+    }
+
+    [TestMethod]
+    public void KillVrSession_NothingRunning_ReturnsEmptyKilled()
+    {
+        var process = new FakeProcessManager(
+            hmdPresent: false,
+            vrServerRunning: false
+        );
+
+        var orchestrator = new VROrchestrator(process);
+
+        var result = orchestrator.KillVrSession([]);
+        result.Status.Should().Be("ok");
+        result.Killed.Should().BeEmpty();
+    }
+
+    [TestMethod]
+    public async Task KillVrSession_ResetsLaunchingFlag()
+    {
+        var process = new FakeProcessManager(
+            hmdPresent: true,
+            vrServerRunning: true,
+            gameProcessName: "game.exe",
+            launchDelayMs: 10_000
+        );
+
+        var orchestrator = new VROrchestrator(process);
+
+        // Start a long-running launch
+        var launchTask = Task.Run(async () =>
+        {
+            await foreach (var _ in orchestrator.LaunchAsync(546560)) { }
+        });
+        await Task.Delay(50);
+
+        // Kill should reset the launching flag
+        orchestrator.KillVrSession([]);
+
+        // Should be able to get status without "launching"
+        var status = orchestrator.GetStatus();
+        status.Process.Should().BeNull();
+
+        await Task.Delay(100); // let the background launch finish
+    }
 }
 
 public class FakeProcessManager : IProcessManager

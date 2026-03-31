@@ -36,6 +36,17 @@ public class VrLaunchStep
     public string ToJson() => JsonSerializer.Serialize(this);
 }
 
+public class VrKillResult
+{
+    [JsonPropertyName("status")]
+    public required string Status { get; init; }
+
+    [JsonPropertyName("killed")]
+    public required List<string> Killed { get; init; }
+
+    public string ToJson() => JsonSerializer.Serialize(this);
+}
+
 public interface IProcessManager
 {
     Task<bool> IsHmdPresentAsync();
@@ -242,6 +253,8 @@ public class VROrchestrator
 {
     private readonly IProcessManager _process;
     private int _launching; // 0 = idle, 1 = launching
+    private string? _lastGameProcess;
+    public string? LastGameProcess => _lastGameProcess;
 
     // Configurable timeouts
     public int SteamVrStartTimeoutMs { get; set; } = 20_000;
@@ -302,6 +315,7 @@ public class VROrchestrator
             string? processName = await _process.WaitForGameProcessAsync(appId, installDir, GameProcessConfirmTimeoutMs, ct);
             if (processName != null)
             {
+                _lastGameProcess = Path.GetFileNameWithoutExtension(processName);
                 yield return new VrLaunchStep { Step = "process_confirm", Status = "ok", Process = processName };
             }
             else
@@ -324,6 +338,43 @@ public class VROrchestrator
             Status = "ok",
             Step = "status",
             Process = _launching == 1 ? "launching" : null
+        };
+    }
+
+    private static readonly string[] SteamVrProcesses = ["vrserver", "vrcompositor", "vrmonitor"];
+
+    public VrKillResult KillVrSession(IEnumerable<string> gameInstallDirs)
+    {
+        var processesToKill = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        // Priority 1: tracked game process from last launch
+        if (_lastGameProcess != null)
+            processesToKill.Add(_lastGameProcess);
+
+        // Priority 2: scan game install dirs for any running game executable
+        foreach (var dir in gameInstallDirs)
+        {
+            foreach (var name in _process.FindCandidateProcessNames(dir))
+            {
+                if (_process.IsProcessRunning(name))
+                    processesToKill.Add(name);
+            }
+        }
+
+        // Kill game processes first
+        var killed = _process.ForceKillByName(processesToKill);
+
+        // Then kill SteamVR
+        killed.AddRange(_process.ForceKillByName(SteamVrProcesses));
+
+        // Reset launch state
+        Interlocked.Exchange(ref _launching, 0);
+        _lastGameProcess = null;
+
+        return new VrKillResult
+        {
+            Status = "ok",
+            Killed = killed.Distinct(StringComparer.OrdinalIgnoreCase).ToList()
         };
     }
 
