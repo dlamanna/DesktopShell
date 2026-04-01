@@ -1073,20 +1073,23 @@ public static partial class GlobalVar
         }
     }
 
+    private static readonly object _logLock = new();
+
     public static void Log(string logOutput)
     {
         string logPath = "DesktopShell.log";
-        try
+        lock (_logLock)
         {
-            using FileStream fs = new(logPath, FileMode.Append, FileAccess.Write, FileShare.Read);
-            using StreamWriter w = new(fs);
+            try
             {
+                using FileStream fs = new(logPath, FileMode.Append, FileAccess.Write, FileShare.ReadWrite);
+                using StreamWriter w = new(fs);
                 w.WriteLine($"{DateTime.Now:HH:mm:ss.fff}:\t{logOutput}");
             }
-        }
-        catch (UnauthorizedAccessException e)
-        {
-            Console.WriteLine(e.Message);
+            catch (Exception e) when (e is UnauthorizedAccessException or IOException)
+            {
+                Console.WriteLine(e.Message);
+            }
         }
     }
 
