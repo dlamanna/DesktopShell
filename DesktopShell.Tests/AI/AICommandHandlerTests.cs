@@ -170,12 +170,12 @@ public partial class AICommandHandlerTests
 
         await handler.HandleClaudexAsync("my prompt");
 
-        // Step 3's stdin should contain both prior responses and the original prompt
-        cli.StdinInputs.Should().HaveCountGreaterOrEqualTo(2);
-        string step3Stdin = cli.StdinInputs[^1]!;
-        step3Stdin.Should().Contain("my prompt");
-        step3Stdin.Should().Contain("Claude says this");
-        step3Stdin.Should().Contain("Codex says that");
+        // Step 3 passes combined data via -p argument (not stdin)
+        cli.ArgumentHistory.Should().HaveCount(3);
+        string step3Prompt = string.Join(" ", cli.ArgumentHistory[^1]);
+        step3Prompt.Should().Contain("my prompt");
+        step3Prompt.Should().Contain("Claude says this");
+        step3Prompt.Should().Contain("Codex says that");
     }
 
     [TestMethod]
@@ -260,6 +260,7 @@ public class FakeCliRunner : ICliRunner
     public string? LastExecutable { get; private set; }
     public string[]? LastArguments { get; private set; }
     public List<string?> StdinInputs { get; } = [];
+    public List<string[]> ArgumentHistory { get; } = [];
 
     public FakeCliRunner(string? output = null, int exitCode = 0, bool throwTimeout = false)
     {
@@ -287,6 +288,7 @@ public class FakeCliRunner : ICliRunner
 
         LastExecutable = executable;
         LastArguments = arguments;
+        ArgumentHistory.Add(arguments);
         StdinInputs.Add(stdinContent);
 
         int idx = _callIndex;
