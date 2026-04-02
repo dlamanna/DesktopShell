@@ -103,11 +103,9 @@ internal sealed partial class Settings
         //change stuff here to read settings into program
         try
         {
-            using var sr = new StreamReader("settings.ini");
-            while (!sr.EndOfStream)
+            string[] lines = File.ReadAllLines("settings.ini");
+            foreach (string rawLine in lines)
             {
-                string? rawLine = sr.ReadLine();
-                if (rawLine == null) return;
                 string? curLine = ScanLine(rawLine);
                 if (FontRegex.IsMatch(rawLine))
                 {
