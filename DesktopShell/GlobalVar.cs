@@ -366,7 +366,7 @@ public static partial class GlobalVar
     #endregion
 
     #region UI Functions
-    public static void InitDropDownRects(object sender)
+    public static void InitDropDownRects(object sender, bool fallbackToFirstScreen = false)
     {
         DropDownRects.Clear();
         int numScreensDetected = Screen.AllScreens.Length;
@@ -384,32 +384,59 @@ public static partial class GlobalVar
         {
             if (Properties.Settings.MultiscreenEnabled[i])
             {
-                Screen s = Screen.AllScreens[i];
-                Size shellSize = ((Shell)sender).ClientSize;
-                int pointX = s.WorkingArea.Left + ((s.WorkingArea.Width / 2) - shellSize.Width / 2);
-                // Position the form's reference point after dropdown animation completes
-                int pointY = s.WorkingArea.Top + shellSize.Height;
-                // Extend trigger area downward from screen top to make it easier to trigger
-                int extendedX = pointX - DropDownRectHorizontalPadding;
-                int extendedY = s.WorkingArea.Top;  // Start trigger area at screen top
-                int extendedWidth = shellSize.Width + (DropDownRectHorizontalPadding * 2);
-                int extendedHeight = pointY - s.WorkingArea.Top + DropDownRectVerticalPadding;  // Extend downward by padding amount
-                Point rectPoint = new(extendedX, extendedY);
-                Size extendedSize = new(extendedWidth, extendedHeight);
-
-                Rectangle tempRect = new(rectPoint, extendedSize);
-                DropDownRects.Add(tempRect);
-
-                Log($"### InitDropDownRects: Screen {i} - WorkingArea: L={s.WorkingArea.Left}, T={s.WorkingArea.Top}, W={s.WorkingArea.Width}, H={s.WorkingArea.Height}");
-                Log($"### InitDropDownRects: ShellSize: W={shellSize.Width}, H={shellSize.Height}");
-                Log($"### InitDropDownRects: BoundingRect: L={tempRect.Left}, T={tempRect.Top}, R={tempRect.Right}, B={tempRect.Bottom}");
+                AddDropDownRect(sender, Screen.AllScreens[i], i);
             }
+        }
+
+        // If index-based matching failed, try matching by saved WorkingArea geometry.
+        // This handles screen index shifts (e.g., VR headset connect/disconnect).
+        if (DropDownRects.Count == 0 && Properties.Settings.ScreenAreas.Count > 0)
+        {
+            Log($"^^^ InitDropDownRects: index-based matching failed, trying area-based matching");
+            for (int savedIdx = 0; savedIdx < Properties.Settings.ScreenAreas.Count && savedIdx < numScreensEnteredInSettings; savedIdx++)
+            {
+                if (!Properties.Settings.MultiscreenEnabled[savedIdx]) continue;
+                Rectangle savedArea = Properties.Settings.ScreenAreas[savedIdx];
+                foreach (Screen s in Screen.AllScreens)
+                {
+                    if (s.WorkingArea == savedArea)
+                    {
+                        Log($"^^^ InitDropDownRects: matched saved screen {savedIdx} to {s.DeviceName} by WorkingArea {savedArea}");
+                        AddDropDownRect(sender, s, savedIdx);
+                        break;
+                    }
+                }
+            }
+        }
+
+        // Last resort: if still no rects and fallback requested, use primary screen
+        if (DropDownRects.Count == 0 && fallbackToFirstScreen && numScreensDetected > 0)
+        {
+            Log($"^^^ InitDropDownRects: no enabled screen reachable — falling back to screen 0 (primary)");
+            AddDropDownRect(sender, Screen.AllScreens[0], 0);
         }
 
         if (DropDownRects.Count == 0)
         {
             Log($"### InitDropDownRects: WARNING — no trigger rects created. Shell will be invisible until a display change event fires.");
         }
+    }
+
+    private static void AddDropDownRect(object sender, Screen s, int screenIndex)
+    {
+        Size shellSize = ((Shell)sender).ClientSize;
+        int pointX = s.WorkingArea.Left + ((s.WorkingArea.Width / 2) - shellSize.Width / 2);
+        int pointY = s.WorkingArea.Top + shellSize.Height;
+        int extendedX = pointX - DropDownRectHorizontalPadding;
+        int extendedY = s.WorkingArea.Top;
+        int extendedWidth = shellSize.Width + (DropDownRectHorizontalPadding * 2);
+        int extendedHeight = pointY - s.WorkingArea.Top + DropDownRectVerticalPadding;
+        Rectangle tempRect = new(new Point(extendedX, extendedY), new Size(extendedWidth, extendedHeight));
+        DropDownRects.Add(tempRect);
+
+        Log($"### InitDropDownRects: Screen {screenIndex} - WorkingArea: L={s.WorkingArea.Left}, T={s.WorkingArea.Top}, W={s.WorkingArea.Width}, H={s.WorkingArea.Height}");
+        Log($"### InitDropDownRects: ShellSize: W={shellSize.Width}, H={shellSize.Height}");
+        Log($"### InitDropDownRects: BoundingRect: L={tempRect.Left}, T={tempRect.Top}, R={tempRect.Right}, B={tempRect.Bottom}");
     }
 
     public static Label[] PopulateLabels()

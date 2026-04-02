@@ -1,5 +1,6 @@
-﻿namespace DesktopShell.Properties;
+﻿using System.Linq;
 
+namespace DesktopShell.Properties;
 
 
 // This class allows you to handle specific events on the settings class:
@@ -26,6 +27,8 @@ internal sealed partial class Settings
     public static Regex TextEditorRegex => TextEditorSettingRegex();
     public static Regex PositionRegex => PositionSaveRegex();
     public static Point PositionSave;
+    public static Regex ScreenAreasRegex => ScreenAreasSaveRegex();
+    public static List<Rectangle> ScreenAreas = [];
 
     // ToolTipper settings
     public static Regex FadeInAnimationRegex => FadeInAnimationSettingRegex();
@@ -62,6 +65,9 @@ internal sealed partial class Settings
     [GeneratedRegex("positionSave")]
     private static partial Regex PositionSaveRegex();
 
+    [GeneratedRegex("screenAreas")]
+    private static partial Regex ScreenAreasSaveRegex();
+
     [GeneratedRegex("fadeInAnimation")]
     private static partial Regex FadeInAnimationSettingRegex();
 
@@ -92,6 +98,7 @@ internal sealed partial class Settings
     public static void ScanSettings()
     {
         MultiscreenEnabled = [];
+        ScreenAreas = [];
         bool sawEnableTcpServer = false;
         //change stuff here to read settings into program
         try
@@ -154,6 +161,19 @@ internal sealed partial class Settings
                     try { AlertColor = ColorTranslator.FromHtml(curLine); }
                     catch { GlobalVar.Log($"### Settings: invalid alertColor '{curLine}'"); }
                 }
+                else if (ScreenAreasRegex.IsMatch(rawLine))
+                {
+                    foreach (string entry in curLine.Split(';', StringSplitOptions.RemoveEmptyEntries))
+                    {
+                        string[] parts = entry.Split(',');
+                        if (parts.Length == 4 &&
+                            int.TryParse(parts[0], out int l) && int.TryParse(parts[1], out int t) &&
+                            int.TryParse(parts[2], out int w) && int.TryParse(parts[3], out int h))
+                        {
+                            ScreenAreas.Add(new Rectangle(l, t, w, h));
+                        }
+                    }
+                }
             }
 
             if (!sawEnableTcpServer)
@@ -182,12 +202,16 @@ internal sealed partial class Settings
     }
     public static void WriteSettings(bool toFile)
     {
+        // Snapshot current screen WorkingAreas so we can match by geometry on restart
+        ScreenAreas = [.. Screen.AllScreens.Select(s => s.WorkingArea)];
+
         string[] tempLines =
         [
             $"fontColor={ColorTranslator.ToHtml(ForegroundColor)}",
             $"backgroundColor={ColorTranslator.ToHtml(BackgroundColor)}",
             $"hourlyChime={HourlyChimeChecked}",
             $"screensEnabled={string.Join(",", MultiscreenEnabled)}",
+            $"screenAreas={string.Join(";", ScreenAreas.Select(r => $"{r.Left},{r.Top},{r.Width},{r.Height}"))}",
             $"enableTCPServer={EnableTCPServer}",
             $"gamesDirectory={GamesDirectory}",
             $"textEditor={TextEditor}",
