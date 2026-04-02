@@ -182,12 +182,10 @@ internal sealed partial class Settings
                 GlobalVar.Log("^^^ Settings::ScanSettings() - enableTCPServer missing; defaulting to true");
             }
 
-            // Write to file if screenAreas is missing (bootstraps new setting),
-            // otherwise just log.
-            bool needsRewrite = ScreenAreas.Count == 0;
-            WriteSettings(needsRewrite);
-            if (needsRewrite)
-                GlobalVar.Log("^^^ Settings::ScanSettings() - screenAreas missing; wrote settings to bootstrap");
+            // Always write settings back to file after scanning. This ensures
+            // any new settings added in code are bootstrapped into settings.ini
+            // with their defaults, keeping the schema complete.
+            WriteSettings();
         }
         catch (IOException e)
         {
