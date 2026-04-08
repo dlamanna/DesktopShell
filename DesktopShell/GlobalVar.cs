@@ -412,13 +412,13 @@ public static partial class GlobalVar
         // Last resort: if still no rects and fallback requested, use primary screen
         if (DropDownRects.Count == 0 && fallbackToFirstScreen && numScreensDetected > 0)
         {
-            Log($"^^^ InitDropDownRects: no enabled screen reachable — falling back to screen 0 (primary)");
+            Log($"^^^ InitDropDownRects: no enabled screen reachable -- falling back to screen 0 (primary)");
             AddDropDownRect(sender, Screen.AllScreens[0], 0);
         }
 
         if (DropDownRects.Count == 0)
         {
-            Log($"### InitDropDownRects: WARNING — no trigger rects created. Shell will be invisible until a display change event fires.");
+            Log($"### InitDropDownRects: WARNING -- no trigger rects created. Shell will be invisible until a display change event fires.");
         }
     }
 

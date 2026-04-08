@@ -250,6 +250,20 @@ public class TCPServer
                             GlobalVar.Log($"$$$ Got fake command: {receivedString[idx..]}");
                             GlobalVar.WriteRemoteCommand(clientStream, "lol", includePassPhrase: false);
                             break;
+                        case "bg3dm-health":
+                            GlobalVar.Log("$$$ BG3 DM health check");
+                            try
+                            {
+                                string healthJson = BG3HealthHandler.CheckHealth();
+                                GlobalVar.WriteRemoteCommand(clientStream, healthJson, includePassPhrase: true);
+                            }
+                            catch (Exception ex)
+                            {
+                                GlobalVar.Log($"### BG3 health check error: {ex.Message}");
+                                TryWriteErrorJson(clientStream, "Health check failed");
+                            }
+                            isCommunicationOver = true;
+                            break;
                         case string cmd when cmd.StartsWith("vr-"):
                             GlobalVar.Log($"$$$ VR command: {cmd}");
                             RelayVrService(cmd, clientStream);

@@ -27,6 +27,9 @@ public partial class Shell : Form
     private int onHour;
     private int fadeTickAmount = 0;
     private int upCounter = 0;
+    private int screenCheckCounter = 0;
+    private string? lastScreenFingerprint;
+    private const int ScreenCheckIntervalTicks = 600; // 600 * 50ms = 30 seconds
     private readonly AICommandHandler _aiHandler = new(new CliRunner(), new ResponsePresenter());
 
     #endregion Declarations
@@ -45,7 +48,10 @@ public partial class Shell : Form
         {
             case WM_DISPLAYCHANGE:
                 GlobalVar.Log("^^^ WM_DISPLAYCHANGE Detected: Reinitializing drop-down trigger rects");
-                GlobalVar.InitDropDownRects(this);
+                GlobalVar.InitDropDownRects(this, fallbackToFirstScreen: true);
+                // Reset watchdog so it doesn't duplicate this check immediately
+                lastScreenFingerprint = null;
+                screenCheckCounter = 0;
                 break;
             case WM_DPICHANGED:
                 // Handle DPI changes
@@ -64,7 +70,7 @@ public partial class Shell : Form
         // Recalculate positions and sizes if needed
         if (GlobalVar.DropDownRects != null)
         {
-            GlobalVar.InitDropDownRects(this);
+            GlobalVar.InitDropDownRects(this, fallbackToFirstScreen: true);
         }
 
         // Refresh the form
@@ -139,30 +145,11 @@ public partial class Shell : Form
 
         InitializeComponent();
 
-        // Initialize DropDown Rects — retry on a timer if no screens are
-        // available yet (common at boot when monitors are still powering on).
-        // On the final retry, fall back to the primary screen so the app
-        // is never permanently invisible.
-        GlobalVar.InitDropDownRects(this);
-        if (GlobalVar.DropDownRects.Count == 0)
-        {
-            var retryTimer = new System.Windows.Forms.Timer { Interval = 5000 };
-            int retryCount = 0;
-            const int maxRetries = 6; // 30 seconds then fallback
-            retryTimer.Tick += delegate
-            {
-                retryCount++;
-                bool lastAttempt = retryCount >= maxRetries;
-                GlobalVar.Log($"^^^ InitDropDownRects retry {retryCount}/{maxRetries}{(lastAttempt ? " (will fallback)" : "")}");
-                GlobalVar.InitDropDownRects(this, fallbackToFirstScreen: lastAttempt);
-                if (GlobalVar.DropDownRects.Count > 0 || lastAttempt)
-                {
-                    retryTimer.Stop();
-                    retryTimer.Dispose();
-                }
-            };
-            retryTimer.Start();
-        }
+        // Initialize DropDown Rects with immediate fallback to primary screen.
+        // If the preferred screen isn't available yet (boot timing, VR headset),
+        // use whatever screen exists now. The screen geometry watchdog in
+        // HideTimerTick will re-init when the preferred screen appears.
+        GlobalVar.InitDropDownRects(this, fallbackToFirstScreen: true);
 
         // Timer Instantiations
         GlobalVar.HourlyChime = new System.Windows.Forms.Timer
@@ -684,6 +671,16 @@ public partial class Shell : Form
 
     public void HideTimerTick(object sender, EventArgs e)
     {
+        // Periodic screen geometry watchdog: every ~30 seconds, check if the
+        // display configuration has changed (e.g. VR headset connect/disconnect,
+        // monitors powering on after boot). WM_DISPLAYCHANGE doesn't always fire.
+        screenCheckCounter++;
+        if (screenCheckCounter >= ScreenCheckIntervalTicks)
+        {
+            screenCheckCounter = 0;
+            CheckScreenGeometryChanged();
+        }
+
         // If an animation is in progress, don't start another one
         if (isFading || fadeDirection != 0)
         {
@@ -698,6 +695,21 @@ public partial class Shell : Form
         {
             DecideToHide();
         }
+    }
+
+    private void CheckScreenGeometryChanged()
+    {
+        var fingerprint = string.Join("|", Screen.AllScreens.Select(s =>
+            $"{s.DeviceName}:{s.WorkingArea.Left},{s.WorkingArea.Top},{s.WorkingArea.Width},{s.WorkingArea.Height}"));
+
+        if (lastScreenFingerprint != null && lastScreenFingerprint != fingerprint)
+        {
+            GlobalVar.Log($"^^^ Screen geometry changed, reinitializing trigger rects");
+            GlobalVar.Log($"^^^ Old: {lastScreenFingerprint}");
+            GlobalVar.Log($"^^^ New: {fingerprint}");
+            GlobalVar.InitDropDownRects(this, fallbackToFirstScreen: true);
+        }
+        lastScreenFingerprint = fingerprint;
     }
 
     public void TimerTick()

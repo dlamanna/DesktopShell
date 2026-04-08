@@ -204,8 +204,19 @@ internal sealed partial class Settings
     }
     public static void WriteSettings(bool toFile)
     {
-        // Snapshot current screen WorkingAreas so we can match by geometry on restart
-        ScreenAreas = [.. Screen.AllScreens.Select(s => s.WorkingArea)];
+        // Only update saved screen areas when we can see at least as many screens
+        // as were previously saved. This prevents boot-time single-screen detection
+        // from clobbering the multi-screen geometry that area-based matching needs.
+        var currentAreas = Screen.AllScreens.Select(s => s.WorkingArea).ToList();
+        if (currentAreas.Count >= ScreenAreas.Count || ScreenAreas.Count == 0)
+        {
+            GlobalVar.Log($"^^^ WriteSettings: updating screenAreas (detected={currentAreas.Count}, saved={ScreenAreas.Count})");
+            ScreenAreas = [.. currentAreas];
+        }
+        else
+        {
+            GlobalVar.Log($"^^^ WriteSettings: preserving saved screenAreas (detected={currentAreas.Count} < saved={ScreenAreas.Count})");
+        }
 
         string[] tempLines =
         [
