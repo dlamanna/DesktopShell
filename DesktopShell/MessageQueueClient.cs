@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Net.Http;
 using System.Security.Cryptography;
@@ -54,20 +54,103 @@ internal static class MessageQueueClient
 
     internal static async Task ProcessPendingOnceOnStartupAsync(Shell shell, CancellationToken cancellationToken)
     {
+        await DrainAsync(shell, cancellationToken, verbose: true, label: "startup pull")
+            .ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Drain the queue forever, so a machine that is already running still receives.
+    /// </summary>
+    /// <remarks>
+    /// The startup drain alone made this store-and-forward: a message sent to a machine
+    /// that was already running waited for its next restart. Polling is what makes the
+    /// queue usable as a LIVE channel -- and the queue is the only path that survives a
+    /// laptop on a work VPN with no route to the LAN.
+    ///
+    /// QUIET BY DESIGN. A poll that finds nothing logs nothing, and a failure is logged
+    /// ONCE per outage rather than every interval: at 20s an unreachable network would
+    /// otherwise write 4,000 identical lines a day and bury everything else.
+    /// </remarks>
+    internal static async Task RunPollLoopAsync(Shell shell, CancellationToken cancellationToken)
+    {
+        int seconds = GlobalVar.QueuePollSeconds;
+        if (seconds <= 0 || !IsEnabled)
+        {
+            GlobalVar.Log($"^^^ MessageQueueClient: polling disabled (interval={seconds}s, enabled={IsEnabled})");
+            return;
+        }
+
+        GlobalVar.Log($"^^^ MessageQueueClient: polling every {seconds}s");
+        var period = TimeSpan.FromSeconds(seconds);
+        bool wasFailing = false;
+
+        while (!cancellationToken.IsCancellationRequested)
+        {
+            try
+            {
+                await Task.Delay(period, cancellationToken).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException)
+            {
+                return;
+            }
+
+            if (shell.IsDisposed)
+            {
+                return;
+            }
+
+            try
+            {
+                await DrainAsync(shell, cancellationToken, verbose: false, label: "poll").ConfigureAwait(false);
+                if (wasFailing)
+                {
+                    GlobalVar.Log("^^^ MessageQueueClient: polling recovered");
+                    wasFailing = false;
+                }
+            }
+            catch (OperationCanceledException)
+            {
+                return;
+            }
+            catch (Exception e)
+            {
+                // One bad poll must never end the loop. A dropped network is the normal
+                // case this whole thing exists for.
+                if (!wasFailing)
+                {
+                    GlobalVar.Log($"### MessageQueueClient: polling failing ({e.GetType().Name}: {e.Message}); quiet until it recovers");
+                    wasFailing = true;
+                }
+            }
+        }
+    }
+
+    private static async Task DrainAsync(Shell shell, CancellationToken cancellationToken, bool verbose, string label)
+    {
         if (!IsEnabled)
         {
-            GlobalVar.Log($"### MessageQueueClient: queue disabled for pull. queueEnabled={GlobalVar.QueueEnabled}, {DescribeAuthConfig()}");
+            if (verbose)
+            {
+                GlobalVar.Log($"### MessageQueueClient: queue disabled for pull. queueEnabled={GlobalVar.QueueEnabled}, {DescribeAuthConfig()}");
+            }
             return;
         }
 
         string me = NormalizeTargetName(System.Net.Dns.GetHostName());
         if (string.IsNullOrWhiteSpace(me))
         {
-            GlobalVar.Log("### MessageQueueClient: hostname empty, skipping pull");
+            if (verbose)
+            {
+                GlobalVar.Log("### MessageQueueClient: hostname empty, skipping pull");
+            }
             return;
         }
 
-        GlobalVar.Log($"^^^ MessageQueueClient: startup pull begin. me='{me}', baseUrl='{GlobalVar.QueueBaseUrl}'");
+        if (verbose)
+        {
+            GlobalVar.Log($"^^^ MessageQueueClient: {label} begin. me='{me}', baseUrl='{GlobalVar.QueueBaseUrl}'");
+        }
 
         IReadOnlyList<PulledMessage> messages;
         try
@@ -76,17 +159,25 @@ internal static class MessageQueueClient
         }
         catch (Exception e)
         {
-            GlobalVar.Log($"### MessageQueueClient::ProcessPendingOnceOnStartup - pull failed: {e}");
+            if (!verbose)
+            {
+                throw;              // the poll loop decides whether this is worth logging
+            }
+            GlobalVar.Log($"### MessageQueueClient::{label} - pull failed: {e}");
             return;
         }
 
         if (messages.Count == 0)
         {
-            GlobalVar.Log($"^^^ MessageQueueClient: startup pull returned 0 messages. me='{me}'");
+            if (verbose)
+            {
+                GlobalVar.Log($"^^^ MessageQueueClient: {label} returned 0 messages. me='{me}'");
+            }
             return;
         }
 
-        GlobalVar.Log($"^^^ MessageQueueClient: startup pull returned {messages.Count} messages. me='{me}'");
+        // Anything actually DELIVERED is always logged, however quiet the poll is.
+        GlobalVar.Log($"^^^ MessageQueueClient: {label} returned {messages.Count} messages. me='{me}'");
 
         var acks = new List<AckItem>(messages.Count);
 
@@ -124,7 +215,7 @@ internal static class MessageQueueClient
         }
         catch (Exception e)
         {
-            GlobalVar.Log($"### MessageQueueClient::ProcessPendingOnceOnStartup - ack failed: {e}");
+            GlobalVar.Log($"### MessageQueueClient::{label} - ack failed: {e}");
         }
     }
 

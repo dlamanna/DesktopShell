@@ -13,6 +13,9 @@ public partial class Shell : Form
     #region Declarations
 
     private readonly List<string> lastCMD = [];
+    // Stops the queue polling loop when the shell closes, so a background HTTP call
+    // cannot outlive the form it delivers to.
+    private readonly CancellationTokenSource queueCts = new();
     private readonly System.Windows.Forms.Timer hideTimer;
     private System.Windows.Forms.Timer? fadeTimer;
     private Thread? t = null;
@@ -192,7 +195,13 @@ public partial class Shell : Form
 
         PopulateCombos();
 
-        // Store-and-forward: pull pending queued messages once at startup.
+        // Drain anything queued while this machine was down, then keep draining.
+        //
+        // The startup pull on its own made the queue store-and-forward only: a message
+        // sent to a machine that was already running sat there until its next restart.
+        // The polling loop is what makes it a live channel, and it is the only delivery
+        // path that survives having no route to the LAN -- a laptop on a work VPN can
+        // still reach an HTTPS endpoint.
         this.Shown += async (_, _) =>
         {
             try
@@ -203,6 +212,15 @@ public partial class Shell : Form
             {
                 GlobalVar.Log($"### Startup queue processing failed: {e.GetType()}: {e.Message}");
             }
+
+            // Fire-and-forget for the life of the process; it exits on its own when the
+            // form is disposed. Not awaited, or the Shown handler would never return.
+            _ = MessageQueueClient.RunPollLoopAsync(this, queueCts.Token);
+        };
+
+        this.FormClosing += (_, _) =>
+        {
+            try { queueCts.Cancel(); } catch (ObjectDisposedException) { }
         };
     }
 

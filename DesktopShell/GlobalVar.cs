@@ -63,6 +63,38 @@ public static partial class GlobalVar
     public const string EnvQueueSharedSecret = "DESKTOPSHELL_QUEUE_SHARED_SECRET";
     public const string EnvCfAccessClientId = "DESKTOPSHELL_CF_ACCESS_CLIENT_ID";
     public const string EnvCfAccessClientSecret = "DESKTOPSHELL_CF_ACCESS_CLIENT_SECRET";
+    public const string EnvQueuePollSeconds = "DESKTOPSHELL_QUEUE_POLL_SECONDS";
+
+    /// <summary>
+    /// How often to drain the queue, in seconds. 0 disables polling entirely (the
+    /// startup drain still runs).
+    /// </summary>
+    /// <remarks>
+    /// The queue used to be drained ONCE, at startup, which made it store-and-forward
+    /// only: a message sent to a machine that was already running sat there until its
+    /// next restart. That is fine for "you were offline, here is what you missed" and
+    /// useless for live status, which is the case that matters when the LAN is not
+    /// reachable -- a laptop on a work VPN can still reach an HTTPS endpoint.
+    ///
+    /// Floored at 5s rather than trusted: this is a request per interval per machine
+    /// against a Durable Object, and a mistyped 0.5 would hammer it.
+    /// </remarks>
+    public static int QueuePollSeconds
+    {
+        get
+        {
+            string raw = (GetEnvValue(EnvQueuePollSeconds) ?? "").Trim();
+            if (!int.TryParse(raw, out int seconds))
+            {
+                return 20;
+            }
+            if (seconds <= 0)
+            {
+                return 0;
+            }
+            return Math.Clamp(seconds, 5, 3600);
+        }
+    }
 
     public const string HeaderCfAccessClientId = "CF-Access-Client-Id";
     public const string HeaderCfAccessClientSecret = "CF-Access-Client-Secret";
