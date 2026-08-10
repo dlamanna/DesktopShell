@@ -1110,7 +1110,7 @@ public static partial class GlobalVar
             try
             {
                 using FileStream fs = new(logPath, FileMode.Append, FileAccess.Write, FileShare.ReadWrite);
-                using StreamWriter w = new(fs);
+                using StreamWriter w = new(fs, System.Text.Encoding.UTF8);
                 w.WriteLine($"{DateTime.Now:HH:mm:ss.fff}:\t{logOutput}");
             }
             catch (Exception e) when (e is UnauthorizedAccessException or IOException)
