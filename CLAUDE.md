@@ -4,7 +4,7 @@
 
 When working in this repo, follow this `CLAUDE.md`. If you switch to a different repo in this workspace, use that repo's `CLAUDE.md` instead (and the root `CLAUDE.md` for workspace-wide rules, if applicable).
 
-Windows Forms command launcher and desktop extension. Replaces desktop shortcuts/batch files, extends the Windows start menu. .NET 8.0 targeting `net8.0-windows10.0.26100.0`.
+Windows Forms command launcher and desktop extension. Replaces desktop shortcuts/batch files, extends the Windows start menu. .NET 10.0 targeting `net10.0-windows10.0.26100.0`.
 
 ## Build / Run / Test
 
