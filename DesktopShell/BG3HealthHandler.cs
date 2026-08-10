@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Linq;
 using System.Net.Sockets;
 using System.Text.Json;
@@ -30,11 +31,13 @@ internal static class BG3HealthHandler
         bool tts = dmStatus.Tts;
         bool xsOverlay = CheckXsOverlay();
         var stateFiles = CheckStateFiles();
+        var vrService = CheckVrService();
+        var binaryDates = GetBinaryDates();
 
         // SE mod is "loaded" if state files exist AND at least one was written in the last 5 minutes
         bool seModLoaded = stateFiles.Values.Any(sf => sf.Exists && sf.AgeSeconds >= 0 && sf.AgeSeconds <= FreshnessThresholdSeconds);
 
-        bool hasIssues = !dmRunning || !mcpServer || !seModLoaded;
+        bool hasIssues = !dmRunning || !mcpServer || !seModLoaded || !vrService.Ok;
 
         var result = new
         {
@@ -43,6 +46,10 @@ internal static class BG3HealthHandler
             tts,
             xsOverlay,
             seModLoaded,
+            vrServiceOk = vrService.Ok,
+            vrServiceError = vrService.Error,
+            desktopShellBuildDate = binaryDates.DesktopShell,
+            vrServiceBuildDate = binaryDates.VrService,
             stateFiles = stateFiles.ToDictionary(
                 kv => kv.Key,
                 kv => new { exists = kv.Value.Exists, ageSeconds = kv.Value.AgeSeconds }),
@@ -98,6 +105,70 @@ internal static class BG3HealthHandler
         {
             return false;
         }
+    }
+
+    private static (bool Ok, string? Error) CheckVrService()
+    {
+        try
+        {
+            string vrServicePath = Path.Combine(AppContext.BaseDirectory, "Bin", "VRService.exe");
+            if (!File.Exists(vrServicePath))
+                return (false, "VRService.exe not found");
+
+            var psi = new ProcessStartInfo(vrServicePath, "vr-status")
+            {
+                UseShellExecute = false,
+                CreateNoWindow = true,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+            };
+
+            using var process = Process.Start(psi);
+            if (process == null)
+                return (false, "Failed to start VRService");
+
+            string output = process.StandardOutput.ReadToEnd();
+            if (!process.WaitForExit(5_000))
+            {
+                try { process.Kill(); } catch { }
+                return (false, "VRService timed out");
+            }
+
+            if (process.ExitCode != 0)
+                return (false, $"Exit code {process.ExitCode}");
+
+            // Verify valid JSON response
+            using var doc = JsonDocument.Parse(output);
+            return (true, null);
+        }
+        catch (JsonException)
+        {
+            return (false, "Invalid JSON response");
+        }
+        catch (Exception e)
+        {
+            return (false, e.Message);
+        }
+    }
+
+    private static (string? DesktopShell, string? VrService) GetBinaryDates()
+    {
+        string? ds = null, vr = null;
+        try
+        {
+            string dsPath = Path.Combine(AppContext.BaseDirectory, "DesktopShell.exe");
+            if (File.Exists(dsPath))
+                ds = File.GetLastWriteTimeUtc(dsPath).ToString("o");
+        }
+        catch { }
+        try
+        {
+            string vrPath = Path.Combine(AppContext.BaseDirectory, "Bin", "VRService.exe");
+            if (File.Exists(vrPath))
+                vr = File.GetLastWriteTimeUtc(vrPath).ToString("o");
+        }
+        catch { }
+        return (ds, vr);
     }
 
     private static Dictionary<string, (bool Exists, int AgeSeconds)> CheckStateFiles()

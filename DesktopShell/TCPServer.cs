@@ -3,6 +3,7 @@ using System.Net;
 using System.Net.Sockets;
 using System.Diagnostics;
 using System.Text;
+using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -222,6 +223,14 @@ public class TCPServer
                         continue;
                     }
 
+                    // JSON requests get routed first — always respond with JSON, never bare "ack".
+                    if (TryDispatchJsonRequest(receivedString, clientStream))
+                    {
+                        isCommunicationOver = true;
+                        break;
+                    }
+
+                    // Legacy plain-text commands (backward compat).
                     switch (receivedString)
                     {
                         case "ack":
@@ -346,6 +355,7 @@ public class TCPServer
             {
                 while (process.StandardOutput.ReadLine() is { } line)
                 {
+                    GlobalVar.Log($"^^^ VR relay stdout[{stdoutLines}]: {line[..Math.Min(line.Length, 200)]}");
                     GlobalVar.WriteRemoteCommand(clientStream, line, includePassPhrase: true);
                     stdoutLines++;
                 }
@@ -357,6 +367,8 @@ public class TCPServer
                 try { process.Kill(); } catch { }
                 return;
             }
+
+            GlobalVar.Log($"^^^ VR relay: stdout complete, {stdoutLines} line(s) relayed");
 
             // Wait for process exit (respect timeout)
             if (!process.WaitForExit(VrServiceTimeoutMs))
@@ -374,6 +386,11 @@ public class TCPServer
                 GlobalVar.Log($"### VRService exited with code {process.ExitCode}");
                 TryWriteErrorJson(clientStream, "VR service exited with error");
             }
+            else if (process.ExitCode == 0 && stdoutLines == 0)
+            {
+                GlobalVar.Log($"### VRService exited OK but produced no stdout -- phone app will get no data");
+                TryWriteErrorJson(clientStream, "VR service returned no data");
+            }
         }
         catch (Exception e)
         {
@@ -385,6 +402,60 @@ public class TCPServer
         finally
         {
             process?.Dispose();
+        }
+    }
+
+    /// <summary>
+    /// Attempts to parse the input as a JSON request with an "action" field.
+    /// Returns true if the input was JSON and the action was dispatched (response already written).
+    /// Returns false if the input is not JSON — caller should fall through to the legacy switch.
+    /// </summary>
+    private static bool TryDispatchJsonRequest(string input, Stream clientStream)
+    {
+        if (string.IsNullOrEmpty(input) || input[0] != '{') return false;
+
+        string? action;
+        try
+        {
+            using var doc = JsonDocument.Parse(input);
+            if (!doc.RootElement.TryGetProperty("action", out var actionProp)) return false;
+            action = actionProp.GetString();
+        }
+        catch (JsonException)
+        {
+            return false;
+        }
+
+        if (string.IsNullOrEmpty(action)) return false;
+        GlobalVar.Log($"$$$ JSON request: action='{action}'");
+
+        switch (action)
+        {
+            case "bg3dm-health":
+                try
+                {
+                    string healthJson = BG3HealthHandler.CheckHealth();
+                    GlobalVar.WriteRemoteCommand(clientStream, healthJson, includePassPhrase: true);
+                }
+                catch (Exception ex)
+                {
+                    GlobalVar.Log($"### BG3 health check error: {ex.Message}");
+                    TryWriteErrorJson(clientStream, "Health check failed");
+                }
+                return true;
+
+            case string cmd when cmd.StartsWith("vr-"):
+                GlobalVar.Log($"$$$ VR command (JSON): {cmd}");
+                RelayVrService(cmd, clientStream);
+                return true;
+
+            default:
+                if (GlobalVar.ShellInstance is { } shell)
+                {
+                    shell.BeginInvoke(() => shell.ProcessCommand(action));
+                }
+                TryWriteErrorJson(clientStream, $"Unknown action: {action}");
+                return true;
         }
     }
 
