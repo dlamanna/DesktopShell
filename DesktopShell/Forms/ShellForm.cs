@@ -1,5 +1,6 @@
 ﻿using DesktopShell.AI;
 using DesktopShell.Properties;
+using System.Diagnostics;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
@@ -119,6 +120,11 @@ public partial class Shell : Form
 
     [GeneratedRegex("^(tooltip|note|tip)$")]
     private static partial Regex Tooltip();
+
+    // notify <publisher> <text>            working, the default
+    // notify <state> <publisher> <text>     state is working | done | warn
+    [GeneratedRegex("^notify ", RegexOptions.IgnoreCase)]
+    private static partial Regex NotifyCommand();
 
     [GeneratedRegex("^claudex ")]
     private static partial Regex ClaudexCommand();
@@ -332,6 +338,88 @@ public partial class Shell : Form
         }
     }
 
+    /// <summary>
+    /// Split a notify line into (state, publisher, text). Null when it is unusable.
+    /// </summary>
+    /// <remarks>
+    /// Public and pure so it can be tested: this parses text that arrives over the
+    /// network from scripts on other machines, which is exactly the input that will
+    /// eventually be malformed at three in the morning.
+    /// </remarks>
+    public static (string State, string Publisher, string Text)? ParseNotify(string rest)
+    {
+        if (string.IsNullOrWhiteSpace(rest))
+        {
+            return null;
+        }
+
+        string[] states = ["working", "done", "warn", "idle"];
+        string[] words = rest.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        int at = 0;
+        string state = "working";
+        // Recognised BY VALUE and optional, so a publisher never has to remember flag
+        // order, and a message that merely starts with an ordinary word is not mistaken
+        // for one carrying a state.
+        if (words.Length > 0 && states.Contains(words[0].ToLowerInvariant()))
+        {
+            state = words[0].ToLowerInvariant();
+            at = 1;
+        }
+        if (words.Length < at + 2)
+        {
+            return null;                 // a publisher with nothing to say is not a message
+        }
+        return (state, words[at], string.Join(' ', words.Skip(at + 1)));
+    }
+
+    /// <summary>
+    /// Hand a line to the overlay's publisher CLI.
+    /// </summary>
+    /// <remarks>
+    /// Arguments are passed as a real argument LIST rather than a command string: a
+    /// status line is arbitrary text from some background job and will eventually
+    /// contain a quote, an ampersand or a percent sign.
+    /// </remarks>
+    private static void RunNotify(string rest)
+    {
+        if (ParseNotify(rest) is not { } parsed)
+        {
+            GlobalVar.Log($"### notify: could not read '{rest}'");
+            return;
+        }
+        (string state, string publisher, string text) = parsed;
+
+        string script = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
+            "Dropbox", "HomeHub", "overlay", "notify.py");
+        if (!File.Exists(script))
+        {
+            GlobalVar.Log($"### notify: no publisher script at {script}");
+            return;
+        }
+
+        try
+        {
+            ProcessStartInfo psi = new()
+            {
+                FileName = "pythonw",
+                UseShellExecute = false,
+                CreateNoWindow = true,
+            };
+            psi.ArgumentList.Add(script);
+            psi.ArgumentList.Add(publisher);
+            psi.ArgumentList.Add(text);
+            psi.ArgumentList.Add("--state");
+            psi.ArgumentList.Add(state);
+            Process.Start(psi);
+            GlobalVar.Log($"^^^ notify: {state} {publisher}: {text}");
+        }
+        catch (Exception e)
+        {
+            GlobalVar.Log($"### notify: {e.GetType()}: {e.Message}");
+        }
+    }
+
     private void HardCodedCombos(string originalCMD, string[] splitWords, string? rawInput = null)
     {
         //Crosshair
@@ -452,6 +540,18 @@ public partial class Shell : Form
         else if (Games().IsMatch(originalCMD))
         {
             OpenRandomGame(originalCMD);
+        }
+        // On-screen overlay. Sent from another machine as `remote phuzekoj:notify ...`,
+        // which is the point: the overlay's publishers write a LOCAL file, so a job
+        // running on PHUZE has no way to reach the screen in front of you without a
+        // hop like this one. Free text, exactly as the AI commands below take a prompt.
+        else if (NotifyCommand().Match(originalCMD) is { Success: true } notifyMatch)
+        {
+            // rawInput, not originalCMD: the typed path lowercases the command, and a
+            // status line that arrives as "backup complete - 4.2 gb" reads as broken.
+            string rest = (rawInput ?? originalCMD)[notifyMatch.Length..].Trim();
+            if (!string.IsNullOrWhiteSpace(rest))
+                RunNotify(rest);
         }
         // AI Commands
         else if (ClaudexCommand().Match(originalCMD) is { Success: true } claudexMatch)
