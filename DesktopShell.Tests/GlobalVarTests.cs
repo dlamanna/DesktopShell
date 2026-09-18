@@ -105,15 +105,13 @@ public class GlobalVarTests
         public void PassPhrase_ReadsFromEnvironmentVariable()
         {
             // Test that PassPhrase respects environment variable if set
+            // Compare as a bool: a failure message must never print a real passphrase.
+            // With no process value, PassPhrase may come from the HomeHub shim or User/Machine env
+            // (see HomeHubShimTests), so only the process-env case is checked here.
             var envValue = Environment.GetEnvironmentVariable("DESKTOPSHELL_PASSPHRASE");
             if (!string.IsNullOrEmpty(envValue))
             {
-                GlobalVar.PassPhrase.Should().Be(envValue);
-            }
-            else
-            {
-                // Should fall back to default if not set
-                GlobalVar.PassPhrase.Should().Be("default");
+                (GlobalVar.PassPhrase == envValue.Trim()).Should().BeTrue("the process env value must win");
             }
         }
 
@@ -123,6 +121,97 @@ public class GlobalVarTests
             // On Windows build machine, this should be true
             var isActuallyWindows = Environment.OSVersion.Platform == PlatformID.Win32NT;
             GlobalVar.IsWindows.Should().Be(isActuallyWindows);
+        }
+    }
+
+    /// <summary>
+    /// The HomeHub secrets shim sits after the process env and before User/Machine env.
+    /// All values here are fake. Assertions compare as bools so that a failure never prints
+    /// a real secret that fell through from User/Machine env on the test machine.
+    /// </summary>
+    [TestClass]
+    public class HomeHubShimTests
+    {
+        private static readonly string[] Keys =
+        [
+            "HOMEHUB_SECRETS",
+            GlobalVar.EnvQueueSharedSecret,
+            "DESKTOPSHELL_PASSPHRASE",
+            "DESKTOPSHELL_TCP_TLS_PFX_PASSWORD",
+        ];
+
+        private readonly Dictionary<string, string?> saved = new();
+        private string? shimFile;
+
+        [TestInitialize]
+        public void Setup()
+        {
+            foreach (var k in Keys) saved[k] = Environment.GetEnvironmentVariable(k);
+            foreach (var k in Keys) Environment.SetEnvironmentVariable(k, null); // this process only
+
+            // A new file per test gives a new cache path, so the HomeHubSecrets cache resets.
+            shimFile = Path.Combine(Path.GetTempPath(), $"ds_shim_{Guid.NewGuid():N}.secrets");
+            File.WriteAllLines(shimFile,
+            [
+                "# test shim",
+                $"{GlobalVar.EnvQueueSharedSecret}='shim-queue-fake'",
+                "DESKTOPSHELL_PASSPHRASE=\"shim-pass-fake\"",
+                "DESKTOPSHELL_TCP_TLS_PFX_PASSWORD=shim-pfx-fake",
+            ]);
+            Environment.SetEnvironmentVariable("HOMEHUB_SECRETS", shimFile);
+        }
+
+        [TestCleanup]
+        public void Cleanup()
+        {
+            foreach (var (k, v) in saved) Environment.SetEnvironmentVariable(k, v);
+            if (shimFile != null) { try { File.Delete(shimFile); } catch { } }
+        }
+
+        private static string InvokeGetEnvSource(string name)
+        {
+            var m = typeof(GlobalVar).GetMethod("GetEnvSource",
+                System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static);
+            m.Should().NotBeNull();
+            return (string)m!.Invoke(null, [name])!;
+        }
+
+        [TestMethod]
+        public void QueueSharedSecret_OnlyInShim_Resolves()
+        {
+            (GlobalVar.QueueSharedSecret == "shim-queue-fake").Should().BeTrue();
+        }
+
+        [TestMethod]
+        public void PassPhrase_OnlyInShim_ResolvesWithQuotesStripped()
+        {
+            (GlobalVar.PassPhrase == "shim-pass-fake").Should().BeTrue();
+        }
+
+        [TestMethod]
+        public void TcpTlsPfxPassword_OnlyInShim_Resolves()
+        {
+            (GlobalVar.TcpTlsPfxPassword == "shim-pfx-fake").Should().BeTrue();
+        }
+
+        [TestMethod]
+        public void ProcessEnv_WinsOverShim()
+        {
+            Environment.SetEnvironmentVariable("DESKTOPSHELL_PASSPHRASE", "proc-pass-fake");
+            Environment.SetEnvironmentVariable("DESKTOPSHELL_TCP_TLS_PFX_PASSWORD", "proc-pfx-fake");
+            Environment.SetEnvironmentVariable(GlobalVar.EnvQueueSharedSecret, "proc-queue-fake");
+
+            (GlobalVar.PassPhrase == "proc-pass-fake").Should().BeTrue();
+            (GlobalVar.TcpTlsPfxPassword == "proc-pfx-fake").Should().BeTrue();
+            (GlobalVar.QueueSharedSecret == "proc-queue-fake").Should().BeTrue();
+            InvokeGetEnvSource("DESKTOPSHELL_PASSPHRASE").Should().Be("process");
+        }
+
+        [TestMethod]
+        public void GetEnvSource_KeyInShim_ReportsShim()
+        {
+            InvokeGetEnvSource(GlobalVar.EnvQueueSharedSecret).Should().Be("shim");
+            InvokeGetEnvSource("DESKTOPSHELL_TCP_TLS_PFX_PASSWORD").Should().Be("shim");
         }
     }
 

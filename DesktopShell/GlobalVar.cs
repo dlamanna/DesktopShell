@@ -49,7 +49,7 @@ public static partial class GlobalVar
     // Client validates via OS trust by default; for self-signed, pin with DESKTOPSHELL_TCP_TLS_THUMBPRINT.
     public static bool TcpTlsEnabled => string.Equals(Environment.GetEnvironmentVariable("DESKTOPSHELL_TCP_TLS"), "1", StringComparison.OrdinalIgnoreCase);
     public static string? TcpTlsPfxPath => Environment.GetEnvironmentVariable("DESKTOPSHELL_TCP_TLS_PFX");
-    public static string? TcpTlsPfxPassword => Environment.GetEnvironmentVariable("DESKTOPSHELL_TCP_TLS_PFX_PASSWORD");
+    public static string? TcpTlsPfxPassword => GetEnvValue("DESKTOPSHELL_TCP_TLS_PFX_PASSWORD");
     public static string? TcpTlsPinnedThumbprint => Environment.GetEnvironmentVariable("DESKTOPSHELL_TCP_TLS_THUMBPRINT");
 
     // Home network detection (default gateway) for TCP routing.
@@ -112,6 +112,20 @@ public static partial class GlobalVar
             return processValue.Trim();
         }
 
+        // HomeHub secrets shim ($HOMEHUB_SECRETS, else %LOCALAPPDATA%\homehub\.secrets).
+        try
+        {
+            string? shimValue = HomeHub.HomeHubSecrets.Get(name);
+            if (shimValue != null)
+            {
+                return shimValue;
+            }
+        }
+        catch
+        {
+            // ignore: an unreadable shim falls through to User/Machine env
+        }
+
         try
         {
             string? userValue = Environment.GetEnvironmentVariable(name, EnvironmentVariableTarget.User);
@@ -145,6 +159,11 @@ public static partial class GlobalVar
     {
         // Returns the first scope where the variable exists (even if empty string).
         if (Environment.GetEnvironmentVariable(name) != null) return "process";
+        try
+        {
+            if (HomeHub.HomeHubSecrets.Get(name) != null) return "shim";
+        }
+        catch { }
         try
         {
             if (Environment.GetEnvironmentVariable(name, EnvironmentVariableTarget.User) != null) return "user";
