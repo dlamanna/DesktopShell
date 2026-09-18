@@ -208,6 +208,22 @@ public class GlobalVarTests
         }
 
         [TestMethod]
+        public void RewrittenShim_IsReRead()
+        {
+            (GlobalVar.QueueSharedSecret == "shim-queue-fake").Should().BeTrue();
+
+            // Same path, new content: the cache must notice the new mtime/size.
+            File.WriteAllLines(shimFile!,
+            [
+                $"{GlobalVar.EnvQueueSharedSecret}='shim-queue-rotated-fake'",
+            ]);
+            File.SetLastWriteTimeUtc(shimFile!, DateTime.UtcNow.AddMinutes(5));
+
+            (GlobalVar.QueueSharedSecret == "shim-queue-rotated-fake").Should().BeTrue();
+            (GlobalVar.PassPhrase == "shim-pass-fake").Should().BeFalse();
+        }
+
+        [TestMethod]
         public void GetEnvSource_KeyInShim_ReportsShim()
         {
             InvokeGetEnvSource(GlobalVar.EnvQueueSharedSecret).Should().Be("shim");

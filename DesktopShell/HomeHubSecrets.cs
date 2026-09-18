@@ -4,8 +4,10 @@ namespace HomeHub;
 /// ($HOMEHUB_SECRETS, else %LOCALAPPDATA%\homehub\.secrets). Values never logged.</summary>
 public static class HomeHubSecrets
 {
-    static Dictionary<string, string>? cache;
-    static string? cachePath;
+    // Immutable snapshot, published by a single reference swap so concurrent readers never see a
+    // half-built map. Keyed by path + mtime + size, so a rewritten shim is re-read (one stat per call).
+    sealed record Snapshot(string? Path, DateTime WriteUtc, long Length, Dictionary<string, string> Map);
+    static volatile Snapshot? cache;
 
     public static string? ShimPath()
     {
@@ -18,7 +20,14 @@ public static class HomeHubSecrets
     static Dictionary<string, string> Load()
     {
         var path = ShimPath();
-        if (cache is not null && cachePath == path) return cache;
+        DateTime writeUtc = default; long length = -1;
+        if (path is not null)
+        {
+            try { var fi = new FileInfo(path); writeUtc = fi.LastWriteTimeUtc; length = fi.Length; }
+            catch (IOException) { } catch (UnauthorizedAccessException) { }
+        }
+        var snap = cache;
+        if (snap is not null && snap.Path == path && snap.WriteUtc == writeUtc && snap.Length == length) return snap.Map;
         var map = new Dictionary<string, string>(StringComparer.Ordinal);
         if (path is not null)
         {
@@ -33,7 +42,7 @@ public static class HomeHubSecrets
                 map[line[..eq].Trim()] = v;
             }
         }
-        cache = map; cachePath = path;
+        cache = new Snapshot(path, writeUtc, length, map);
         return map;
     }
 
@@ -46,5 +55,5 @@ public static class HomeHubSecrets
 
     public static string Source(string name) =>
         !string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable(name)) ? "env"
-        : Load().ContainsKey(name) ? "shim:" + ShimPath() : "missing";
+        : Load().TryGetValue(name, out var v) && v.Length > 0 ? "shim:" + ShimPath() : "missing";
 }
