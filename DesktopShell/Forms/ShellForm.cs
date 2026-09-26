@@ -17,6 +17,9 @@ public partial class Shell : Form
     // cannot outlive the form it delivers to.
     private readonly CancellationTokenSource queueCts = new();
     private readonly System.Windows.Forms.Timer hideTimer;
+    // One-shot re-read of the screen layout after a display change has settled.
+    // Created here, not in the constructor, because WndProc can run before the constructor ends.
+    private readonly System.Windows.Forms.Timer displaySettleTimer = new() { Interval = DisplaySettleDelayMs };
     private System.Windows.Forms.Timer? fadeTimer;
     private Thread? t = null;
     private readonly List<Combination> shortcutList = [];
@@ -33,7 +36,8 @@ public partial class Shell : Form
     private int upCounter = 0;
     private int screenCheckCounter = 0;
     private string? lastScreenFingerprint;
-    private const int ScreenCheckIntervalTicks = 600; // 600 * 50ms = 30 seconds
+    private const int ScreenCheckIntervalTicks = 100; // 100 * 50ms = 5 seconds
+    private const int DisplaySettleDelayMs = 2000;
     private readonly AICommandHandler _aiHandler = new(new CliRunner(), new ResponsePresenter());
 
     #endregion Declarations
@@ -44,6 +48,8 @@ public partial class Shell : Form
     {
 #pragma warning disable IDE1006 // Naming Styles
         const int WM_DISPLAYCHANGE = 0x007e;
+        const int WM_SETTINGCHANGE = 0x001A;
+        const int SPI_SETWORKAREA = 0x002F;
         const int WM_DPICHANGED = 0x02E0;
 #pragma warning restore IDE1006 // Naming Styles
 
@@ -51,11 +57,17 @@ public partial class Shell : Form
         switch (m.Msg)
         {
             case WM_DISPLAYCHANGE:
+                // Screen.AllScreens can still hold the old layout here, and Explorer has not
+                // moved the taskbar yet, so WorkingArea is stale too. Init now for a quick
+                // answer, then init again once the change settles (Parsec resolution
+                // matching, VR headsets and monitor power-on all send a burst of these).
                 GlobalVar.Log("^^^ WM_DISPLAYCHANGE Detected: Reinitializing drop-down trigger rects");
-                GlobalVar.InitDropDownRects(this, fallbackToFirstScreen: true);
-                // Reset watchdog so it doesn't duplicate this check immediately
-                lastScreenFingerprint = null;
-                screenCheckCounter = 0;
+                ReinitScreens();
+                ScheduleScreenReinit();
+                break;
+            case WM_SETTINGCHANGE when (int)m.WParam == SPI_SETWORKAREA:
+                // The taskbar moved or resized, which changes WorkingArea.
+                ScheduleScreenReinit();
                 break;
             case WM_DPICHANGED:
                 // Handle DPI changes
@@ -158,9 +170,15 @@ public partial class Shell : Form
         // If the preferred screen isn't available yet (boot timing, VR headset),
         // use whatever screen exists now. The screen geometry watchdog in
         // HideTimerTick will re-init when the preferred screen appears.
-        GlobalVar.InitDropDownRects(this, fallbackToFirstScreen: true);
+        ReinitScreens();
 
         // Timer Instantiations
+        displaySettleTimer.Tick += delegate
+        {
+            displaySettleTimer.Stop();
+            GlobalVar.Log("^^^ Display change settled: Reinitializing drop-down trigger rects");
+            ReinitScreens();
+        };
         GlobalVar.HourlyChime = new System.Windows.Forms.Timer
         {
             Interval = GlobalVar.HourlyChimeIntervalMs
@@ -815,20 +833,37 @@ public partial class Shell : Form
         }
     }
 
+    // Compares against the layout the current trigger rects were built from, so a
+    // re-init that read a stale mid-change layout is corrected on the next check.
     private void CheckScreenGeometryChanged()
     {
-        var fingerprint = string.Join("|", Screen.AllScreens.Select(s =>
-            $"{s.DeviceName}:{s.WorkingArea.Left},{s.WorkingArea.Top},{s.WorkingArea.Width},{s.WorkingArea.Height}"));
-
-        if (lastScreenFingerprint != null && lastScreenFingerprint != fingerprint)
+        var fingerprint = ScreenFingerprint();
+        if (fingerprint != lastScreenFingerprint)
         {
             GlobalVar.Log($"^^^ Screen geometry changed, reinitializing trigger rects");
             GlobalVar.Log($"^^^ Old: {lastScreenFingerprint}");
             GlobalVar.Log($"^^^ New: {fingerprint}");
-            GlobalVar.InitDropDownRects(this, fallbackToFirstScreen: true);
+            ReinitScreens();
         }
-        lastScreenFingerprint = fingerprint;
     }
+
+    private void ReinitScreens()
+    {
+        lastScreenFingerprint = ScreenFingerprint();
+        screenCheckCounter = 0;
+        GlobalVar.InitDropDownRects(this, fallbackToFirstScreen: true);
+    }
+
+    // Restarts the countdown, so a burst of display messages causes one re-init.
+    private void ScheduleScreenReinit()
+    {
+        displaySettleTimer.Stop();
+        displaySettleTimer.Start();
+    }
+
+    private static string ScreenFingerprint() =>
+        string.Join("|", Screen.AllScreens.Select(s =>
+            $"{s.DeviceName}:{s.WorkingArea.Left},{s.WorkingArea.Top},{s.WorkingArea.Width},{s.WorkingArea.Height}"));
 
     public void TimerTick()
     {
@@ -975,6 +1010,8 @@ public partial class Shell : Form
         // Clean up timers
         hideTimer?.Stop();
         hideTimer?.Dispose();
+        displaySettleTimer?.Stop();
+        displaySettleTimer?.Dispose();
 
         fadeTimer?.Stop();
         fadeTimer?.Dispose();
