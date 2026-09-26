@@ -17,9 +17,6 @@ public partial class Shell : Form
     // cannot outlive the form it delivers to.
     private readonly CancellationTokenSource queueCts = new();
     private readonly System.Windows.Forms.Timer hideTimer;
-    // One-shot re-read of the screen layout after a display change has settled.
-    // Created here, not in the constructor, because WndProc can run before the constructor ends.
-    private readonly System.Windows.Forms.Timer displaySettleTimer = new() { Interval = DisplaySettleDelayMs };
     private System.Windows.Forms.Timer? fadeTimer;
     private Thread? t = null;
     private readonly List<Combination> shortcutList = [];
@@ -36,8 +33,7 @@ public partial class Shell : Form
     private int upCounter = 0;
     private int screenCheckCounter = 0;
     private string? lastScreenFingerprint;
-    private const int ScreenCheckIntervalTicks = 100; // 100 * 50ms = 5 seconds
-    private const int DisplaySettleDelayMs = 2000;
+    private const int ScreenCheckIntervalTicks = 600; // 600 * 50ms = 30 seconds
     private readonly AICommandHandler _aiHandler = new(new CliRunner(), new ResponsePresenter());
 
     #endregion Declarations
@@ -57,17 +53,15 @@ public partial class Shell : Form
         switch (m.Msg)
         {
             case WM_DISPLAYCHANGE:
-                // Screen.AllScreens can still hold the old layout here, and Explorer has not
-                // moved the taskbar yet, so WorkingArea is stale too. Init now for a quick
-                // answer, then init again once the change settles (Parsec resolution
-                // matching, VR headsets and monitor power-on all send a burst of these).
+                // Sent when a resolution or monitor changes (Parsec resolution matching,
+                // VR headsets, monitor power-on). Explorer moves the taskbar afterwards,
+                // which arrives as the SPI_SETWORKAREA case below.
                 GlobalVar.Log("^^^ WM_DISPLAYCHANGE Detected: Reinitializing drop-down trigger rects");
                 ReinitScreens();
-                ScheduleScreenReinit();
                 break;
             case WM_SETTINGCHANGE when (int)m.WParam == SPI_SETWORKAREA:
-                // The taskbar moved or resized, which changes WorkingArea.
-                ScheduleScreenReinit();
+                GlobalVar.Log("^^^ Work area changed: Reinitializing drop-down trigger rects");
+                ReinitScreens();
                 break;
             case WM_DPICHANGED:
                 // Handle DPI changes
@@ -173,12 +167,6 @@ public partial class Shell : Form
         ReinitScreens();
 
         // Timer Instantiations
-        displaySettleTimer.Tick += delegate
-        {
-            displaySettleTimer.Stop();
-            GlobalVar.Log("^^^ Display change settled: Reinitializing drop-down trigger rects");
-            ReinitScreens();
-        };
         GlobalVar.HourlyChime = new System.Windows.Forms.Timer
         {
             Interval = GlobalVar.HourlyChimeIntervalMs
@@ -833,8 +821,8 @@ public partial class Shell : Form
         }
     }
 
-    // Compares against the layout the current trigger rects were built from, so a
-    // re-init that read a stale mid-change layout is corrected on the next check.
+    // Safety net for display changes that send no message. Compares against the layout
+    // the current trigger rects were built from.
     private void CheckScreenGeometryChanged()
     {
         var fingerprint = ScreenFingerprint();
@@ -854,16 +842,9 @@ public partial class Shell : Form
         GlobalVar.InitDropDownRects(this, fallbackToFirstScreen: true);
     }
 
-    // Restarts the countdown, so a burst of display messages causes one re-init.
-    private void ScheduleScreenReinit()
-    {
-        displaySettleTimer.Stop();
-        displaySettleTimer.Start();
-    }
-
     private static string ScreenFingerprint() =>
-        string.Join("|", Screen.AllScreens.Select(s =>
-            $"{s.DeviceName}:{s.WorkingArea.Left},{s.WorkingArea.Top},{s.WorkingArea.Width},{s.WorkingArea.Height}"));
+        string.Join("|", GlobalVar.GetMonitorAreas().Select(m =>
+            $"{m.DeviceName}:{m.WorkingArea.Left},{m.WorkingArea.Top},{m.WorkingArea.Width},{m.WorkingArea.Height}"));
 
     public void TimerTick()
     {
@@ -1010,8 +991,6 @@ public partial class Shell : Form
         // Clean up timers
         hideTimer?.Stop();
         hideTimer?.Dispose();
-        displaySettleTimer?.Stop();
-        displaySettleTimer?.Dispose();
 
         fadeTimer?.Stop();
         fadeTimer?.Dispose();

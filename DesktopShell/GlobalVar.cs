@@ -308,7 +308,31 @@ public static partial class GlobalVar
 
     [DllImport("user32.dll", SetLastError = true)]
     private static extern bool SetWindowPos(IntPtr hWnd, IntPtr hWndInsertAfter, int X, int Y, int W, int H, uint uFlags);
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct RECT { public int Left, Top, Right, Bottom; }
+
+    [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
+    private struct MONITORINFOEX
+    {
+        public int cbSize;
+        public RECT rcMonitor;
+        public RECT rcWork;
+        public uint dwFlags;
+        [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 32)]
+        public string szDevice;
+    }
+
+    private delegate bool MonitorEnumProc(IntPtr hMonitor, IntPtr hdc, IntPtr lprcMonitor, IntPtr dwData);
+
+    [DllImport("user32.dll")]
+    private static extern bool EnumDisplayMonitors(IntPtr hdc, IntPtr lprcClip, MonitorEnumProc lpfnEnum, IntPtr dwData);
+
+    [DllImport("user32.dll", CharSet = CharSet.Unicode)]
+    private static extern bool GetMonitorInfo(IntPtr hMonitor, ref MONITORINFOEX lpmi);
 #pragma warning restore IDE1006
+
+    public readonly record struct MonitorArea(string DeviceName, Rectangle WorkingArea);
     #endregion
 
     #region Setting Functions
@@ -417,10 +441,30 @@ public static partial class GlobalVar
     #endregion
 
     #region UI Functions
+    // Reads the monitors straight from Windows. Screen.AllScreens caches the layout until
+    // SystemEvents sees the change, so inside WM_DISPLAYCHANGE it can return the old one.
+    // Same order as Screen.AllScreens, which also comes from EnumDisplayMonitors.
+    public static List<MonitorArea> GetMonitorAreas()
+    {
+        List<MonitorArea> areas = [];
+        EnumDisplayMonitors(IntPtr.Zero, IntPtr.Zero, (hMonitor, _, _, _) =>
+        {
+            var info = new MONITORINFOEX { cbSize = Marshal.SizeOf<MONITORINFOEX>() };
+            if (GetMonitorInfo(hMonitor, ref info))
+            {
+                RECT r = info.rcWork;
+                areas.Add(new MonitorArea(info.szDevice, Rectangle.FromLTRB(r.Left, r.Top, r.Right, r.Bottom)));
+            }
+            return true;
+        }, IntPtr.Zero);
+        return areas;
+    }
+
     public static void InitDropDownRects(object sender, bool fallbackToFirstScreen = false)
     {
         DropDownRects.Clear();
-        int numScreensDetected = Screen.AllScreens.Length;
+        List<MonitorArea> monitors = GetMonitorAreas();
+        int numScreensDetected = monitors.Count;
         int numScreensEnteredInSettings = Properties.Settings.MultiscreenEnabled.Count;
 
         Log($"^^^ InitDropDownRects: detected={numScreensDetected}, settings={numScreensEnteredInSettings}, enabled=[{string.Join(",", Properties.Settings.MultiscreenEnabled)}]");
@@ -435,7 +479,7 @@ public static partial class GlobalVar
         {
             if (Properties.Settings.MultiscreenEnabled[i])
             {
-                AddDropDownRect(sender, Screen.AllScreens[i], i);
+                AddDropDownRect(sender, monitors[i].WorkingArea, i);
             }
         }
 
@@ -448,12 +492,12 @@ public static partial class GlobalVar
             {
                 if (!Properties.Settings.MultiscreenEnabled[savedIdx]) continue;
                 Rectangle savedArea = Properties.Settings.ScreenAreas[savedIdx];
-                foreach (Screen s in Screen.AllScreens)
+                foreach (MonitorArea m in monitors)
                 {
-                    if (s.WorkingArea == savedArea)
+                    if (m.WorkingArea == savedArea)
                     {
-                        Log($"^^^ InitDropDownRects: matched saved screen {savedIdx} to {s.DeviceName} by WorkingArea {savedArea}");
-                        AddDropDownRect(sender, s, savedIdx);
+                        Log($"^^^ InitDropDownRects: matched saved screen {savedIdx} to {m.DeviceName} by WorkingArea {savedArea}");
+                        AddDropDownRect(sender, m.WorkingArea, savedIdx);
                         break;
                     }
                 }
@@ -464,7 +508,7 @@ public static partial class GlobalVar
         if (DropDownRects.Count == 0 && fallbackToFirstScreen && numScreensDetected > 0)
         {
             Log($"^^^ InitDropDownRects: no enabled screen reachable -- falling back to screen 0 (primary)");
-            AddDropDownRect(sender, Screen.AllScreens[0], 0);
+            AddDropDownRect(sender, monitors[0].WorkingArea, 0);
         }
 
         if (DropDownRects.Count == 0)
@@ -473,19 +517,19 @@ public static partial class GlobalVar
         }
     }
 
-    private static void AddDropDownRect(object sender, Screen s, int screenIndex)
+    private static void AddDropDownRect(object sender, Rectangle workingArea, int screenIndex)
     {
         Size shellSize = ((Shell)sender).ClientSize;
-        int pointX = s.WorkingArea.Left + ((s.WorkingArea.Width / 2) - shellSize.Width / 2);
-        int pointY = s.WorkingArea.Top + shellSize.Height;
+        int pointX = workingArea.Left + ((workingArea.Width / 2) - shellSize.Width / 2);
+        int pointY = workingArea.Top + shellSize.Height;
         int extendedX = pointX - DropDownRectHorizontalPadding;
-        int extendedY = s.WorkingArea.Top;
+        int extendedY = workingArea.Top;
         int extendedWidth = shellSize.Width + (DropDownRectHorizontalPadding * 2);
-        int extendedHeight = pointY - s.WorkingArea.Top + DropDownRectVerticalPadding;
+        int extendedHeight = pointY - workingArea.Top + DropDownRectVerticalPadding;
         Rectangle tempRect = new(new Point(extendedX, extendedY), new Size(extendedWidth, extendedHeight));
         DropDownRects.Add(tempRect);
 
-        Log($"### InitDropDownRects: Screen {screenIndex} - WorkingArea: L={s.WorkingArea.Left}, T={s.WorkingArea.Top}, W={s.WorkingArea.Width}, H={s.WorkingArea.Height}");
+        Log($"### InitDropDownRects: Screen {screenIndex} - WorkingArea: L={workingArea.Left}, T={workingArea.Top}, W={workingArea.Width}, H={workingArea.Height}");
         Log($"### InitDropDownRects: ShellSize: W={shellSize.Width}, H={shellSize.Height}");
         Log($"### InitDropDownRects: BoundingRect: L={tempRect.Left}, T={tempRect.Top}, R={tempRect.Right}, B={tempRect.Bottom}");
     }
